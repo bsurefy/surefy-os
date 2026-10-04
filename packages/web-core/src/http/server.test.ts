@@ -16,7 +16,7 @@ beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' })
 })
 beforeEach(() => {
-  // `serverEnv` is parsed when the module loads, so every test starts from a fresh module graph.
+  // `serverEnv` keeps its first parse, so every test starts from a fresh module graph.
   vi.resetModules()
   vi.unstubAllEnvs()
 })
@@ -48,9 +48,11 @@ describe('getServerHttpClient', () => {
     expect(received).toEqual({ cookie: 'sid=abc; theme=dark', forwardedHost: 'app.surefyos.test' })
   })
 
-  it('fails at load time when INTERNAL_API_URL is missing or invalid', async () => {
+  it('loads without INTERNAL_API_URL and fails on the first request when it is invalid', async () => {
     vi.stubEnv('INTERNAL_API_URL', 'not a url')
+    const { getServerHttpClient } = await import('./server')
 
-    await expect(import('./server')).rejects.toThrow(/INTERNAL_API_URL/)
+    const client = await getServerHttpClient()
+    await expect(client.get('/me')).rejects.toThrow(/INTERNAL_API_URL/)
   })
 })
