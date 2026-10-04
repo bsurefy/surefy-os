@@ -1,0 +1,17 @@
+{
+  "library": {
+    "title": "Knowledge",
+    "description": "Documents and websites your chats and agents answer from, with sources.",
+    "empty": {
+      "title": "Create your first knowledge base",
+      "description": "Upload documents or add website links, then get answers from them in chat with sources."
+    }
+  },
+  "detail": {
+    "title": "Knowledge base",
+    "empty": {
+      "title": "Add your first source",
+      "description": "Upload documents or add website links to this knowledge base."
+    }
+  }
+}

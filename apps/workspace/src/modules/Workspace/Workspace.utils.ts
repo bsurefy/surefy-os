@@ -85,7 +85,7 @@ export function toRoute(path: string): Route {
 }
 
 /** Where the organization opens: Chat. */
-export function getHomeHref(orgSlug: string): string {
+export function getHomeHref(orgSlug: string) {
   return ROUTES.workspace.home(orgSlug)
 }
 

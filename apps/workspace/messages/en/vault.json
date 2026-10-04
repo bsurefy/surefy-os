@@ -1,0 +1,10 @@
+{
+  "page": {
+    "title": "Vault",
+    "description": "AI providers, API keys, local models and who may use which model.",
+    "empty": {
+      "title": "Connect your first AI provider",
+      "description": "Add an API key or a local model server so your organization can start chatting."
+    }
+  }
+}

@@ -6,7 +6,6 @@ import Link from 'next/link'
 
 import { Button } from '@surefy/ui/primitives/button'
 
-import { toRoute } from '../Workspace.utils'
 import { useNoAccessStateController } from './NoAccessState.controller'
 
 import type { NoAccessArea } from '../Workspace.types'
@@ -32,7 +31,7 @@ export default function NoAccessState({ area }: Readonly<{ area: NoAccessArea }>
       <p className="text-body text-foreground-secondary">{explanation}</p>
       <p className="text-body text-foreground-secondary">{askAdmin}</p>
       <Button asChild variant="secondary" className="mt-2">
-        <Link href={toRoute(homeHref)}>{homeLabel}</Link>
+        <Link href={homeHref}>{homeLabel}</Link>
       </Button>
     </section>
   )

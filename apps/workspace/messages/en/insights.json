@@ -1,0 +1,10 @@
+{
+  "overview": {
+    "title": "Insights",
+    "description": "AI usage and cost in your organization, by team, person and model.",
+    "empty": {
+      "title": "No usage yet",
+      "description": "Usage and cost appear here once people start chatting."
+    }
+  }
+}
