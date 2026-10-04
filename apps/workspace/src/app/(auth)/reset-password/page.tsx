@@ -10,6 +10,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title') }
 }
 
-export default function ResetPasswordPage() {
-  return <ResetPassword />
+export default async function ResetPasswordPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ token?: string | string[]; error?: string | string[] }> }>) {
+  const { token, error } = await searchParams
+  return (
+    <ResetPassword
+      token={typeof token === 'string' ? token : undefined}
+      hasLinkError={error !== undefined}
+    />
+  )
 }

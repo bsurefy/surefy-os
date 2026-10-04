@@ -10,6 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title') }
 }
 
-export default function LoginPage() {
-  return <SignIn />
+export default async function LoginPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ redirect?: string | string[] }> }>) {
+  const { redirect } = await searchParams
+  return <SignIn redirect={typeof redirect === 'string' ? redirect : undefined} />
 }
