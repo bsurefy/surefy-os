@@ -51,7 +51,7 @@ function AlertDialogContent({
         data-slot="alert-dialog-content"
         data-size={size}
         className={cn(
-          'group/alert-dialog-content bg-surface data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 z-overlay fixed top-[50%] left-[50%] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-2xl border p-6 shadow-lg duration-200 data-[size=sm]:max-w-xs data-[size=default]:sm:max-w-lg',
+          'group/alert-dialog-content bg-surface border-border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 z-overlay fixed top-16 left-[50%] flex max-h-[calc(100dvh-8rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col overflow-hidden rounded-xl border shadow-lg duration-200 data-[size=default]:sm:max-w-[520px] data-[size=sm]:sm:max-w-[400px]',
           className,
         )}
         {...props}
@@ -64,10 +64,18 @@ function AlertDialogHeader({ className, ...props }: React.ComponentProps<'div'>)
   return (
     <div
       data-slot="alert-dialog-header"
-      className={cn(
-        'grid grid-rows-[auto_1fr] place-items-center gap-1.5 text-center has-data-[slot=alert-dialog-media]:grid-rows-[auto_auto_1fr] has-data-[slot=alert-dialog-media]:gap-x-6 sm:group-data-[size=default]/alert-dialog-content:place-items-start sm:group-data-[size=default]/alert-dialog-content:text-left sm:group-data-[size=default]/alert-dialog-content:has-data-[slot=alert-dialog-media]:grid-rows-[auto_1fr]',
-        className,
-      )}
+      className={cn('flex flex-col gap-1.5 px-6 pt-6 pb-4', className)}
+      {...props}
+    />
+  )
+}
+
+/** Impact list, reason and typed confirmation; scrolls between header and footer. */
+function AlertDialogBody({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="alert-dialog-body"
+      className={cn('text-body flex min-h-0 flex-col gap-4 overflow-y-auto px-6 pb-6', className)}
       {...props}
     />
   )
@@ -78,7 +86,7 @@ function AlertDialogFooter({ className, ...props }: React.ComponentProps<'div'>)
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        'flex flex-col-reverse gap-2 group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2 sm:flex-row sm:justify-end',
+        'border-border bg-surface-2 flex flex-col-reverse gap-2 border-t px-6 py-4 sm:flex-row sm:justify-end',
         className,
       )}
       {...props}
@@ -93,10 +101,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn(
-        'text-lg font-semibold sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2',
-        className,
-      )}
+      className={cn('text-object-title text-foreground', className)}
       {...props}
     />
   )
@@ -109,7 +114,7 @@ function AlertDialogDescription({
   return (
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
-      className={cn('text-muted-foreground text-sm', className)}
+      className={cn('text-body text-foreground-secondary', className)}
       {...props}
     />
   )
@@ -166,6 +171,7 @@ function AlertDialogCancel({
 
 export {
   AlertDialog,
+  AlertDialogBody,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
