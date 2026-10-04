@@ -5,30 +5,26 @@ import * as React from 'react'
 
 import { cn } from '@surefy/ui/lib/utils'
 
+// Catalog badge: a 22px pill for labels (New, Beta). Statuses such as Draft use StatusPill.
 const badgeVariants = cva(
-  'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] [&>svg]:pointer-events-none [&>svg]:size-3',
+  'text-caption inline-flex h-[1.375rem] w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full border px-2 font-medium whitespace-nowrap [&>svg]:pointer-events-none [&>svg]:size-3',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
-        secondary: 'bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
-        destructive:
-          'bg-destructive dark:bg-destructive/60 [a&]:hover:bg-destructive/90 text-white',
-        outline:
-          'border-border text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        ghost: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 [a&]:hover:underline',
+        neutral: 'bg-surface-2 text-foreground-secondary border-transparent',
+        primary: 'bg-primary-soft text-primary-soft-foreground border-transparent',
+        outline: 'border-border text-foreground-secondary bg-transparent',
       },
     },
     defaultVariants: {
-      variant: 'default',
+      variant: 'neutral',
     },
   },
 )
 
 function Badge({
   className,
-  variant = 'default',
+  variant = 'neutral',
   asChild = false,
   ...props
 }: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
