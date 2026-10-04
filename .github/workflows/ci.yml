@@ -59,7 +59,6 @@ jobs:
 
   python:
     name: ML service
-    if: hashFiles('apps/ml/pyproject.toml') != ''
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
