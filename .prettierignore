@@ -5,3 +5,4 @@ coverage/
 .turbo/
 apps/ml/
 packages/ml-client/src/generated/
+next-env.d.ts
