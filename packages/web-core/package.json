@@ -6,7 +6,12 @@
   "type": "module",
   "description": "Frontend infrastructure: HTTP, query, auth helpers, access gating, i18n, forms, shared API domains",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./http": "./src/http/index.ts",
+    "./http/server": "./src/http/server.ts",
+    "./query": "./src/query/index.ts",
+    "./errors": "./src/errors/index.ts",
+    "./env": "./src/env/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
