@@ -1,0 +1,135 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/*
+ * Layer 2: semantic tokens, light (:root) and dark (.dark). Names and values follow
+ * docs/design/shared/foundations.md section 2; every token has both values.
+ * Changing a value means recomputing the contrast table (contrast.test.ts checks it).
+ */
+:root {
+  /* Neutrals */
+  --background: var(--palette-gray-25);
+  --surface: var(--palette-gray-0);
+  --surface-2: var(--palette-gray-50);
+  --border: var(--palette-gray-100);
+  --input: var(--palette-gray-450);
+  --foreground: var(--palette-gray-925);
+  --foreground-secondary: var(--palette-gray-600);
+  --muted-foreground: var(--palette-gray-550);
+  --scrim: rgb(13 18 20 / 0.42);
+
+  /* Brand (replaced by white-label brands) */
+  --primary: var(--palette-teal-700);
+  --primary-hover: var(--palette-teal-800);
+  --primary-soft: var(--palette-teal-50);
+  --primary-soft-foreground: var(--palette-teal-800);
+  --primary-foreground: var(--palette-gray-0);
+  --ring: var(--palette-teal-700);
+
+  /* Status families: base, soft fill, text on soft */
+  --success: var(--palette-green-700);
+  --success-soft: var(--palette-green-50);
+  --success-soft-foreground: var(--palette-green-800);
+  --warning: var(--palette-amber-700);
+  --warning-soft: var(--palette-amber-50);
+  --warning-soft-foreground: var(--palette-amber-800);
+  --destructive: var(--palette-red-700);
+  --destructive-soft: var(--palette-red-50);
+  --destructive-soft-foreground: var(--palette-red-800);
+  --destructive-foreground: var(--palette-gray-0);
+  --info: var(--palette-blue-700);
+  --info-soft: var(--palette-blue-50);
+  --info-soft-foreground: var(--palette-blue-800);
+
+  /* Chart palette (never brandable) */
+  --chart-1: var(--palette-teal-700);
+  --chart-2: var(--palette-violet-700);
+  --chart-3: var(--palette-rose-700);
+  --chart-4: var(--palette-brown-700);
+  --chart-5: var(--palette-indigo-700);
+  --chart-6: var(--palette-olive-700);
+}
+
+.dark {
+  --background: var(--palette-gray-950);
+  --surface: var(--palette-gray-900);
+  --surface-2: var(--palette-gray-850);
+  --border: var(--palette-gray-800);
+  --input: var(--palette-gray-500);
+  --foreground: var(--palette-gray-75);
+  --foreground-secondary: var(--palette-gray-300);
+  --muted-foreground: var(--palette-gray-400);
+  --scrim: rgb(0 0 0 / 0.6);
+
+  --primary: var(--palette-teal-400);
+  --primary-hover: var(--palette-teal-300);
+  --primary-soft: var(--palette-teal-900);
+  --primary-soft-foreground: var(--palette-teal-200);
+  --primary-foreground: var(--palette-teal-950);
+  --ring: var(--palette-teal-400);
+
+  --success: var(--palette-green-400);
+  --success-soft: var(--palette-green-900);
+  --success-soft-foreground: var(--palette-green-200);
+  --warning: var(--palette-amber-400);
+  --warning-soft: var(--palette-amber-900);
+  --warning-soft-foreground: var(--palette-amber-200);
+  --destructive: var(--palette-red-400);
+  --destructive-soft: var(--palette-red-900);
+  --destructive-soft-foreground: var(--palette-red-200);
+  --destructive-foreground: var(--palette-gray-900);
+  --info: var(--palette-blue-400);
+  --info-soft: var(--palette-blue-900);
+  --info-soft-foreground: var(--palette-blue-200);
+
+  --chart-1: var(--palette-teal-400);
+  --chart-2: var(--palette-violet-400);
+  --chart-3: var(--palette-rose-400);
+  --chart-4: var(--palette-brown-400);
+  --chart-5: var(--palette-indigo-400);
+  --chart-6: var(--palette-olive-400);
+}
+
+/* Theme-independent references: they follow the tokens above in both themes. */
+:root {
+  /* Confidence: aliases, so they can change later without touching status colors */
+  --confidence-high: var(--success);
+  --confidence-medium: var(--warning);
+  --confidence-low: var(--destructive);
+
+  /* Sidebar (workspace and partner portal) */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground-secondary);
+  --sidebar-active: var(--primary-soft);
+  --sidebar-active-foreground: var(--primary-soft-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-muted: var(--muted-foreground);
+  --sidebar-ring: var(--ring);
+
+  /* Partner portal brand strip (overridden by the partner's brand) */
+  --partner-strip: var(--primary);
+
+  /* shadcn aliases: used only by generated primitives */
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --muted: var(--surface-2);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--foreground);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--sidebar-active);
+  --sidebar-accent-foreground: var(--sidebar-active-foreground);
+}
+
+/* Console: the sidebar stays dark in both themes ("you are in the BSurefy console"). */
+[data-sidebar-theme='console'] {
+  --sidebar: var(--palette-gray-975);
+  --sidebar-foreground: var(--palette-gray-300);
+  --sidebar-active: var(--palette-gray-850);
+  --sidebar-active-foreground: var(--palette-gray-75);
+  --sidebar-border: var(--palette-gray-850);
+  --sidebar-muted: var(--palette-gray-400);
+  --sidebar-ring: var(--palette-teal-400);
+}
