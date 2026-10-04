@@ -9,6 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "generate": "openapi-typescript ../../apps/ml/openapi.json -o src/generated/schema.ts --default-non-nullable false",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
