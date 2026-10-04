@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server'
 import { describe, expect, it } from 'vitest'
 
-import { createSessionProxy } from '@surefy/web-core/auth'
+import { createSessionProxy } from '@surefy/web-core/auth/proxy'
 
 import { PUBLIC_PATHS, ROUTES, SETTINGS_SECTION } from './routes'
 

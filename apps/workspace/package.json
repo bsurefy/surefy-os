@@ -6,9 +6,9 @@
   "type": "module",
   "description": "Workspace web app (app.surefyos.com)",
   "scripts": {
-    "dev": "next dev --port ${WEB_PORT:-3000}",
+    "dev": "next dev --webpack --port ${WEB_PORT:-3000}",
     "dev:mock": "tsx watch --env-file-if-exists=.env.local mock/main.ts",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start --port ${WEB_PORT:-3000}",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
