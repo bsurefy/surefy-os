@@ -1,4 +1,7 @@
 {
   "TEAM_NAME_TAKEN": "A team with this name already exists. Choose another name.",
-  "TEAM_NOT_FOUND": "This team no longer exists."
+  "TEAM_NOT_FOUND": "This team no longer exists.",
+  "TEAM_LEAD_NOT_A_MEMBER": "The team lead must be a member of the team.",
+  "TEAM_MEMBER_NOT_FOUND": "This person isn't in the team.",
+  "TEAM_HAS_CONNECTIONS": "This team has shared connections. Choose what happens to them before deleting it."
 }

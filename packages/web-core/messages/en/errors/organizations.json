@@ -1,3 +1,7 @@
 {
-  "ORGANIZATION_NOT_FOUND": "This organization no longer exists or you are not a member of it."
+  "ORGANIZATION_NOT_FOUND": "This organization no longer exists or you are not a member of it.",
+  "ORGANIZATION_SLUG_TAKEN": "This address is already in use. Choose another one.",
+  "ORGANIZATION_SLUG_RESERVED": "This address is reserved and can't be used. Choose another one.",
+  "ORGANIZATION_SUSPENDED": "This organization is suspended. Contact its owner.",
+  "ORGANIZATION_CREATION_NOT_ALLOWED": "You can't create organizations on this server. Ask an install administrator."
 }
