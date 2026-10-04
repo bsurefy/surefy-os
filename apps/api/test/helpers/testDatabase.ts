@@ -52,6 +52,9 @@ export const createTestLogger = (): Logger =>
 
 const quoteIdentifier = (name: string) => `"${name.replaceAll('"', '""')}"`
 
+/** `TRIGGER_TYPE_TRUNCATE` in `pg_trigger.tgtype`. */
+const TRUNCATE_TRIGGER = 32
+
 const withAdmin = async <T>(
   infrastructure: TestInfrastructure,
   fn: (client: Client) => Promise<T>,
@@ -161,5 +164,19 @@ export async function truncateAllTables(owner: Database): Promise<void> {
       and c.relkind in ('r', 'p') and not c.relispartition`)
   if (tables.rows.length === 0) return
   const list = tables.rows.map((row) => quoteIdentifier(row.name)).join(', ')
-  await owner.global.execute(sql.raw(`truncate table ${list} restart identity cascade`))
+  // Append-only tables refuse TRUNCATE with a trigger (audit_logs); the owner switches their user
+  // triggers off for this transaction only.
+  const guarded = await owner.global.execute<{ name: string }>(sql`
+    select distinct c.relname as name
+    from pg_trigger t
+    join pg_class c on c.oid = t.tgrelid
+    where c.relnamespace = 'public'::regnamespace and not t.tgisinternal
+      and (t.tgtype & ${TRUNCATE_TRIGGER}) <> 0`)
+  const toggle = (state: 'disable' | 'enable') =>
+    guarded.rows.map((row) => `alter table ${quoteIdentifier(row.name)} ${state} trigger user;`)
+  await owner.global.transaction(async (tx) => {
+    for (const statement of toggle('disable')) await tx.execute(sql.raw(statement))
+    await tx.execute(sql.raw(`truncate table ${list} restart identity cascade`))
+    for (const statement of toggle('enable')) await tx.execute(sql.raw(statement))
+  })
 }

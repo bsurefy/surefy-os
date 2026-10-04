@@ -94,10 +94,3 @@ export class InvitationEmailMismatchError extends ForbiddenError {
     super(ERROR_CODES.INVITATION_EMAIL_MISMATCH, 'This invitation is for another email address')
   }
 }
-
-/** Member requests into a suspended organization are refused (organizations-and-members.md). */
-export class OrganizationSuspendedError extends ForbiddenError {
-  constructor() {
-    super(ERROR_CODES.ORGANIZATION_SUSPENDED, 'This organization is suspended')
-  }
-}

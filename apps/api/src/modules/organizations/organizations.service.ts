@@ -7,13 +7,13 @@ import {
 } from '@/core/database/index.js'
 import { UnauthorizedError } from '@/core/errors/index.js'
 import {
+  AUDIT_ACTIONS,
   FEATURE_EDITIONS,
   FEATURES,
   ORGANIZATION_SLUG_PATTERN,
   RESERVED_ORGANIZATION_SLUGS,
   type CreateOrganizationInput,
   type OrganizationDto,
-  type OrganizationStatus,
   type SlugAvailabilityDto,
   type UpdateOrganizationInput,
 } from '@surefy/contracts'
@@ -38,12 +38,14 @@ import type {
 import type {
   CreateOrganizationOptions,
   InstallLimitsSource,
+  OrganizationAccessHeader,
   OrganizationContext,
   OrganizationCreationRule,
   OrganizationOwner,
   OrganizationOwnerWriter,
 } from './organizations.types.js'
 import type { StorageProvider } from '@/integrations/storage/index.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 import type { ActorContext } from '@/types/context.js'
 
 export interface OrganizationsServiceDeps {
@@ -53,6 +55,37 @@ export interface OrganizationsServiceDeps {
   owners: OrganizationOwnerWriter
   installLimits: InstallLimitsSource
   creationRule: OrganizationCreationRule
+  audit: AuditRecorder
+}
+
+interface AuditChange {
+  field: string
+  from: unknown
+  to: unknown
+}
+
+/** Field-level changes of an organization update (settings by `section.field`), for the audit. */
+const organizationChanges = (before: OrganizationRow, after: OrganizationRow): AuditChange[] => {
+  const changes: AuditChange[] = []
+  for (const field of ['name', 'timezone', 'defaultLocale', 'currency'] as const) {
+    if (before[field] !== after[field]) {
+      changes.push({ field, from: before[field], to: after[field] })
+    }
+  }
+  for (const section of ['security', 'privacy', 'setup'] as const) {
+    const from: Record<string, unknown> = { ...before.settings[section] }
+    const to: Record<string, unknown> = { ...after.settings[section] }
+    for (const key of new Set([...Object.keys(from), ...Object.keys(to)])) {
+      if (JSON.stringify(from[key]) !== JSON.stringify(to[key])) {
+        changes.push({
+          field: `settings.${section}.${key}`,
+          from: from[key] ?? null,
+          to: to[key] ?? null,
+        })
+      }
+    }
+  }
+  return changes
 }
 
 /** A new organization and the Owner membership created with it. */
@@ -129,7 +162,9 @@ export class OrganizationsService {
           patch.slug = input.slug
         }
         if (Object.keys(patch).length === 0) return current
-        return repository.update(tx, ctx.orgId, patch)
+        const updated = await repository.update(tx, ctx.orgId, patch)
+        if (updated !== undefined) await this.auditUpdateInTx(tx, ctx, current, updated)
+        return updated
       })
       .catch(slugConflict)
     if (row === undefined) throw new OrganizationNotFoundError()
@@ -203,6 +238,15 @@ export class OrganizationsService {
       userId: owner.userId,
       provisioningSource: owner.provisioningSource,
     })
+    await this.deps.audit.record(
+      tx,
+      { orgId, userId: owner.userId },
+      {
+        action: AUDIT_ACTIONS.ORGANIZATION_CREATED,
+        target: { type: 'organization', id: orgId },
+        metadata: { labels: { provisioningSource: owner.provisioningSource } },
+      },
+    )
     return { row, memberId }
   }
 
@@ -268,16 +312,69 @@ export class OrganizationsService {
     return this.deps.organizationsRepository.bumpAccessVersion(tx, orgId)
   }
 
+  /**
+   * Transaction-participating (data control): an `active` organization enters its deletion hold;
+   * false when it is not active (already scheduled, or suspended).
+   */
+  scheduleDeletionInTx(
+    tx: DbExecutor,
+    orgId: string,
+    input: { requestedByUserId: string | null; scheduledFor: Date },
+  ): Promise<boolean> {
+    return this.deps.organizationsRepository.setDeletion(tx, orgId, input)
+  }
+
+  /** Transaction-participating (data control): the hold is canceled and the organization active. */
+  cancelDeletionInTx(tx: DbExecutor, orgId: string): Promise<boolean> {
+    return this.deps.organizationsRepository.setDeletion(tx, orgId, null)
+  }
+
   /** Transaction-participating: the organization, for modules that embed or show it. */
   async getInTx(tx: DbExecutor, orgId: string): Promise<OrganizationDto | undefined> {
     const row = await this.deps.organizationsRepository.findById(tx, orgId)
     return row === undefined ? undefined : this.toDto(row)
   }
 
-  /** Transaction-participating: the lifecycle status the access check needs, without signing URLs. */
-  async findStatusInTx(tx: DbExecutor, orgId: string): Promise<OrganizationStatus | undefined> {
+  /**
+   * Transaction-participating: what the access check reads on every request (status, the access
+   * version of the cache key, and whether the organization requires two-factor).
+   */
+  async findAccessHeaderInTx(
+    tx: DbExecutor,
+    orgId: string,
+  ): Promise<OrganizationAccessHeader | undefined> {
     const row = await this.deps.organizationsRepository.findById(tx, orgId)
-    return row?.status
+    if (row === undefined) return undefined
+    return {
+      status: row.status,
+      accessVersion: row.accessVersion,
+      require2fa: row.settings.security?.require2fa ?? false,
+    }
+  }
+
+  /** `organization.updated` with the field changes, and `organization.slug_changed` on its own. */
+  private async auditUpdateInTx(
+    tx: DbExecutor,
+    ctx: OrganizationContext,
+    before: OrganizationRow,
+    after: OrganizationRow,
+  ): Promise<void> {
+    const target = { type: 'organization', id: ctx.orgId }
+    if (before.slug !== after.slug) {
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.ORGANIZATION_SLUG_CHANGED,
+        target,
+        metadata: { changes: [{ field: 'slug', from: before.slug, to: after.slug }] },
+      })
+    }
+    const changes = organizationChanges(before, after)
+    if (changes.length > 0) {
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.ORGANIZATION_UPDATED,
+        target,
+        metadata: { changes },
+      })
+    }
   }
 
   /** The signed URL of a stored logo; null when the organization has none. */

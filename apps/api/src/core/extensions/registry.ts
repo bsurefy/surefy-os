@@ -2,6 +2,7 @@
 import type { ExtensionRegistry, MigrationsFolder } from './extension.types.js'
 import type { Logger } from '@/core/logger/index.js'
 import type { RegisteredJob } from '@/core/queue/index.js'
+import type { AccessCheck, EntitlementSource } from '@/modules/access/entitlements.types.js'
 import type { BetterAuthPlugin } from 'better-auth'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type { z } from 'zod'
@@ -13,6 +14,8 @@ export function createExtensionRegistry(logger: Logger): ExtensionRegistry {
   const jobs: RegisteredJob[] = []
   const settingsSchemas = new Map<string, z.ZodType>()
   const migrationsFolders: MigrationsFolder[] = []
+  const accessChecks: AccessCheck[] = []
+  let entitlementSource: EntitlementSource | undefined
 
   return {
     addRoutes(plugin) {
@@ -34,10 +37,24 @@ export function createExtensionRegistry(logger: Logger): ExtensionRegistry {
     addMigrationsFolder(path, table) {
       migrationsFolders.push({ path, table })
     },
+    setEntitlementSource(source) {
+      if (entitlementSource !== undefined) {
+        logger.warn(
+          { previous: entitlementSource.name, next: source.name },
+          'entitlement source replaced by an extension',
+        )
+      }
+      entitlementSource = source
+    },
+    addAccessCheck(check) {
+      accessChecks.push(check)
+    },
     routes: () => routes,
     authPlugins: () => authPlugins,
     jobs: () => jobs,
     settingsSchemas: () => settingsSchemas,
     migrationsFolders: () => migrationsFolders,
+    entitlementSource: () => entitlementSource,
+    accessChecks: () => accessChecks,
   }
 }

@@ -2,7 +2,7 @@
 import { AppError } from '@/core/errors/index.js'
 import { decodeCursor, toPage } from '@/lib/pagination.js'
 import { TeamNotFoundError } from '@/modules/teams/index.js'
-import { PERMISSIONS } from '@surefy/contracts'
+import { AUDIT_ACTIONS, PERMISSIONS } from '@surefy/contracts'
 import type {
   BulkMemberActionInput,
   BulkMemberActionResultDto,
@@ -36,6 +36,7 @@ import type {
   MemberUsers,
 } from './members.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
+import type { AuditEntryInput, AuditRecorder } from '@/modules/audit/index.js'
 
 export interface MembersServiceDeps {
   db: Database
@@ -43,6 +44,35 @@ export interface MembersServiceDeps {
   organizations: MemberOrganizations
   teams: MemberTeams
   users: MemberUsers
+  audit: AuditRecorder
+}
+
+/** The audit entries one membership change writes, from the row before and the patch. */
+const memberAuditEntries = (target: MembershipRow, patch: MembershipPatch): AuditEntryInput[] => {
+  const member = { type: 'member', id: target.id }
+  const entries: AuditEntryInput[] = []
+  if (patch.role !== undefined) {
+    entries.push({
+      action: AUDIT_ACTIONS.MEMBER_ROLE_CHANGED,
+      target: member,
+      metadata: { changes: [{ field: 'role', from: target.role, to: patch.role }] },
+    })
+  }
+  if (patch.primaryTeamId !== undefined) {
+    entries.push({
+      action: AUDIT_ACTIONS.MEMBER_PRIMARY_TEAM_CHANGED,
+      target: member,
+      metadata: {
+        changes: [{ field: 'primaryTeamId', from: target.primaryTeamId, to: patch.primaryTeamId }],
+      },
+    })
+  }
+  if (patch.status === 'deactivated') {
+    entries.push({ action: AUDIT_ACTIONS.MEMBER_DEACTIVATED, target: member })
+  } else if (patch.status === 'active') {
+    entries.push({ action: AUDIT_ACTIONS.MEMBER_REACTIVATED, target: member })
+  }
+  return entries
 }
 
 const canManageOwners = (ctx: MembersContext): boolean =>
@@ -155,6 +185,19 @@ export class MembersService {
       await this.deps.teams.clearLeadForUserInTx(tx, ctx.orgId, target.userId)
       await this.deps.membershipsRepository.delete(tx, ctx.orgId, target.id)
       await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.MEMBER_REMOVED,
+        target: { type: 'member', id: target.id },
+        metadata: {
+          refs: {
+            userId: target.userId,
+            ...(query.transferToUserId === undefined
+              ? {}
+              : { transferToUserId: query.transferToUserId }),
+          },
+          labels: { role: target.role },
+        },
+      })
     })
   }
 
@@ -225,7 +268,14 @@ export class MembersService {
           [input.teamId],
           ctx.userId,
         )
-        if (added > 0) await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+        if (added > 0) {
+          await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+          await this.deps.audit.record(tx, ctx, {
+            action: AUDIT_ACTIONS.TEAM_MEMBER_ADDED,
+            target: { type: 'team', id: input.teamId },
+            metadata: { refs: { userId: target.userId } },
+          })
+        }
       })
     }
   }
@@ -244,6 +294,9 @@ export class MembersService {
         updated =
           (await this.deps.membershipsRepository.update(tx, ctx.orgId, memberId, patch)) ?? target
         await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+        for (const entry of memberAuditEntries(target, patch)) {
+          await this.deps.audit.record(tx, ctx, entry)
+        }
       }
       return { row: updated, teams: await this.teamsOf(tx, ctx.orgId, [updated]) }
     })

@@ -243,11 +243,11 @@ describe('resend, link and revoke', () => {
 describe('the invitation link', () => {
   it('previews the organization and role without a session', async () => {
     const setup = await setupTwoOrgs()
+    const { token } = await inviteWithToken(setup, 'preview@example.test')
     await request(setup.app, 'PATCH', `/api/v1/orgs/${setup.a.id}`, {
       headers: setup.sessionOf(setup.a.members.olivia),
       payload: { settings: { security: { require2fa: true } } },
     })
-    const { token } = await inviteWithToken(setup, 'preview@example.test')
     const preview = expectData(
       await request(setup.app, 'GET', `/api/v1/invitations/${token}`),
       200,

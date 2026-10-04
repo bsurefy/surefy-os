@@ -19,14 +19,13 @@ export type MemberUsers = Pick<AuthUsersService, 'findById' | 'findUserRefs' | '
 /** The organizations module: access version, the organization itself and its logo. */
 export type MemberOrganizations = Pick<
   OrganizationsService,
-  'bumpAccessVersionInTx' | 'getInTx' | 'findStatusInTx' | 'logoUrl'
+  'bumpAccessVersionInTx' | 'getInTx' | 'logoUrl'
 >
 
 /** The teams module's transaction-participating team membership reads and writes. */
 export type MemberTeams = Pick<
   TeamsService,
   | 'addMemberToTeamsInTx'
-  | 'listTeamIdsForUserInTx'
   | 'isMemberOfTeamInTx'
   | 'findRefsInTx'
   | 'listRefsByUsersInTx'

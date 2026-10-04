@@ -12,6 +12,7 @@ import type {
 } from './organizations.types.js'
 import type { Database } from '@/core/database/index.js'
 import type { StorageProvider } from '@/integrations/storage/index.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 
 export interface OrganizationsModuleDeps {
   db: Database
@@ -22,6 +23,7 @@ export interface OrganizationsModuleDeps {
   installLimits?: InstallLimitsSource
   /** The install's organization creation policy (install module); nobody by default. */
   creationRule?: OrganizationCreationRule
+  audit: AuditRecorder
 }
 
 export function createOrganizationsModule(deps: OrganizationsModuleDeps) {
@@ -32,6 +34,7 @@ export function createOrganizationsModule(deps: OrganizationsModuleDeps) {
     owners: deps.owners,
     installLimits: deps.installLimits ?? ORGANIZATIONS_DEFAULTS.installLimits,
     creationRule: deps.creationRule ?? ORGANIZATIONS_DEFAULTS.creationRule,
+    audit: deps.audit,
   })
   return { service, routes: organizationsRoutes(new OrganizationsController(service)) }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { LimitReachedDetail, ProvisioningSource } from '@surefy/contracts'
+import type { LimitReachedDetail, OrganizationStatus, ProvisioningSource } from '@surefy/contracts'
 
 import type { DbTransaction } from '@/core/database/index.js'
 
@@ -49,4 +49,13 @@ export interface CreateOrganizationOptions {
    * every other creation enforces it.
    */
   enforceLimit?: boolean
+}
+
+/** What the access check reads on every request, inside its tenant transaction. */
+export interface OrganizationAccessHeader {
+  status: OrganizationStatus
+  /** `organizations.access_version`: part of the effective access cache key. */
+  accessVersion: number
+  /** `settings.security.require2fa`: members without two-factor are refused. */
+  require2fa: boolean
 }

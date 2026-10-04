@@ -5,7 +5,6 @@ export {
   type Memberships,
   type MembersModule,
 } from './members.module.js'
-export type { MemberAccessResolver } from './memberAccess/memberAccess.service.js'
 export type {
   InvitationDeliveryOutcome,
   MemberInvitationsService,

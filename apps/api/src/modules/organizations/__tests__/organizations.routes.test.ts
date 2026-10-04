@@ -56,17 +56,18 @@ describe('PATCH /orgs/:orgId', () => {
     const headers = sessionOf(a.members.adam)
     await request(app, 'PATCH', orgUrl(a.id), {
       headers,
-      payload: { settings: { security: { require2fa: true } } },
+      payload: {
+        name: 'Acme Labs',
+        timezone: 'Europe/Berlin',
+        currency: 'eur',
+        settings: { security: { sessionMaxHours: 12 } },
+      },
     })
+    // Last: from now on members without two-factor are refused (AUTH_TWO_FACTOR_REQUIRED).
     const updated = expectData(
       await request(app, 'PATCH', orgUrl(a.id), {
         headers,
-        payload: {
-          name: 'Acme Labs',
-          timezone: 'Europe/Berlin',
-          currency: 'eur',
-          settings: { security: { sessionMaxHours: 12 } },
-        },
+        payload: { settings: { security: { require2fa: true } } },
       }),
       200,
       organizationDtoSchema,
@@ -187,6 +188,7 @@ describe('organization limit and creation (ADR 0016)', () => {
         getInstallLimits: () => Promise.resolve({ maxOrganizations }),
       },
       creationRule: { mayCreateOrganization: () => Promise.resolve(true) },
+      audit: setup.container.modules.audit.service,
     }).service
 
   it('refuses a third organization when the install allows two, with the limit details', async () => {

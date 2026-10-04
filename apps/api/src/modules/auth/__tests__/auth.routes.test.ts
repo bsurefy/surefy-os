@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 import { sessions, userPreferences, users } from '@/database/tables/index.js'
+import { COMMUNITY_INSTALL_CAPABILITIES } from '@/modules/access/index.js'
 import {
   ERROR_CODES,
   meDtoSchema,
@@ -23,7 +24,6 @@ import {
 import { expectData, expectError, request } from '../../../../test/helpers/request.js'
 import { createTestApp } from '../../../../test/helpers/testApp.js'
 import { getTestDatabase } from '../../../../test/helpers/testDatabase.js'
-import { COMMUNITY_INSTALL_CAPABILITIES } from '../auth.constants.js'
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 

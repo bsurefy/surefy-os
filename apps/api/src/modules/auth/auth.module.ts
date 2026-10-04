@@ -87,7 +87,8 @@ export interface AuthModuleDeps {
   memberships?: MembershipsReader
   installAdmins?: InstallAdminsReader
   organizationCreation?: OrganizationCreationPolicy
-  installCapabilities?: InstallCapabilitiesSource
+  /** The access module's entitlement source (ADR 0020). */
+  installCapabilities: InstallCapabilitiesSource
   signup?: SignupStatus
 }
 
@@ -108,7 +109,7 @@ export function createAuthModule(deps: AuthModuleDeps) {
     memberships: deps.memberships ?? AUTH_DEFAULTS.memberships,
     installAdmins: deps.installAdmins ?? AUTH_DEFAULTS.installAdmins,
     organizationCreation: deps.organizationCreation ?? AUTH_DEFAULTS.organizationCreation,
-    installCapabilities: deps.installCapabilities ?? AUTH_DEFAULTS.installCapabilities,
+    installCapabilities: deps.installCapabilities,
     signup: deps.signup ?? AUTH_DEFAULTS.signup,
     version: readVersion(),
   })

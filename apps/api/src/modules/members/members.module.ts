@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { MemberAccessResolver } from './memberAccess/memberAccess.service.js'
 import { MemberInvitationsController } from './memberInvitations/memberInvitations.controller.js'
 import { MemberInvitationsRepository } from './memberInvitations/memberInvitations.repository.js'
 import { memberInvitationsRoutes } from './memberInvitations/memberInvitations.routes.js'
@@ -20,6 +19,7 @@ import type {
 } from './members.types.js'
 import type { Config } from '@/core/config/index.js'
 import type { Database } from '@/core/database/index.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
 /**
@@ -40,6 +40,7 @@ export interface MembersModuleDeps {
   teams: MemberTeams
   users: MemberUsers
   notifications: MemberNotifications
+  audit: AuditRecorder
 }
 
 export function createMembersModule(deps: MembersModuleDeps) {
@@ -51,6 +52,7 @@ export function createMembersModule(deps: MembersModuleDeps) {
     organizations: deps.organizations,
     teams: deps.teams,
     users: deps.users,
+    audit: deps.audit,
   })
   const preferences = new MemberPreferencesService({
     db,
@@ -66,12 +68,7 @@ export function createMembersModule(deps: MembersModuleDeps) {
     teams: deps.teams,
     users: deps.users,
     notifications: deps.notifications,
-  })
-  const access = new MemberAccessResolver({
-    db,
-    membershipsRepository,
-    organizations: deps.organizations,
-    teams: deps.teams,
+    audit: deps.audit,
   })
   const members = membersRoutes(new MembersController(service, preferences))
   const invitationRoutes = memberInvitationsRoutes(new MemberInvitationsController(invitations))
@@ -84,8 +81,6 @@ export function createMembersModule(deps: MembersModuleDeps) {
     memberships: deps.memberships.service,
     preferences,
     invitations,
-    /** Membership-based `TenantAccessResolver` until the access module replaces it. */
-    access,
     routes,
   }
 }

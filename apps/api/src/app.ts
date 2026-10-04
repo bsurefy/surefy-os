@@ -85,6 +85,9 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       await api.register(container.modules.organizations.routes)
       await api.register(container.modules.teams.routes)
       await api.register(container.modules.members.routes)
+      await api.register(container.modules.access.routes)
+      await api.register(container.modules.audit.routes)
+      await api.register(container.modules.dataControl.routes)
       for (const routes of container.extensions.routes) await api.register(routes)
     },
     { prefix: API_PREFIX },

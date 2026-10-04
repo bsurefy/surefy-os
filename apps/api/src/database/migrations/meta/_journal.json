@@ -64,6 +64,20 @@
       "when": 1791131591442,
       "tag": "0008_install-security",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791132841972,
+      "tag": "0009_access-audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791132843144,
+      "tag": "0010_access-audit-security",
+      "breakpoints": true
     }
   ]
 }

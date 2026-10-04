@@ -156,6 +156,47 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     payload: (f) => ({ userIds: [f.orgB.ownerId] }),
   },
   'DELETE /api/v1/orgs/:orgId/teams/:teamId/members/:userId': { class: 'orgScoped' },
+
+  // access
+  'GET /api/v1/orgs/:orgId/access/me': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/access/members/:userId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/access/teams/:teamId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/access/policy': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/access/policy': {
+    class: 'orgScoped',
+    payload: () => ({ version: 1, modules: ['chat'] }),
+  },
+  'GET /api/v1/orgs/:orgId/teams/:teamId/access-policy': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/teams/:teamId/access-policy': {
+    class: 'orgScoped',
+    payload: () => ({ version: 1, tools: { webSearch: false } }),
+  },
+
+  // audit
+  'GET /api/v1/orgs/:orgId/audit/entries': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/audit/entries/:entryId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/audit/integrity': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/audit/verify': { class: 'orgScoped' },
+
+  // dataControl
+  'GET /api/v1/orgs/:orgId/data-requests': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/data-requests': {
+    class: 'orgScoped',
+    payload: () => ({ type: 'export' }),
+  },
+  'GET /api/v1/orgs/:orgId/data-requests/:dataRequestId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/data-requests/:dataRequestId/cancel': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/data-requests/:dataRequestId/retry': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/data-requests/:dataRequestId/download': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/exports': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/exports': {
+    class: 'orgScoped',
+    payload: () => ({ kind: 'members_csv', params: { version: 1, format: 'csv' } }),
+  },
+  'GET /api/v1/orgs/:orgId/exports/:exportId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/exports/:exportId/retry': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/exports/:exportId/download': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/data-control/retention': { class: 'orgScoped' },
 }
 
 /** One covered route, with its method and path split out of the key. */

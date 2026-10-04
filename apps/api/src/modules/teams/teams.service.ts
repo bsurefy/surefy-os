@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { sqlState, type Database, type DbExecutor } from '@/core/database/index.js'
 import { decodeCursor, toPage } from '@/lib/pagination.js'
+import { AUDIT_ACTIONS } from '@surefy/contracts'
 import type {
   AddTeamMembersInput,
   AddTeamMembersResultDto,
@@ -30,6 +31,7 @@ import type {
   TeamsContext,
   TeamUserRefs,
 } from './teams.types.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 
 export interface TeamsServiceDeps {
   db: Database
@@ -37,9 +39,16 @@ export interface TeamsServiceDeps {
   memberships: TeamMemberships
   organizations: TeamOrganizations
   users: TeamUserRefs
+  audit: AuditRecorder
 }
 
 const UNIQUE_VIOLATION = '23505'
+
+/** Non-secret field changes of a team, for the audit entry. */
+const teamChanges = (before: TeamRow, after: TeamRow) =>
+  (['name', 'description', 'leadUserId'] as const).flatMap((field) =>
+    before[field] === after[field] ? [] : [{ field, from: before[field], to: after[field] }],
+  )
 
 const nameConflict = (error: unknown): never => {
   if (sqlState(error) === UNIQUE_VIOLATION) throw new TeamNameTakenError()
@@ -102,6 +111,11 @@ export class TeamsService {
           await this.insertMembersInTx(tx, ctx.orgId, team.id, memberUserIds, ctx.userId)
           await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
         }
+        await this.deps.audit.record(tx, ctx, {
+          action: AUDIT_ACTIONS.TEAM_CREATED,
+          target: { type: 'team', id: team.id },
+          metadata: { counts: { members: memberUserIds.length } },
+        })
         return this.toDto(tx, ctx.orgId, team)
       })
       .catch(nameConflict)
@@ -111,7 +125,7 @@ export class TeamsService {
     const repository = this.deps.teamsRepository
     return this.deps.db
       .tenant(ctx.orgId, async (tx) => {
-        await this.findOrThrow(tx, ctx.orgId, teamId)
+        const current = await this.findOrThrow(tx, ctx.orgId, teamId)
         if (
           input.name !== undefined &&
           (await repository.existsByName(tx, ctx.orgId, input.name, teamId))
@@ -130,6 +144,11 @@ export class TeamsService {
           ...(input.leadUserId === undefined ? {} : { leadUserId: input.leadUserId }),
         })
         if (row === undefined) throw new TeamNotFoundError()
+        await this.deps.audit.record(tx, ctx, {
+          action: AUDIT_ACTIONS.TEAM_UPDATED,
+          target: { type: 'team', id: teamId },
+          metadata: { changes: teamChanges(current, row) },
+        })
         return this.toDto(tx, ctx.orgId, row)
       })
       .catch(nameConflict)
@@ -146,6 +165,10 @@ export class TeamsService {
         throw new TeamNotFoundError()
       }
       await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.TEAM_DELETED,
+        target: { type: 'team', id: teamId },
+      })
     })
   }
 
@@ -197,7 +220,14 @@ export class TeamsService {
       await this.findOrThrow(tx, ctx.orgId, teamId)
       await this.assertActiveMembers(tx, ctx.orgId, userIds)
       const added = await this.insertMembersInTx(tx, ctx.orgId, teamId, userIds, ctx.userId)
-      if (added > 0) await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+      if (added > 0) {
+        await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+        await this.deps.audit.record(tx, ctx, {
+          action: AUDIT_ACTIONS.TEAM_MEMBER_ADDED,
+          target: { type: 'team', id: teamId },
+          metadata: { counts: { added } },
+        })
+      }
       return { added }
     })
   }
@@ -223,6 +253,11 @@ export class TeamsService {
         next ?? null,
       )
       await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.TEAM_MEMBER_REMOVED,
+        target: { type: 'team', id: teamId },
+        metadata: { refs: { userId } },
+      })
     })
   }
 

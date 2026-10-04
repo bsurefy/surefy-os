@@ -6,6 +6,7 @@ import { TeamsService } from './teams.service.js'
 
 import type { TeamMemberships, TeamOrganizations, TeamUserRefs } from './teams.types.js'
 import type { Database } from '@/core/database/index.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 
 export interface TeamsModuleDeps {
   db: Database
@@ -13,6 +14,7 @@ export interface TeamsModuleDeps {
   memberships: TeamMemberships
   organizations: TeamOrganizations
   users: TeamUserRefs
+  audit: AuditRecorder
 }
 
 export function createTeamsModule(deps: TeamsModuleDeps) {
@@ -22,6 +24,7 @@ export function createTeamsModule(deps: TeamsModuleDeps) {
     memberships: deps.memberships,
     organizations: deps.organizations,
     users: deps.users,
+    audit: deps.audit,
   })
   return { service, routes: teamsRoutes(new TeamsController(service)) }
 }

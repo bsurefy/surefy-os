@@ -5,6 +5,7 @@ import { UnauthorizedError } from '@/core/errors/index.js'
 import { decodeCursor, toPage } from '@/lib/pagination.js'
 import { TeamNotFoundError } from '@/modules/teams/index.js'
 import {
+  AUDIT_ACTIONS,
   PERMISSIONS,
   type AcceptInvitationResultDto,
   type CreateInvitationInput,
@@ -45,6 +46,7 @@ import type { MembershipsRepository } from '../memberships/memberships.repositor
 import type { MembershipsService } from '../memberships/memberships.service.js'
 import type { Config } from '@/core/config/index.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 import type { EmailDeliveryListener } from '@/modules/notifications/index.js'
 import type { ActorContext } from '@/types/context.js'
 
@@ -58,6 +60,7 @@ export interface MemberInvitationsServiceDeps {
   teams: MemberTeams
   users: MemberUsers
   notifications: MemberNotifications
+  audit: AuditRecorder
 }
 
 /** Which invitation email job reported, and how it ended. */
@@ -155,6 +158,11 @@ export class MemberInvitationsService {
         sendCount: 1,
       })
       await repository.insertTeams(tx, ctx.orgId, invitation.id, teamIds)
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.MEMBER_INVITED,
+        target: { type: 'invitation', id: invitation.id },
+        metadata: { labels: { role: input.role }, counts: { teams: teamIds.length } },
+      })
       return {
         row: invitation,
         teams: new Map([[invitation.id, refs]]),
@@ -170,6 +178,10 @@ export class MemberInvitationsService {
     const token = newToken()
     const { row, teams, organization } = await this.deps.db.tenant(ctx.orgId, async (tx) => {
       const rotated = await this.rotateInTx(tx, ctx.orgId, invitationId, token, { resend: true })
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.INVITATION_RESENT,
+        target: { type: 'invitation', id: rotated.id },
+      })
       return {
         row: rotated,
         teams: await this.teamsOf(tx, ctx.orgId, [rotated]),
@@ -183,9 +195,14 @@ export class MemberInvitationsService {
   /** "Copy invite link" (also the path without an email server): shown once, never stored. */
   async link(ctx: MembersContext, invitationId: string): Promise<InvitationLinkDto> {
     const token = newToken()
-    const row = await this.deps.db.tenant(ctx.orgId, (tx) =>
-      this.rotateInTx(tx, ctx.orgId, invitationId, token, { resend: false }),
-    )
+    const row = await this.deps.db.tenant(ctx.orgId, async (tx) => {
+      const rotated = await this.rotateInTx(tx, ctx.orgId, invitationId, token, { resend: false })
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.INVITATION_LINK_COPIED,
+        target: { type: 'invitation', id: rotated.id },
+      })
+      return rotated
+    })
     return { url: this.urlOf(token), expiresAt: row.expiresAt.toISOString() }
   }
 
@@ -203,6 +220,10 @@ export class MemberInvitationsService {
       const error = current.status === 'pending' ? undefined : unusable(current.status)
       if (error !== undefined) throw error
       const revoked = (await repository.revoke(tx, ctx.orgId, invitationId, ctx.userId)) ?? current
+      await this.deps.audit.record(tx, ctx, {
+        action: AUDIT_ACTIONS.INVITATION_REVOKED,
+        target: { type: 'invitation', id: current.id },
+      })
       return { row: revoked, teams: await this.teamsOf(tx, ctx.orgId, [revoked]) }
     })
     return this.toDto(row, teams)
@@ -273,6 +294,15 @@ export class MemberInvitationsService {
         invitation.invitedByUserId,
       )
       await this.deps.organizations.bumpAccessVersionInTx(tx, orgId)
+      await this.deps.audit.record(
+        tx,
+        { ...actor, orgId },
+        {
+          action: AUDIT_ACTIONS.MEMBER_JOINED,
+          target: { type: 'member', id: membership.id },
+          metadata: { refs: { invitationId: invitation.id }, labels: { role: invitation.role } },
+        },
+      )
       const organization = await this.organizationOrThrow(tx, orgId)
       return {
         organization: {

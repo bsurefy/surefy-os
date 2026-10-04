@@ -52,6 +52,42 @@ export class OrganizationsRepository {
     return row
   }
 
+  /**
+   * Moves an `active` organization to `deletion_scheduled`, or back; returns false when the
+   * organization was not in the expected state.
+   */
+  async setDeletion(
+    tx: DbExecutor,
+    orgId: string,
+    deletion: { requestedByUserId: string | null; scheduledFor: Date } | null,
+  ): Promise<boolean> {
+    const rows = await tx
+      .update(organizations)
+      .set(
+        deletion === null
+          ? {
+              status: 'active',
+              deletionRequestedAt: null,
+              deletionScheduledFor: null,
+              deletionRequestedByUserId: null,
+            }
+          : {
+              status: 'deletion_scheduled',
+              deletionRequestedAt: new Date(),
+              deletionScheduledFor: deletion.scheduledFor,
+              deletionRequestedByUserId: deletion.requestedByUserId,
+            },
+      )
+      .where(
+        and(
+          eq(organizations.id, orgId),
+          eq(organizations.status, deletion === null ? 'deletion_scheduled' : 'active'),
+        ),
+      )
+      .returning({ id: organizations.id })
+    return rows.length > 0
+  }
+
   /** Invalidates the organization's cached effective access (organizations-and-members.md). */
   async bumpAccessVersion(tx: DbExecutor, orgId: string): Promise<void> {
     await tx

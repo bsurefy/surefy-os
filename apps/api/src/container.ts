@@ -11,12 +11,15 @@ import { createLogger, type Logger } from './core/logger/index.js'
 import { createQueues, type Queues } from './core/queue/index.js'
 import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
+import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import { createAuditModule, createInstallAudit } from './modules/audit/index.js'
 import {
   createAuthEmails,
   createAuthModule,
   createAuthUsers,
   createSignupPolicy,
 } from './modules/auth/index.js'
+import { createDataControlModule } from './modules/dataControl/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
 import { createMembersModule, createMemberships } from './modules/members/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
@@ -44,10 +47,7 @@ export interface ContainerOverrides {
   queues?: Queues
   /** Skips the dynamic import of the private packages (tests). */
   extensions?: readonly string[]
-  /**
-   * Memberships and effective access for `app.authorize()`. The members module's membership
-   * resolver applies until the access module provides effective access.
-   */
+  /** Replaces the access module's effective access in `app.authorize()` (tests). */
   tenants?: TenantAccessResolver
 }
 
@@ -71,6 +71,8 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   // 2. Public modules, in dependency order. Each module task appends its own line here, for
   //    example: const audit = createAuditModule({ db, hooks })
   const users = createAuthUsers({ db, storage: integrations.storage })
+  const audit = createAuditModule({ db, cache, queues, users })
+  const entitlements = createEntitlementSource(hooks) // Community until an extension sets one
   const notifications = createNotificationsModule({
     config,
     db,
@@ -85,12 +87,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     storage: integrations.storage,
     owners: memberships.service,
     creationRule: installSettings.service,
+    installLimits: entitlements,
+    audit: audit.service,
   })
   const teams = createTeamsModule({
     db,
     memberships: memberships.service,
     organizations: organizations.service,
     users,
+    audit: audit.service,
   })
   const members = createMembersModule({
     config,
@@ -100,6 +105,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     teams: teams.service,
     users,
     notifications: notifications.service,
+    audit: audit.service,
   })
   notifications.onEmailDelivery(members.invitations.onEmailDelivery)
   const install = createInstallModule({
@@ -108,8 +114,40 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     settings: installSettings,
     users,
     logos: organizations.service,
+    installLimits: entitlements,
+    audit: createInstallAudit(audit.service, logger),
   })
-  const modules = { notifications, organizations, teams, members, install } satisfies PublicModules
+  const access = createAccessModule({
+    db,
+    cache,
+    entitlements,
+    hooks,
+    organizations: organizations.service,
+    teams: teams.service,
+    users,
+    audit: audit.service,
+  })
+  const dataControl = createDataControlModule({
+    db,
+    queues,
+    storage: integrations.storage,
+    logger,
+    organizations: organizations.service,
+    users,
+    notifications: notifications.service,
+    access: access.service,
+    audit: audit.service,
+  })
+  const modules = {
+    audit,
+    notifications,
+    organizations,
+    teams,
+    members,
+    install,
+    access,
+    dataControl,
+  } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks
   const names =
@@ -146,6 +184,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     installAdmins: installSettings.service,
     organizationCreation: organizations.service,
     signup,
+    installCapabilities: entitlements,
   })
   const setup = createSetupModule({
     config,
@@ -160,7 +199,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     members: members.service,
     invitations: members.invitations,
   })
-  const tenants = overrides.tenants ?? members.access
+  const tenants = overrides.tenants ?? access.service
 
   return {
     config,

@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { eq } from 'drizzle-orm'
+
 import { QUEUES } from '@/constants/queues.js'
-import { organizationSlugHistory } from '@/database/tables/index.js'
+import { auditLogs, organizationPurges, organizationSlugHistory } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
-import { invitationDtoSchema, teamDtoSchema } from '@surefy/contracts'
+import {
+  dataRequestDtoSchema,
+  exportDtoSchema,
+  invitationDtoSchema,
+  teamDtoSchema,
+} from '@surefy/contracts'
 
 import { expectData, request } from '../helpers/request.js'
 
@@ -77,6 +84,43 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     return notificationFactory.create(tx, { organizationId: a.id, userId: uma.id })
   })
 
+  // Access, audit and data control rows of A: a policy (and its audit entry), a full export
+  // request, a background export, a sealed chain head and a purge record.
+  const policy = await request(app, 'PUT', `${orgUrl}/access/policy`, {
+    headers,
+    payload: { version: 1, tools: { mcp: false } },
+  })
+  if (policy.statusCode !== 200) throw new Error(`access policy: ${policy.body}`)
+  const dataRequest = expectData(
+    await request(app, 'POST', `${orgUrl}/data-requests`, { headers, payload: { type: 'export' } }),
+    201,
+    dataRequestDtoSchema,
+  )
+  const dataExport = expectData(
+    await request(app, 'POST', `${orgUrl}/exports`, {
+      headers,
+      payload: { kind: 'members_csv', params: { version: 1, format: 'csv' } },
+    }),
+    202,
+    exportDtoSchema,
+  )
+  await setup.container.modules.audit.service.sealPending()
+  const entryId = await setup.db.system('test', async (tx) => {
+    await tx.insert(organizationPurges).values({
+      organizationId: a.id,
+      reason: 'owner_request',
+      status: 'canceled',
+      scheduledFor: new Date(),
+    })
+    const [entry] = await tx
+      .select({ id: auditLogs.id })
+      .from(auditLogs)
+      .where(eq(auditLogs.organizationId, a.id))
+      .limit(1)
+    if (entry === undefined) throw new Error('no audit entry of A')
+    return entry.id
+  })
+
   return {
     orgA: { id: a.id },
     orgB: { id: b.id, ownerId: b.members.bea.id },
@@ -88,6 +132,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       notificationId: notification.id,
       sessionId,
       token,
+      entryId,
+      dataRequestId: dataRequest.id,
+      exportId: dataExport.id,
     },
     markers: [
       a.id,
@@ -100,6 +147,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       token,
       notification.id,
       sessionId,
+      entryId,
+      dataRequest.id,
+      dataExport.id,
       ...[olivia, adam, uma].flatMap((member) => [member.id, member.memberId, member.email]),
     ],
   }

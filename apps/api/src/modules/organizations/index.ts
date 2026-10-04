@@ -5,6 +5,7 @@ export type { CreatedOrganization, OrganizationsService } from './organizations.
 export type {
   CreateOrganizationOptions,
   InstallLimitsSource,
+  OrganizationAccessHeader,
   OrganizationContext,
   OrganizationCreationRule,
   OrganizationOwner,
