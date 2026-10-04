@@ -8,7 +8,7 @@ export const DEFAULT_LOCALE = 'en'
 export const LOCALE_COOKIE = 'surefy-locale'
 
 /** The namespaces `@surefy/web-core/messages` ships; apps cannot define namespaces with these names. */
-export const SHARED_NAMESPACES = ['common', 'validation', 'errors'] as const
+export const SHARED_NAMESPACES = ['common', 'validation', 'errors', 'session', 'editions'] as const
 export type SharedNamespace = (typeof SHARED_NAMESPACES)[number]
 
 /** One `errors/<domain>.json` per code source of the contracts (`common`, `auth`, `vault`…). */

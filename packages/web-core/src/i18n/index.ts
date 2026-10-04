@@ -4,11 +4,13 @@ export { DEFAULT_LOCALE, ERROR_DOMAINS, LOCALE_COOKIE, SHARED_NAMESPACES } from 
 export type { SharedNamespace } from './i18n.constants'
 export type {
   CommonMessages,
+  EditionsMessages,
   ErrorsMessages,
   MessageTranslator,
   RequestConfigOptions,
   RequestHints,
   ResolveLocaleOptions,
+  SessionMessages,
   SharedMessages,
   ValidationMessages,
 } from './i18n.types'

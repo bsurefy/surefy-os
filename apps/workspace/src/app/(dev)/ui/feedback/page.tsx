@@ -20,6 +20,7 @@ import { Field, SliderInput } from '@surefy/ui/components/Forms'
 import { PageHeader, Section, Stack } from '@surefy/ui/components/Layout'
 import { Button } from '@surefy/ui/primitives/button'
 
+import FeatureGateDemo from './FeatureGateDemo'
 import OverlaysDemo from './OverlaysDemo'
 
 const bandLabels = { high: 'Automatic', medium: 'AI double-check', low: 'Needs a person' }
@@ -45,7 +46,7 @@ export default function FeedbackShowcase() {
         <Stack gap={6}>
           <PageHeader
             title="Feedback and overlays"
-            description="Loading, errors, banners, toasts, confidence, confirmations, panels and the palette."
+            description="Loading, errors, banners, toasts, confidence, feature gates, confirmations, panels and the palette."
           />
 
           <Section title="Loading">
@@ -241,6 +242,8 @@ export default function FeedbackShowcase() {
               </Button>
             </div>
           </Section>
+
+          <FeatureGateDemo />
 
           <OverlaysDemo />
         </Stack>

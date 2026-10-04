@@ -3,6 +3,12 @@
 // fixture factories and the mock handler primitives. Never imported by app code.
 export { createIdSequence, defineFactory } from './fixtures/defineFactory'
 export type { Factory } from './fixtures/defineFactory'
+export {
+  effectiveAccessFactory,
+  fixtureUuid,
+  meFactory,
+  meMembershipFactory,
+} from './fixtures/identity'
 export * from './mock'
 export { createTestServer, setupTestServer } from './msw/createTestServer'
 export type { TestServer } from './msw/createTestServer'

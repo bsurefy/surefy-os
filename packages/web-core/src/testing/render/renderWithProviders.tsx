@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { createTestQueryClient } from './createTestQueryClient'
 import { testMessages } from './testMessages'
 import { TestProviders } from './TestProviders'
+import { OrgScopeProvider } from '../../access/OrgScopeProvider'
 import { mergeMessages } from '../../i18n/loadSharedMessages'
 
 import type { TestProvidersProps } from './TestProviders'
@@ -28,6 +29,8 @@ export interface ProviderOptions extends Pick<TestProvidersProps, 'searchParams'
   queryClient?: QueryClient
   /** Spies for the global error handlers (`onUnauthenticated`, `onFeatureUnavailable`, `showError`). */
   handlers?: Partial<QueryClientHandlers>
+  /** Wraps the UI in `OrgScopeProvider`, as the workspace's `[orgSlug]` layout does. */
+  orgId?: string
 }
 
 export type RenderWithProvidersOptions = ProviderOptions & Omit<RenderOptions, 'wrapper'>
@@ -60,7 +63,11 @@ function prepareProviders(options: ProviderOptions): PreparedProviders {
       searchParams={options.searchParams}
       onUrlUpdate={options.onUrlUpdate}
     >
-      {children}
+      {options.orgId === undefined ? (
+        children
+      ) : (
+        <OrgScopeProvider orgId={options.orgId}>{children}</OrgScopeProvider>
+      )}
     </TestProviders>
   )
   return { queryClient, wrapper }
@@ -75,8 +82,16 @@ export function renderWithProviders(
   ui: ReactElement,
   options: RenderWithProvidersOptions = {},
 ): RenderWithProvidersResult {
-  const { messages, timeZone, queryClient, handlers, searchParams, onUrlUpdate, ...renderOptions } =
-    options
+  const {
+    messages,
+    timeZone,
+    queryClient,
+    handlers,
+    searchParams,
+    onUrlUpdate,
+    orgId,
+    ...renderOptions
+  } = options
   const prepared = prepareProviders({
     messages,
     timeZone,
@@ -84,6 +99,7 @@ export function renderWithProviders(
     handlers,
     searchParams,
     onUrlUpdate,
+    orgId,
   })
   const user = userEvent.setup()
   const result = render(ui, { ...renderOptions, wrapper: prepared.wrapper })
@@ -95,8 +111,16 @@ export function renderHookWithProviders<Result, Props = undefined>(
   callback: (props: Props) => Result,
   options: RenderHookWithProvidersOptions<Props> = {},
 ): RenderHookWithProvidersResult<Result, Props> {
-  const { messages, timeZone, queryClient, handlers, searchParams, onUrlUpdate, ...hookOptions } =
-    options
+  const {
+    messages,
+    timeZone,
+    queryClient,
+    handlers,
+    searchParams,
+    onUrlUpdate,
+    orgId,
+    ...hookOptions
+  } = options
   const prepared = prepareProviders({
     messages,
     timeZone,
@@ -104,6 +128,7 @@ export function renderHookWithProviders<Result, Props = undefined>(
     handlers,
     searchParams,
     onUrlUpdate,
+    orgId,
   })
   const result = renderHook(callback, { ...hookOptions, wrapper: prepared.wrapper })
   return { ...result, queryClient: prepared.queryClient }

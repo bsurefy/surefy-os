@@ -1,0 +1,7 @@
+{
+  "expired": {
+    "title": "You've been signed out",
+    "description": "You've been signed out for security. Sign in again to continue. Your unsaved changes are kept.",
+    "signOut": "Sign out"
+  }
+}

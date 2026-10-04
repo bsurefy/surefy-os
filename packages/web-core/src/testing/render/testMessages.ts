@@ -4,5 +4,5 @@ import { loadSharedMessages } from '../../i18n/loadSharedMessages'
 
 import type { SharedMessages } from '../../i18n/i18n.types'
 
-/** The shared English namespaces (`common`, `validation`, `errors`), loaded once per test file. */
+/** The shared English namespaces (`common`, `validation`, `errors`, `session`, `editions`), loaded once per test file. */
 export const testMessages: SharedMessages = await loadSharedMessages(DEFAULT_LOCALE)

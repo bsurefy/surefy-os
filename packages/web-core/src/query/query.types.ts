@@ -19,6 +19,12 @@ export interface MutationMeta extends Record<string, unknown> {
   silent?: boolean
 }
 
+/** The options every `use<Verb><Resource>Mutation` hook takes. */
+export interface MutationHookOptions {
+  /** The caller shows the error itself (a form), so the global error toast stays quiet. */
+  silent?: boolean
+}
+
 // Typed once for every app that imports `@surefy/web-core/query`.
 declare module '@tanstack/react-query' {
   interface Register {

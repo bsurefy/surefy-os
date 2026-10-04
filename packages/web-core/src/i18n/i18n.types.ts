@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type common from '../../messages/en/common.json'
+import type editions from '../../messages/en/editions.json'
+import type session from '../../messages/en/session.json'
 import type validation from '../../messages/en/validation.json'
 import type { ErrorMessageKey } from '../errors/errors.types'
 import type { AbstractIntlMessages } from 'next-intl'
 
 export type CommonMessages = typeof common
 export type ValidationMessages = typeof validation
+export type SessionMessages = typeof session
+export type EditionsMessages = typeof editions
 /** The `errors` namespace: every API code, the client codes and `fallback`, merged from `errors/<domain>.json`. */
 export type ErrorsMessages = Record<ErrorMessageKey, string>
 
@@ -14,6 +18,8 @@ export interface SharedMessages extends AbstractIntlMessages {
   common: CommonMessages
   validation: ValidationMessages
   errors: ErrorsMessages
+  session: SessionMessages
+  editions: EditionsMessages
 }
 
 /** What the app reads from the request for the locale decision (the cookie, `Accept-Language`). */
