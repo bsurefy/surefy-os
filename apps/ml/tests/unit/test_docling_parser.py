@@ -27,6 +27,8 @@ TABLE = [["Plan", "Seats"], ["Team", "10"], ["Business", "50"]]
 @pytest.fixture(scope="module")
 def parser() -> DoclingParser:
     if not MODELS_DIR.is_dir():
+        if os.environ.get("CI"):  # CI downloads the weights first; a skip there would hide it
+            pytest.fail(f"models not downloaded to {MODELS_DIR}")
         pytest.skip(f"models not downloaded to {MODELS_DIR}")
     return DoclingParser(models_dir=MODELS_DIR, device="cpu", document_timeout_seconds=120)
 
