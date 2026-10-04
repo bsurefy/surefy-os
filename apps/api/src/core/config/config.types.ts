@@ -37,8 +37,14 @@ export type MailConfig =
 export interface Config {
   app: { name: string; env: NodeEnv; isProduction: boolean }
   api: { publicUrl: string; publicCorsOrigins: readonly string[] }
-  /** Trusted browser origins for sessions: app, then console and partner when configured. */
-  web: { origins: readonly string[] }
+  /**
+   * Trusted browser origins for sessions: app, then console and partner when configured. `apps`
+   * names each one, so a session records the app it was created for (`sessions.app`).
+   */
+  web: {
+    origins: readonly string[]
+    apps: { workspace: string; console?: string; partner?: string }
+  }
   ml: { url: string; token: string }
   /** From the entry point, not from env. */
   process: { name: ProcessName }

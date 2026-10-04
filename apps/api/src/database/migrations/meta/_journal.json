@@ -22,6 +22,20 @@
       "when": 1791125645202,
       "tag": "0002_notifications-force-rls",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791126824192,
+      "tag": "0003_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791126830632,
+      "tag": "0004_auth-force-rls",
+      "breakpoints": true
     }
   ]
 }

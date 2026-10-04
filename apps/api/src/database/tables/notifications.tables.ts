@@ -20,6 +20,7 @@ import {
   type NotificationType,
 } from '@surefy/contracts'
 
+import { users } from './auth.tables.js'
 import { enumCheck } from '../checks.js'
 import { id, timestamps } from '../columns.js'
 import { tenantPolicy } from '../policies.js'
@@ -34,9 +35,8 @@ const typeList = NOTIFICATION_TYPES.map((type) => {
 
 /**
  * An in-app notification for one member of one organization (database/platform-and-jobs.md, §4).
- * The foreign keys to `organizations` (cascade), `organization_members (organization_id,
- * user_id)` (cascade) and `users` (`actor_user_id`, set null) join this table in the migrations of
- * the tasks that create those tables.
+ * The foreign keys to `organizations` (cascade) and `organization_members (organization_id,
+ * user_id)` (cascade) join this table in the migrations of the tasks that create those tables.
  */
 export const notifications = pgTable(
   'notifications',
@@ -51,7 +51,7 @@ export const notifications = pgTable(
       .default(sql`'{}'::jsonb`),
     targetType: text().$type<NotificationTargetType>(),
     targetId: uuid(), // polymorphic, no foreign key: a deleted target shows "No longer available"
-    actorUserId: uuid(),
+    actorUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
     dedupeKey: text(),
     readAt: timestamp({ withTimezone: true }),
     emailedAt: timestamp({ withTimezone: true }),

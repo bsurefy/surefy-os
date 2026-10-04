@@ -11,6 +11,7 @@ import {
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod'
 
+import { accessPlugin } from './plugins/access.plugin.js'
 import { errorHandlerPlugin } from './plugins/errorHandler.plugin.js'
 import { healthPlugin } from './plugins/health.plugin.js'
 import { openapiPlugin } from './plugins/openapi.plugin.js'
@@ -18,6 +19,7 @@ import { rateLimitPlugin } from './plugins/rateLimit.plugin.js'
 import { replyPlugin } from './plugins/reply.plugin.js'
 import { generateRequestId, requestContextPlugin } from './plugins/requestContext.plugin.js'
 import { securityPlugin } from './plugins/security.plugin.js'
+import { sessionPlugin } from './plugins/session.plugin.js'
 
 import type { Container } from './container.js'
 import type { Config } from './core/config/index.js'
@@ -64,7 +66,8 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
   await app.register(rateLimitPlugin, { redis: container.cache.client })
   await app.register(errorHandlerPlugin)
   await app.register(replyPlugin)
-  // Order 6 and 7, session.plugin.ts (Better Auth) and access.plugin.ts (guards), register here.
+  await app.register(sessionPlugin, { config, auth: container.auth })
+  await app.register(accessPlugin, { tenants: container.tenants, guardedPrefix: API_PREFIX })
   await app.register(openapiPlugin, { config })
   await app.register(healthPlugin, {
     checks: { database: () => container.db.ping(), redis: () => container.cache.ping() },
@@ -75,6 +78,8 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
     async (scope) => {
       const api = scope.withTypeProvider<ZodTypeProvider>()
       // Module routes register here, one line each, in dependency order.
+      await api.register(container.modules.auth.routes)
+      await api.register(container.modules.notifications.routes)
       for (const routes of container.extensions.routes) await api.register(routes)
     },
     { prefix: API_PREFIX },

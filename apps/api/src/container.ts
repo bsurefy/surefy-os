@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { createAuth } from './core/auth/index.js'
 import { createCache, type Cache } from './core/cache/index.js'
 import { createDatabase, type Database } from './core/database/index.js'
 import {
@@ -10,7 +11,14 @@ import { createLogger, type Logger } from './core/logger/index.js'
 import { createQueues, type Queues } from './core/queue/index.js'
 import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
+import {
+  AUTH_DEFAULTS,
+  createAuthEmails,
+  createAuthModule,
+  createAuthUsers,
+} from './modules/auth/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
+import { NO_TENANT_ACCESS, type TenantAccessResolver } from './plugins/access.plugin.js'
 
 import type { Config } from './core/config/index.js'
 import type { PublicModules } from './types/modules.js'
@@ -31,6 +39,11 @@ export interface ContainerOverrides {
   queues?: Queues
   /** Skips the dynamic import of the private packages (tests). */
   extensions?: readonly string[]
+  /**
+   * Memberships and effective access for `app.authorize()`. The access module provides them once
+   * it exists; until then nobody reaches an organization route, and tests pass a stand-in.
+   */
+  tenants?: TenantAccessResolver
 }
 
 /**
@@ -52,7 +65,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
 
   // 2. Public modules, in dependency order. Each module task appends its own line here, for
   //    example: const audit = createAuditModule({ db, hooks })
-  const notifications = createNotificationsModule({ config, db, queues, mail: integrations.mail })
+  const users = createAuthUsers({ db, storage: integrations.storage })
+  const notifications = createNotificationsModule({
+    config,
+    db,
+    queues,
+    mail: integrations.mail,
+    users,
+  })
   const modules = { notifications } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks
@@ -69,9 +89,19 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     authPlugins: hooks.authPlugins(),
   }
 
-  // 4. Better Auth last: its plugin list must include extension plugins (for example SSO). The
-  //    auth task adds createAuth({ config, db, cache, queues, plugins: extensions.authPlugins }),
-  //    then the auth and setup modules.
+  // 4. Better Auth last: its plugin list must include extension plugins (for example SSO)
+  const auth = createAuth({
+    config,
+    db,
+    redis: cache.client,
+    logger,
+    emails: createAuthEmails({ db, notifications: notifications.service }),
+    signup: AUTH_DEFAULTS.signup,
+    users,
+    plugins: extensions.authPlugins,
+  })
+  const authModule = createAuthModule({ config, db, auth, users })
+  const tenants = overrides.tenants ?? NO_TENANT_ACCESS
 
   return {
     config,
@@ -82,7 +112,9 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     integrations,
     hooks,
     extensions,
-    modules,
+    auth,
+    tenants,
+    modules: { ...modules, auth: authModule },
     async close() {
       await integrations.mail.close()
       await queues.close()

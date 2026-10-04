@@ -11,4 +11,5 @@ export {
   type Factory,
   type FactoryDefinition,
 } from './defineFactory.js'
+export { createTestUser, type TestUser, type TestUserOptions } from './user.factory.js'
 export { newId, testApiKeyToken, testEmail, testPassword, testSlug } from './values.js'

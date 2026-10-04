@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import type { Feature, Permission } from '@surefy/contracts'
+
+import type { ActorContext, TenantContext } from './context.js'
 import type {
   ContextConfigDefault,
   FastifyReply,
   FastifyRequest,
   FastifySchema,
+  preHandlerAsyncHookHandler,
   RawReplyDefaultExpression,
   RawRequestDefaultExpression,
   RawServerDefault,
@@ -31,7 +35,31 @@ export type ZodReply<S extends FastifySchema> = FastifyReply<
   ZodTypeProvider
 >
 
+/** `app.requireFeature(feature, { allowReadOnly })`: read routes keep working in a license's grace days. */
+export interface RequireFeatureOptions {
+  allowReadOnly?: boolean
+}
+
 declare module 'fastify' {
+  interface FastifyInstance {
+    /** Guard for `/api/v1/me/…`: a signed-in user session (session plugin). */
+    authenticate(): preHandlerAsyncHookHandler
+    /** Guard for `/api/v1/orgs/:orgId/…`: membership of `:orgId` and `permission`; sets `request.tenant`. */
+    authorize(permission: Permission): preHandlerAsyncHookHandler
+    /** Guard for feature-gated routes, always after `authorize()`: `403 FEATURE_NOT_AVAILABLE`. */
+    requireFeature(feature: Feature, options?: RequireFeatureOptions): preHandlerAsyncHookHandler
+  }
+
+  interface FastifyRequest {
+    /** Who is calling, set by the session plugin: a user session, an API key, or null. */
+    auth: ActorContext | null
+    /**
+     * The verified organization context, set by `app.authorize()`. Declared non-null: the access
+     * plugin refuses at boot an `:orgId` route without `app.authorize()`.
+     */
+    tenant: TenantContext
+  }
+
   interface FastifyContextConfig {
     /** Explicit opt-out of the access guards (health, setup, the auth handler). */
     public?: boolean

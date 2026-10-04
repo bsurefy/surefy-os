@@ -47,6 +47,10 @@ describe('parseConfig', () => {
     })
     expect(config.api.publicCorsOrigins).toEqual(['https://a.example', 'https://b.example'])
     expect(config.web.origins).toEqual(['http://localhost:3000', 'https://console.example'])
+    expect(config.web.apps).toEqual({
+      workspace: 'http://localhost:3000',
+      console: 'https://console.example',
+    })
   })
 
   it('requires the S3 variables only when the s3 driver is selected', () => {

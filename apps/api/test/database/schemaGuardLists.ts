@@ -6,7 +6,7 @@ import type { SchemaGuardLists } from './schemaGuards.js'
  * Module tasks append their tables here in the same change that creates them.
  */
 export const SCHEMA_GUARD_LISTS: SchemaGuardLists = {
-  globalTables: [],
+  globalTables: ['users', 'sessions', 'accounts', 'verifications', 'two_factors'],
   appendOnlyTables: [],
   joinTables: [],
 }

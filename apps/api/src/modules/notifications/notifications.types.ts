@@ -3,11 +3,8 @@ import type {
   NotificationParams,
   NotificationTargetType,
   NotificationType,
-  Permission,
   UserRefDto,
 } from '@surefy/contracts'
-
-import type { FastifyRequest, preHandlerAsyncHookHandler } from 'fastify'
 
 /**
  * What the service needs from the request's `TenantContext`: the verified organization and the
@@ -16,15 +13,6 @@ import type { FastifyRequest, preHandlerAsyncHookHandler } from 'fastify'
 export interface NotificationsContext {
   orgId: string
   userId: string | null
-}
-
-/**
- * The access layer the routes use: the session and access plugins provide it. `authorize` is the
- * route's guard (membership of `:orgId` and the permission); `context` reads what it verified.
- */
-export interface NotificationsRouteAccess {
-  authorize(permission: Permission): preHandlerAsyncHookHandler
-  context(request: FastifyRequest): NotificationsContext
 }
 
 /** Display data of the people who caused notifications, from the module that owns `users`. */

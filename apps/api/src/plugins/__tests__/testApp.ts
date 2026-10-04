@@ -7,6 +7,7 @@ import { buildApp } from '@/app.js'
 import { validEnv } from '@/core/config/__tests__/env.fixture.js'
 import { parseConfig } from '@/core/config/index.js'
 import { NotFoundError } from '@/core/errors/index.js'
+import { NO_TENANT_ACCESS } from '@/plugins/access.plugin.js'
 import { ERROR_CODES, okResponse, pageResponse } from '@surefy/contracts'
 
 import type { Container } from '@/container.js'
@@ -96,6 +97,8 @@ export const probeRoutes: FastifyPluginAsyncZod = (app) => {
   return Promise.resolve()
 }
 
+const noRoutes: FastifyPluginAsyncZod = () => Promise.resolve()
+
 export interface TestAppOptions {
   env?: Record<string, string>
   dbPing?: () => Promise<void>
@@ -112,6 +115,13 @@ export async function createTestApp(options: TestAppOptions = {}) {
     db: { ping: options.dbPing ?? vi.fn(() => Promise.resolve()) },
     cache: { ping: options.cachePing ?? vi.fn(() => Promise.resolve()), client: undefined },
     extensions: { names: options.extensions ?? [], routes: [probeRoutes], jobs: [] },
+    // No Better Auth and no module routes: nobody is signed in, and only the probes exist.
+    auth: {
+      handler: () => Promise.resolve(Response.json({ ok: true })),
+      api: { getSession: vi.fn(() => Promise.resolve({ headers: new Headers(), response: null })) },
+    },
+    tenants: NO_TENANT_ACCESS,
+    modules: { auth: { routes: noRoutes }, notifications: { routes: noRoutes } },
   } as unknown as Container
   const app = await buildApp(container)
   await app.ready()

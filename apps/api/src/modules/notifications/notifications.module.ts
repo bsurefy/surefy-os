@@ -6,7 +6,7 @@ import { NotificationsRepository } from './notifications.repository.js'
 import { notificationsRoutes } from './notifications.routes.js'
 import { NotificationsService } from './notifications.service.js'
 
-import type { NotificationsRouteAccess, UserRefLookup } from './notifications.types.js'
+import type { UserRefLookup } from './notifications.types.js'
 import type { Config } from '@/core/config/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { Queues } from '@/core/queue/index.js'
@@ -35,9 +35,7 @@ export function createNotificationsModule(deps: NotificationsModuleDeps) {
     service,
     /** The `email` queue's processors, registered by the worker. */
     jobs: [sendEmailJob],
-    /** The routes, guarded by the access layer the session and access plugins provide. */
-    routes: (access: NotificationsRouteAccess) =>
-      notificationsRoutes(new NotificationsController(service, access), access),
+    routes: notificationsRoutes(new NotificationsController(service)),
   }
 }
 export type NotificationsModule = ReturnType<typeof createNotificationsModule>

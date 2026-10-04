@@ -214,7 +214,7 @@ describe('test harness', () => {
     it('report a tenant table without the (organization_id, id) unique key', async () => {
       const findings = await runSchemaGuards(getTestDatabase().owner.global, {
         ...SCHEMA_GUARD_LISTS,
-        globalTables: ['probe_leaks'],
+        globalTables: [...SCHEMA_GUARD_LISTS.globalTables, 'probe_leaks'],
       })
       expect(findings.map((finding) => finding.object).sort((a, b) => a.localeCompare(b))).toEqual([
         'probe_items',

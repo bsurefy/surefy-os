@@ -9,15 +9,11 @@ import {
 } from './notifications.schema.js'
 
 import type { NotificationsController } from './notifications.controller.js'
-import type { NotificationsRouteAccess } from './notifications.types.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-export function notificationsRoutes(
-  controller: NotificationsController,
-  access: NotificationsRouteAccess,
-): FastifyPluginAsyncZod {
+export function notificationsRoutes(controller: NotificationsController): FastifyPluginAsyncZod {
   return (app) => {
-    const preHandler = access.authorize(PERMISSIONS.NOTIFICATIONS_READ)
+    const preHandler = app.authorize(PERMISSIONS.NOTIFICATIONS_READ)
     app.get(
       '/orgs/:orgId/notifications',
       { schema: listNotificationsRoute, preHandler },

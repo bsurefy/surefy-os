@@ -11,16 +11,12 @@ import {
   unreadCountDtoSchema,
 } from '@surefy/contracts'
 
-import {
-  API_KEY_USER,
-  asMember,
-  createTestAccess,
-  notificationFactory,
-  RecordingMailProvider,
-} from './notificationsTestKit.js'
-import { newId } from '../../../../test/factories/index.js'
+import { notificationFactory, RecordingMailProvider } from './notificationsTestKit.js'
+import { createTestUser, newId } from '../../../../test/factories/index.js'
+import { authHeaders, type AuthHeaders } from '../../../../test/helpers/auth.js'
 import { onFileTeardown } from '../../../../test/helpers/cleanup.js'
 import { expectData, expectError, expectPage, request } from '../../../../test/helpers/request.js'
+import { createTestTenants } from '../../../../test/helpers/tenantAccess.js'
 import { createTestApp } from '../../../../test/helpers/testApp.js'
 import { getTestDatabase } from '../../../../test/helpers/testDatabase.js'
 import {
@@ -35,15 +31,36 @@ import {
 import { createNotificationsModule } from '../notifications.module.js'
 
 const orgs = { a: newId(), b: newId() }
-const people = { maya: newId(), omar: newId(), bea: newId() } // maya, omar in A; bea in B
+/** maya and omar are members of A, bea of B; real users, created per test (tables are truncated). */
+const people = { maya: '', omar: '', bea: '' }
+const sessions = new Map<string, AuthHeaders>()
+
+/** The session cookie of a person created by `setup()`. */
+const sessionOf = (userId: string): AuthHeaders => {
+  const headers = sessions.get(userId)
+  if (headers === undefined) throw new Error('unknown test person')
+  return headers
+}
 
 const setup = async () => {
   const { db, config, logger } = getTestDatabase()
   const queues = createQueues(config, logger)
   onFileTeardown(() => queues.close())
   const mail = new RecordingMailProvider()
+  const tenants = createTestTenants()
+  const { app, container } = await createTestApp({ tenants })
+  sessions.clear()
+  for (const [key, orgId] of [
+    ['maya', orgs.a],
+    ['omar', orgs.a],
+    ['bea', orgs.b],
+  ] as const) {
+    const user = await createTestUser(container)
+    people[key] = user.id
+    tenants.grant(orgId, user.id)
+    sessions.set(user.id, await authHeaders(app, user))
+  }
   const module = createNotificationsModule({ config, db, queues, mail })
-  const { app } = await createTestApp({ routes: [module.routes(createTestAccess())] })
   return { app, db, queues, service: module.service }
 }
 
@@ -63,7 +80,7 @@ describe('GET /orgs/:orgId/notifications', () => {
     const third = await seed({ createdAt: at(3) })
     await seed({ userId: people.omar }) // another member of A
 
-    const headers = asMember(orgs.a, people.maya)
+    const headers = sessionOf(people.maya)
     const page1 = expectPage(
       await request(app, 'GET', url(), { headers, query: { limit: '2' } }),
       notificationDtoSchema,
@@ -85,7 +102,7 @@ describe('GET /orgs/:orgId/notifications', () => {
   it('keeps notifications created in the same instant on separate pages without gaps', async () => {
     const { app } = await setup()
     const created = [await seed({ createdAt: at(5) }), await seed({ createdAt: at(5) })]
-    const headers = asMember(orgs.a, people.maya)
+    const headers = sessionOf(people.maya)
     const page1 = expectPage(
       await request(app, 'GET', url(), { headers, query: { limit: '1' } }),
       notificationDtoSchema,
@@ -109,7 +126,7 @@ describe('GET /orgs/:orgId/notifications', () => {
     await seed({ readAt: new Date() })
     const page = expectPage(
       await request(app, 'GET', url(), {
-        headers: asMember(orgs.a, people.maya),
+        headers: sessionOf(people.maya),
         query: { unreadOnly: 'true' },
       }),
       notificationDtoSchema,
@@ -129,7 +146,7 @@ describe('GET /orgs/:orgId/notifications', () => {
 
   it('rejects an invalid query and a forged cursor', async () => {
     const { app } = await setup()
-    const headers = asMember(orgs.a, people.maya)
+    const headers = sessionOf(people.maya)
     expectError(
       await request(app, 'GET', url(), { headers, query: { limit: '0' } }),
       422,
@@ -146,9 +163,9 @@ describe('GET /orgs/:orgId/notifications', () => {
     const { app } = await setup()
     expectError(await request(app, 'GET', url()), 401, ERROR_CODES.AUTH_UNAUTHENTICATED)
     expectError(
-      await request(app, 'GET', url(), { headers: asMember(orgs.a, API_KEY_USER) }),
-      403,
-      ERROR_CODES.ACCESS_FORBIDDEN,
+      await request(app, 'GET', url(), { headers: { cookie: 'surefy.session_token=forged' } }),
+      401,
+      ERROR_CODES.AUTH_UNAUTHENTICATED,
     )
   })
 })
@@ -161,7 +178,7 @@ describe('GET /orgs/:orgId/notifications/unread-count', () => {
     await seed({ readAt: new Date() })
     await seed({ userId: people.omar })
     const count = expectData(
-      await request(app, 'GET', url('/unread-count'), { headers: asMember(orgs.a, people.maya) }),
+      await request(app, 'GET', url('/unread-count'), { headers: sessionOf(people.maya) }),
       200,
       unreadCountDtoSchema,
     )
@@ -173,7 +190,7 @@ describe('POST /orgs/:orgId/notifications/:notificationId/read', () => {
   it('marks it read once and keeps the first read time', async () => {
     const { app } = await setup()
     const notification = await seed()
-    const headers = asMember(orgs.a, people.maya)
+    const headers = sessionOf(people.maya)
     const first = expectData(
       await request(app, 'POST', url(`/${notification.id}/read`), { headers }),
       200,
@@ -191,7 +208,7 @@ describe('POST /orgs/:orgId/notifications/:notificationId/read', () => {
   it("answers 404 for another member's notification, an unknown id or a malformed id", async () => {
     const { app } = await setup()
     const omars = await seed({ userId: people.omar })
-    const headers = asMember(orgs.a, people.maya)
+    const headers = sessionOf(people.maya)
     for (const id of [omars.id, newId()]) {
       expectError(
         await request(app, 'POST', url(`/${id}/read`), { headers }),
@@ -218,7 +235,7 @@ describe('POST /orgs/:orgId/notifications/read-all', () => {
     await seed()
     await seed({ readAt: new Date() })
     await seed({ userId: people.omar })
-    const headers = asMember(orgs.a, people.maya)
+    const headers = sessionOf(people.maya)
     const result = expectData(
       await request(app, 'POST', url('/read-all'), { headers }),
       200,
@@ -226,7 +243,7 @@ describe('POST /orgs/:orgId/notifications/read-all', () => {
     )
     expect(result).toEqual({ affected: 2 })
     const omar = expectData(
-      await request(app, 'GET', url('/unread-count'), { headers: asMember(orgs.a, people.omar) }),
+      await request(app, 'GET', url('/unread-count'), { headers: sessionOf(people.omar) }),
       200,
       unreadCountDtoSchema,
     )
@@ -257,7 +274,7 @@ describe('tenant isolation', () => {
       params: { notificationId: notification.id },
       markers: [notification.id, notification.targetId ?? '', 'Source'],
     },
-    orgB: { id: orgs.b, session: asMember(orgs.b, people.bea) },
+    orgB: { id: orgs.b, session: sessionOf(people.bea) },
   })
 
   it("keeps A's notification out of reach of B's member on the resource route", async () => {
@@ -326,7 +343,7 @@ describe('NotificationsService producers', () => {
     expect(await service.notify({ orgId: orgs.a }, input)).toBeNull()
 
     const page = expectPage(
-      await request(app, 'GET', url(), { headers: asMember(orgs.a, people.maya) }),
+      await request(app, 'GET', url(), { headers: sessionOf(people.maya) }),
       notificationDtoSchema,
     )
     expect(page.data.map((n) => n.id)).toEqual([written?.id])
@@ -339,11 +356,12 @@ describe('NotificationsService producers', () => {
       to: 'maya@example.test',
       url: 'https://app.example.test/verify?token=abc',
     }
+    const queue = queues.get(QUEUES.EMAIL)
+    const { waiting = 0 } = await queue.getJobCounts('waiting') // setup's verification emails
     const jobId = await service.queueEmail(payload, { jobId: 'verify-maya' })
     await service.queueEmail(payload, { jobId: 'verify-maya' })
-    const queue = queues.get(QUEUES.EMAIL)
     expect(jobId).toBe('verify-maya')
-    expect(await queue.getJobCounts('waiting')).toEqual({ waiting: 1 })
+    expect(await queue.getJobCounts('waiting')).toEqual({ waiting: waiting + 1 })
     expect((await queue.getJob(jobId))?.data).toEqual(payload)
   })
 })
