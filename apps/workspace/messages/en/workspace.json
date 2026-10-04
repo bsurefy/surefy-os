@@ -1,0 +1,248 @@
+{
+  "shell": {
+    "skipToContent": "Skip to content",
+    "navLabel": "Main navigation",
+    "breadcrumbLabel": "Breadcrumb",
+    "openMenu": "Open menu",
+    "menuTitle": "Menu",
+    "menuDescription": "Your organization, its modules and your account",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "search": "Search",
+    "searchLabel": "Search ({shortcut})"
+  },
+  "nav": {
+    "loading": "Loading navigation",
+    "groups": {
+      "build": "Build",
+      "operate": "Operate"
+    },
+    "items": {
+      "chat": "Chat",
+      "agents": "Agents",
+      "flows": "Flows",
+      "pieces": "Pieces",
+      "knowledge": "Knowledge",
+      "train": "Train",
+      "insights": "Insights",
+      "guard": "Guard",
+      "settings": "Settings"
+    }
+  },
+  "context": {
+    "selfHosted": "Your data is stored on your server"
+  },
+  "roles": {
+    "user": "User",
+    "builder": "Builder",
+    "admin": "Admin",
+    "owner": "Owner"
+  },
+  "org": {
+    "switcherLabel": "Switch organization. Current: {name}",
+    "heading": "Organizations",
+    "create": "Create organization",
+    "upgradeHint": "This install holds one organization. Use teams to separate departments inside it."
+  },
+  "userMenu": {
+    "label": "Account menu for {name}",
+    "profile": "Profile",
+    "theme": "Theme",
+    "language": "Language",
+    "shortcuts": "Keyboard shortcuts",
+    "signOut": "Sign out"
+  },
+  "commands": {
+    "title": "Search and commands",
+    "description": "Go to a page or run an action",
+    "placeholder": "Search pages and actions",
+    "empty": "No results for “{query}”. Try the name of a module or an action.",
+    "groups": {
+      "goTo": "Go to",
+      "actions": "Actions"
+    }
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Single-key shortcuts work when you are not typing.",
+    "commandPalette": "Open search and commands",
+    "toggleSidebar": "Collapse or expand the sidebar",
+    "goTo": "Go to {module}",
+    "then": "then",
+    "newItem": "New item on list pages",
+    "help": "Show keyboard shortcuts",
+    "close": "Close the top overlay"
+  },
+  "offline": {
+    "title": "You're offline",
+    "description": "Showing what was already loaded. Changes are paused until you reconnect.",
+    "retry": "Try now"
+  },
+  "supportAccess": {
+    "support": {
+      "readOnly": "BSurefy support can view this organization until {endsAt}. Reason: {reason}",
+      "write": "BSurefy support can make changes in this organization until {endsAt}. Reason: {reason}"
+    },
+    "partner": {
+      "readOnly": "{partner} can view this organization until {endsAt}. Reason: {reason}",
+      "write": "{partner} can make changes in this organization until {endsAt}. Reason: {reason}"
+    }
+  },
+  "pageError": {
+    "title": "Couldn't load this page",
+    "message": "The rest of {productName} is working; only this page failed. Try again in a moment."
+  },
+  "noAccess": {
+    "title": "You don't have access to {area}",
+    "roleLine": "Your role is {role} in {organization}.",
+    "noRoleLine": "Your access in this organization doesn't include this page.",
+    "askAdmin": "Ask an admin of your organization if you need {area}.",
+    "goHome": "Go to Chat",
+    "areas": {
+      "chat": "Chat",
+      "agents": "Agents",
+      "flows": "Flows",
+      "pieces": "Pieces",
+      "knowledge": "Knowledge",
+      "train": "Train",
+      "insights": "Insights",
+      "guard": "Guard",
+      "settings": "Settings",
+      "notifications": "Notifications"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Approvals, finished work and alerts for you in this organization.",
+    "bellLabel": "{count, plural, =0 {Notifications} one {Notifications, # unread} other {Notifications, # unread}}",
+    "seeAll": "See all notifications",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "unread": "Unread",
+    "meta": "{actor} · {time}",
+    "retry": "Try again",
+    "loadError": "Couldn't load notifications",
+    "loadMore": "Load more",
+    "filterLabel": "Show",
+    "filter": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "empty": {
+      "title": "You're all caught up",
+      "description": "Approvals waiting for you, finished work and alerts appear here."
+    },
+    "emptyUnread": {
+      "title": "No unread notifications",
+      "description": "You have read everything here.",
+      "showAll": "Show all"
+    },
+    "types": {
+      "invitation": {
+        "reissue_requested": "Someone asked for a new invitation"
+      },
+      "model_access": {
+        "requested": "A member asked for access to a model"
+      },
+      "knowledge_source": {
+        "ready": "A knowledge source is ready to use",
+        "failed": "A knowledge source couldn't be processed"
+      },
+      "export": {
+        "ready": "Your data export is ready to download",
+        "failed": "Your data export failed"
+      },
+      "organization": {
+        "deletion_scheduled": "This organization is scheduled for deletion"
+      },
+      "budget": {
+        "threshold_reached": "An AI budget reached its alert threshold"
+      },
+      "approval": {
+        "requested": "An action is waiting for your approval",
+        "decided": "Your approval request was decided"
+      },
+      "chat": {
+        "shared": "A chat was shared with you"
+      },
+      "connection": {
+        "expired": "A connection expired and needs to be reconnected"
+      },
+      "flow": {
+        "paused": "A flow was paused"
+      },
+      "piece": {
+        "blocked": "A piece was blocked"
+      },
+      "evaluation_run": {
+        "finished": "An evaluation run finished"
+      },
+      "training_job": {
+        "finished": "A training job finished"
+      },
+      "access_grant": {
+        "requested": "Support asked for access to this organization"
+      }
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "description": "Your details, preferences and sign-in security.",
+    "details": {
+      "title": "Your details",
+      "name": "Name",
+      "email": "Email",
+      "verified": "Verified",
+      "notVerified": "Not verified",
+      "save": "Save",
+      "saved": "Your name was saved"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "theme": "Theme",
+      "language": "Language",
+      "languageHelp": "Used everywhere you sign in with this account."
+    },
+    "security": {
+      "title": "Sign-in security",
+      "twoFactor": "Two-step verification",
+      "on": "On",
+      "off": "Off",
+      "onDescription": "You enter a code from your authenticator app when you sign in.",
+      "offDescription": "Add a code from an authenticator app to every sign-in.",
+      "setUp": "Set up two-step verification"
+    },
+    "sessions": {
+      "title": "Signed-in devices",
+      "description": "Sign out of devices you no longer use or don't recognize.",
+      "onlyThis": "Only this device is signed in.",
+      "current": "This device",
+      "device": "{browser} on {os}",
+      "unknownDevice": "Unknown device",
+      "unknownAddress": "Unknown address",
+      "lastActive": "Active {time}",
+      "signOut": "Sign out",
+      "signOutDevice": "Sign out of {device}",
+      "signOutOthers": "Sign out everywhere else",
+      "confirmTitle": "Sign out of every other device?",
+      "confirmDescription": "Every device but this one is signed out at once and needs to sign in again.",
+      "revoked": "The device was signed out",
+      "othersRevoked": "Every other device was signed out",
+      "loadError": "Couldn't load your devices",
+      "apps": {
+        "workspace": "Workspace",
+        "console": "Console",
+        "partner": "Partner Portal"
+      }
+    },
+    "access": {
+      "title": "Your access",
+      "description": "Admins change roles and teams in Settings › Members.",
+      "organization": "Organization",
+      "role": "Role",
+      "noRole": "No role",
+      "teams": "Teams",
+      "teamCount": "{count, plural, =0 {No teams} one {# team} other {# teams}}"
+    }
+  }
+}

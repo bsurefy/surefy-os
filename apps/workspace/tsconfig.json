@@ -7,8 +7,10 @@
   "include": [
     "next-env.d.ts",
     "src",
+    "messages",
     "mock",
     "next.config.ts",
+    "vitest.config.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

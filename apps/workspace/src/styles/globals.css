@@ -1,3 +1,4 @@
 /* SPDX-License-Identifier: AGPL-3.0-only */
-/* Replaced by the @surefy/ui styles entry once the design tokens exist (S1-01, S2-01). */
-@import 'tailwindcss';
+/* The @surefy/ui styles (Tailwind, tokens, base) and its component sources; the app's own sources are found automatically. */
+@import '@surefy/ui/styles.css';
+@source '../../../../packages/ui/src';
