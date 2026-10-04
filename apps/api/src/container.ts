@@ -8,14 +8,17 @@ import {
 } from './core/extensions/index.js'
 import { createLogger, type Logger } from './core/logger/index.js'
 import { createQueues, type Queues } from './core/queue/index.js'
+import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
+import { createNotificationsModule } from './modules/notifications/index.js'
 
 import type { Config } from './core/config/index.js'
 import type { PublicModules } from './types/modules.js'
 
-/** External providers behind their interfaces. AI, ML, search and mail join as they are built. */
+/** External providers behind their interfaces. AI, ML and search join as they are built. */
 export interface Integrations {
   storage: StorageProvider
+  mail: MailProvider
 }
 
 export interface ContainerOverrides {
@@ -41,12 +44,16 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   const db = overrides.db ?? createDatabase(config, logger)
   const cache = overrides.cache ?? createCache(config, logger)
   const queues = overrides.queues ?? createQueues(config, logger)
-  const integrations = overrides.integrations ?? { storage: createStorage(config, logger) }
+  const integrations = overrides.integrations ?? {
+    storage: createStorage(config, logger),
+    mail: createMail(config, logger),
+  }
   const hooks: ExtensionRegistry = createExtensionRegistry(logger) // Community defaults
 
   // 2. Public modules, in dependency order. Each module task appends its own line here, for
   //    example: const audit = createAuditModule({ db, hooks })
-  const modules: PublicModules = {}
+  const notifications = createNotificationsModule({ config, db, queues, mail: integrations.mail })
+  const modules = { notifications } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks
   const names =
@@ -77,6 +84,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     extensions,
     modules,
     async close() {
+      await integrations.mail.close()
       await queues.close()
       await cache.quit()
       await db.close()

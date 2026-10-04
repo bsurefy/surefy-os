@@ -6,4 +6,4 @@
  * §16): auth, organizations and members, install, vault and access, chat and knowledge, usage
  * and audit, platform tables.
  */
-export {}
+export * from './notifications.tables.js'

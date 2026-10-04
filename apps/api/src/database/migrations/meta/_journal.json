@@ -8,6 +8,20 @@
       "when": 1791105038734,
       "tag": "0000_base-privileges",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791125635866,
+      "tag": "0001_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791125645202,
+      "tag": "0002_notifications-force-rls",
+      "breakpoints": true
     }
   ]
 }
