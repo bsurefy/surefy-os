@@ -1,0 +1,5 @@
+{
+  "extends": "@surefy/config/tsconfig/node.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["src", "test", "*.config.ts"]
+}
