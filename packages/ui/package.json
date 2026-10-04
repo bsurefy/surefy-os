@@ -7,7 +7,11 @@
   "description": "Design system: tokens, Tailwind entry, shadcn primitives, composed components",
   "exports": {
     ".": "./src/index.ts",
-    "./styles.css": "./src/styles/globals.css"
+    "./styles.css": "./src/styles/globals.css",
+    "./primitives/*": "./src/primitives/*.tsx",
+    "./hooks/*": "./src/hooks/*.ts",
+    "./lib/*": "./src/lib/*.ts",
+    "./components/*": "./src/components/*/index.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -24,6 +28,7 @@
     "date-fns": "4.4.0",
     "input-otp": "1.5.0",
     "lucide-react": "1.50.0",
+    "next-themes": "0.4.6",
     "radix-ui": "1.6.7",
     "react-day-picker": "10.0.2",
     "react-markdown": "10.1.0",

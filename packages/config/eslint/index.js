@@ -54,11 +54,16 @@ const NAMING_RULES = {
     { selector: 'import', format: null },
     { selector: 'variable', format: ['strictCamelCase', 'UPPER_CASE', 'StrictPascalCase'] },
     { selector: 'function', format: ['strictCamelCase', 'StrictPascalCase'] },
-    { selector: 'parameter', format: ['strictCamelCase'], leadingUnderscore: 'allow' },
+    // PascalCase parameters hold components (`icon: Icon`, as the frontend guidelines require).
+    {
+      selector: 'parameter',
+      format: ['strictCamelCase', 'StrictPascalCase'],
+      leadingUnderscore: 'allow',
+    },
     { selector: 'typeLike', format: ['StrictPascalCase'] },
     { selector: 'enumMember', format: ['UPPER_CASE'] },
     // Object keys follow the data they describe (HTTP headers, SQL columns, error codes).
-    { selector: ['objectLiteralProperty', 'typeProperty'], format: null },
+    { selector: ['objectLiteralProperty', 'objectLiteralMethod', 'typeProperty'], format: null },
   ],
 }
 
