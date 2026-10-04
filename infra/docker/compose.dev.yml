@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Local development services: Postgres 18 with pgvector, and Redis.
-# The ML service is added by the ML lane. Ports bind to localhost only, on non-default ports
-# (Postgres 54320, Redis 63790) so they do not clash with other local projects.
+# Local development services: Postgres 18 with pgvector, Redis and the ML service.
+# Ports bind to localhost only, on non-default ports (Postgres 54320, Redis 63790, ML 18000)
+# so they do not clash with other local projects or with a worktree's own ML_PORT.
 #
 #   docker compose -f infra/docker/compose.dev.yml up -d
 #   infra/docker/postgres/create-database.sh <name>     # one database per worktree
@@ -43,6 +43,36 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+  ml:
+    build:
+      context: ../../apps/ml
+      dockerfile: ../../infra/docker/ml.Dockerfile
+    image: surefy-ml:dev
+    restart: unless-stopped
+    environment:
+      ML_ENV: development
+      # Development defaults; the backend's ML_SERVICE_TOKEN must hold the same value.
+      ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:-surefy-dev-ml-service-token-0000000000}
+      # Signed URLs from an API running on the host: any port of host.docker.internal.
+      ML_ALLOWED_DOWNLOAD_HOSTS: ${ML_ALLOWED_DOWNLOAD_HOSTS:-["host.docker.internal"]}
+      ML_WORKERS: ${ML_WORKERS:-2}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    ports:
+      - 127.0.0.1:${ML_DEV_PORT:-18000}:8000
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready')",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 6
 
 volumes:
   postgres-data:
