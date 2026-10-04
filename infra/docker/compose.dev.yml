@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Local development services: Postgres 18 with pgvector, and Redis.
+# The ML service is added by the ML lane. Ports bind to localhost only, on non-default ports
+# (Postgres 54320, Redis 63790) so they do not clash with other local projects.
+#
+#   docker compose -f infra/docker/compose.dev.yml up -d
+#   infra/docker/postgres/create-database.sh <name>     # one database per worktree
+name: surefy-dev
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Passwords of the two application roles (development defaults; never used outside local dev).
+      SUREFY_OWNER_PASSWORD: ${SUREFY_OWNER_PASSWORD:-surefy_owner}
+      SUREFY_APP_PASSWORD: ${SUREFY_APP_PASSWORD:-surefy_app}
+      SUREFY_DATABASE: ${SUREFY_DATABASE:-surefy}
+    ports:
+      - 127.0.0.1:${POSTGRES_PORT:-54320}:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres:/surefy:ro
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d postgres]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes']
+    ports:
+      - 127.0.0.1:${REDIS_PORT:-63790}:6379
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:
+  redis-data:
