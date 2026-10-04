@@ -13,5 +13,11 @@ export default defineConfig({
   test: {
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
+    server: {
+      deps: {
+        // Processed by Vite so that a test's mock of `next/navigation` reaches the nuqs adapter.
+        inline: ['nuqs'],
+      },
+    },
   },
 })

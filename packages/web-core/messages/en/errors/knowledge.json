@@ -1,0 +1,4 @@
+{
+  "KNOWLEDGE_FILE_UNSUPPORTED": "This file type isn't supported. Check the supported types and try another file.",
+  "KNOWLEDGE_PROCESSING_TIMEOUT": "Processing this source took too long. Try again, or upload a smaller file."
+}

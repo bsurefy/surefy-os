@@ -14,6 +14,7 @@ import {
   type FieldValues,
 } from 'react-hook-form'
 
+import { useUiLabels } from '@surefy/ui/lib/labels'
 import { cn } from '@surefy/ui/lib/utils'
 import { Label } from '@surefy/ui/primitives/label'
 
@@ -133,7 +134,9 @@ function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
   const { error, formMessageId } = useFormField()
-  const body = error ? (error.message ?? '') : props.children
+  const { translateMessage } = useUiLabels()
+  // Validation sets message keys; the app's provider translates them.
+  const body = error ? translateMessage(error.message ?? '') : props.children
 
   if (!body) {
     return null

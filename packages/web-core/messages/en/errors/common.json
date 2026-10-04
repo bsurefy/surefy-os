@@ -1,0 +1,20 @@
+{
+  "BAD_REQUEST": "The request could not be processed. Reload the page and try again.",
+  "VALIDATION_FAILED": "Some of the information is not valid. Check the highlighted fields and try again.",
+  "PAYLOAD_TOO_LARGE": "This is larger than the allowed size.",
+  "AUTH_UNAUTHENTICATED": "Your session has ended. Sign in again to continue.",
+  "ACCESS_FORBIDDEN": "You don't have permission to do this.",
+  "ACCESS_EXCEEDS_PARENT": "You can't grant more access than you have yourself.",
+  "NOT_FOUND": "This item no longer exists or isn't visible to you.",
+  "RATE_LIMITED": "Too many requests in a short time. Wait a moment and try again.",
+  "BUDGET_EXCEEDED": "This team has reached its spending limit for the month.",
+  "LIMIT_REACHED": "Your plan's limit for this has been reached. An owner can change the plan.",
+  "FEATURE_NOT_AVAILABLE": "This feature isn't included in your edition.",
+  "CREDITS_EXHAUSTED": "Your organization has used all of its AI credits.",
+  "IDEMPOTENCY_KEY_REUSED": "This request was already sent. Reload the page to see the result.",
+  "INTERNAL_ERROR": "Something went wrong on our side. Try again in a moment.",
+  "SERVICE_UNAVAILABLE": "The service is temporarily unavailable. Try again in a few minutes.",
+  "NETWORK_ERROR": "Can't reach the server. Check your connection and try again.",
+  "UNKNOWN_ERROR": "Something went wrong. Please try again.",
+  "fallback": "Something went wrong. Please try again."
+}

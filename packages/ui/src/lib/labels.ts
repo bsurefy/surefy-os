@@ -37,15 +37,35 @@ export const DEFAULT_UI_LABELS: UiLabels = {
   notifications: 'Notifications',
 }
 
-const UiLabelsContext = createContext<UiLabels>(DEFAULT_UI_LABELS)
+/**
+ * Turns a message key set by validation (`issues.too_small`, `custom.nameTaken`) into text; text
+ * that is not a known key is returned unchanged.
+ */
+export type TranslateMessage = (text: string) => string
+
+interface UiLabelsContextValue extends UiLabels {
+  translateMessage: TranslateMessage
+}
+
+const keepText: TranslateMessage = (text) => text
+
+const UiLabelsContext = createContext<UiLabelsContextValue>({
+  ...DEFAULT_UI_LABELS,
+  translateMessage: keepText,
+})
 
 export function UiLabelsProvider({
   labels,
+  translateMessage = keepText,
   children,
-}: Readonly<{ labels: Partial<UiLabels>; children: ReactNode }>) {
+}: Readonly<{
+  labels: Partial<UiLabels>
+  translateMessage?: TranslateMessage
+  children: ReactNode
+}>) {
   return createElement(
     UiLabelsContext.Provider,
-    { value: { ...DEFAULT_UI_LABELS, ...labels } },
+    { value: { ...DEFAULT_UI_LABELS, ...labels, translateMessage } },
     children,
   )
 }
