@@ -573,6 +573,9 @@ importers:
       react-day-picker:
         specifier: 10.0.2
         version: 10.0.2(@types/react@19.3.0)(react@19.3.0)
+      react-hook-form:
+        specifier: 7.89.0
+        version: 7.89.0(@types/react@19.3.0)(react@19.3.0)
       react-markdown:
         specifier: 10.1.0
         version: 10.1.0(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
