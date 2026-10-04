@@ -1,0 +1,16 @@
+{
+  "list": {
+    "label": "Chats",
+    "empty": {
+      "title": "No chats yet",
+      "description": "Your chats appear here, grouped by date."
+    }
+  },
+  "thread": {
+    "title": "New chat",
+    "empty": {
+      "title": "What can I help with?",
+      "description": "Ask a question, attach a file or choose the knowledge to answer from."
+    }
+  }
+}

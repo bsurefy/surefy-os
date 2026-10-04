@@ -1,0 +1,10 @@
+{
+  "auditLog": {
+    "title": "Audit log",
+    "description": "Sign-ins, changes and actions in this organization, signed and chained.",
+    "empty": {
+      "title": "No events yet",
+      "description": "Every sign-in, change and action in this organization appears here."
+    }
+  }
+}

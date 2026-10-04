@@ -3,7 +3,6 @@ import { sql } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
-// eslint-disable-next-line import-x/namespace -- empty until the first table file is appended
 import * as schema from '@/database/tables/index.js'
 
 import { assertNoActiveScope, runInScope } from './scope.js'

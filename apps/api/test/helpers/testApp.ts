@@ -7,6 +7,7 @@ import { createDatabase, type Database } from '@/core/database/index.js'
 import { onFileTeardown } from './cleanup.js'
 import { getTestDatabase } from './testDatabase.js'
 
+import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
 import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
@@ -19,6 +20,8 @@ export interface TestAppOptions {
   routes?: readonly FastifyPluginAsyncZod[]
   /** Extension names to report as loaded; no private package is imported either way. */
   extensions?: readonly string[]
+  /** Replaces the membership resolver of `app.authorize()`; by default real memberships decide. */
+  tenants?: TenantAccessResolver
 }
 
 export interface TestApp {
@@ -47,6 +50,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     db,
     extensions: options.extensions ?? [],
     ...(options.integrations === undefined ? {} : { integrations: options.integrations }),
+    ...(options.tenants === undefined ? {} : { tenants: options.tenants }),
   })
   const container: Container = {
     ...base,

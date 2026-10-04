@@ -84,6 +84,11 @@ export function toConfig(env: Env, processName: ProcessName): Config {
       origins: [env.APP_ORIGIN, env.CONSOLE_ORIGIN, env.PARTNER_ORIGIN].filter(
         (origin): origin is string => origin !== undefined,
       ),
+      apps: {
+        workspace: env.APP_ORIGIN,
+        ...(env.CONSOLE_ORIGIN === undefined ? {} : { console: env.CONSOLE_ORIGIN }),
+        ...(env.PARTNER_ORIGIN === undefined ? {} : { partner: env.PARTNER_ORIGIN }),
+      },
     },
     ml: { url: env.ML_SERVICE_URL, token: env.ML_SERVICE_TOKEN },
     process: { name: processName },

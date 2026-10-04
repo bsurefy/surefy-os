@@ -27,9 +27,11 @@ function formatIssues(error: z.ZodError): string {
 }
 
 /**
- * Validates the environment once, when the module that calls it loads, so a missing or invalid
- * variable fails at startup. On the server every variable is parsed; in the browser only the
- * client ones are, and reading a server variable throws instead of returning `undefined`.
+ * Validates the environment once, on the first read of any variable, so a missing or invalid
+ * variable fails the first time the app uses it rather than when the module is imported. This lets
+ * `next build` load server modules without the runtime variables, which the server provides only
+ * when it starts. On the server every variable is parsed; in the browser only the client ones are,
+ * and reading a server variable throws instead of returning `undefined`.
  */
 export function createEnv<Server extends EnvShape, Client extends ClientShape>({
   server,
@@ -37,19 +39,33 @@ export function createEnv<Server extends EnvShape, Client extends ClientShape>({
   runtimeEnv,
 }: CreateEnvOptions<Server, Client>): Env<Server, Client> {
   const isServer = typeof window === 'undefined'
-  const result = z.object(isServer ? { ...server, ...client } : client).safeParse(runtimeEnv)
-  if (!result.success) throw new Error(formatIssues(result.error))
+  let values: Env<Server, Client> | undefined
 
-  const values = result.data as Env<Server, Client>
-  if (isServer) return values
+  function parse(): Env<Server, Client> {
+    if (values) return values
+    const result = z.object(isServer ? { ...server, ...client } : client).safeParse(runtimeEnv)
+    if (!result.success) throw new Error(formatIssues(result.error))
+    values = result.data as Env<Server, Client>
+    return values
+  }
 
-  return new Proxy(values, {
-    get(target, property, receiver) {
-      if (typeof property === 'string' && property in server)
+  return new Proxy({} as Env<Server, Client>, {
+    get(_target, property) {
+      if (!isServer && typeof property === 'string' && property in server)
         throw new Error(
           `Environment variable ${property} is server-only and cannot be read in the browser`,
         )
-      return Reflect.get(target, property, receiver) as unknown
+      return Reflect.get(parse(), property) as unknown
+    },
+    has(_target, property) {
+      return Reflect.has(parse(), property)
+    },
+    ownKeys() {
+      return Reflect.ownKeys(parse())
+    },
+    getOwnPropertyDescriptor(_target, property) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(parse(), property)
+      return descriptor && { ...descriptor, configurable: true }
     },
   })
 }

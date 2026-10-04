@@ -12,6 +12,9 @@ await container.db.ping()
 await container.cache.ping()
 const workers = registerJobs(container, [
   // Core job processors register here, one line each (ingestDocumentJob, sendEmailJob, …).
+  ...container.modules.notifications.jobs,
+  ...container.modules.audit.jobs,
+  ...container.modules.dataControl.jobs,
   ...container.extensions.jobs,
 ])
 await registerSchedulers(container.queues, SYSTEM_SCHEDULERS, container.logger)

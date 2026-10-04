@@ -20,6 +20,14 @@ export function getFeatureMessageKey(feature: Feature): FeatureMessageKey {
   ) as FeatureMessageKey
 }
 
+/**
+ * A license can unlock the feature: its minimum edition is Enterprise. Cloud-only features
+ * (`data-regions`) never offer "Enter license key" (ADR 0020). Messaging only, never gating.
+ */
+export function isLicensable(feature: Feature): boolean {
+  return FEATURE_EDITIONS[feature].minimum === 'enterprise'
+}
+
 export function useUpgradeCardController({ feature }: UpgradeCardProps) {
   // 1. external hooks
   const t = useTranslations('editions')
@@ -29,8 +37,9 @@ export function useUpgradeCardController({ feature }: UpgradeCardProps) {
 
   // 5. derived values
   const key = getFeatureMessageKey(feature)
-  const editionLabel = t(`edition.${FEATURE_EDITIONS[feature].minimum}`)
-  const licenseHref = me?.isInstallAdmin ? links.licenseHref : undefined
+  const { minimum } = FEATURE_EDITIONS[feature]
+  const editionLabel = t(`edition.${minimum}`)
+  const licenseHref = me?.isInstallAdmin && isLicensable(feature) ? links.licenseHref : undefined
   const plansHref = canManageBilling ? links.plansHref : undefined
   const canUpgrade = licenseHref !== undefined || plansHref !== undefined
 

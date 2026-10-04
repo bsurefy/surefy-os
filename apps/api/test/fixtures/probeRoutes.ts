@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { NotFoundError, UnauthorizedError } from '@/core/errors/index.js'
+import { defineGuard } from '@/plugins/access.plugin.js'
 import { ERROR_CODES, okResponse } from '@surefy/contracts'
 
 import { probeItems } from './probe.tables.js'
@@ -11,7 +12,7 @@ import type { Database } from '@/core/database/index.js'
 import type { FastifyRequest } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
-/** Stands in for the session until the auth module lands: the organization the caller belongs to. */
+/** Stands in for a session and its membership: the organization the caller belongs to. */
 export const PROBE_ACTOR_HEADER = 'x-probe-org'
 
 export const probeItemSchema = z.object({
@@ -26,6 +27,23 @@ const actorOrg = (request: FastifyRequest): string => {
   return value
 }
 
+/** A guard that verifies `:orgId` against the probe header, as `app.authorize()` does. */
+const probeAuthorize = defineGuard('authorize', (request) => {
+  const { orgId } = request.params as { orgId: string }
+  if (actorOrg(request) !== orgId) {
+    return Promise.reject(
+      new NotFoundError(ERROR_CODES.ORGANIZATION_NOT_FOUND, 'Organization not found'),
+    )
+  }
+  return Promise.resolve()
+})
+
+/** A broken guard: it wants a caller but never checks the organization. */
+const leakyAuthorize = defineGuard('authorize', (request) => {
+  actorOrg(request)
+  return Promise.resolve()
+})
+
 /**
  * Two org-scoped routes over the probe table: one written as every route must be (tenant
  * verified, data read under `db.tenant`), and one with the mistakes the isolation helpers exist
@@ -39,12 +57,9 @@ export const createProbeRoutes =
 
     app.get(
       '/orgs/:orgId/probes/:probeId',
-      { config: { public: true }, schema: { tags: ['probes'], params, response } },
+      { preHandler: probeAuthorize, schema: { tags: ['probes'], params, response } },
       async (request, reply) => {
         const { orgId, probeId } = request.params
-        if (actorOrg(request) !== orgId) {
-          throw new NotFoundError(ERROR_CODES.ORGANIZATION_NOT_FOUND, 'Organization not found')
-        }
         const rows = await db.tenant(orgId, (tx) =>
           tx.select().from(probeItems).where(eq(probeItems.id, probeId)),
         )
@@ -56,9 +71,8 @@ export const createProbeRoutes =
 
     app.get(
       '/orgs/:orgId/leaky/:probeId',
-      { config: { public: true }, schema: { tags: ['probes'], params, response } },
+      { preHandler: leakyAuthorize, schema: { tags: ['probes'], params, response } },
       async (request, reply) => {
-        actorOrg(request)
         const rows = await db.system('test', (tx) =>
           tx.select().from(probeItems).where(eq(probeItems.id, request.params.probeId)),
         )

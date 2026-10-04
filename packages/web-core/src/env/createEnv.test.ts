@@ -30,17 +30,41 @@ describe('createEnv on the server', () => {
     expect(env.NEXT_PUBLIC_APP_URL).toBe('https://console.surefyos.test')
   })
 
-  it('throws at creation naming every missing or invalid variable', () => {
+  it('does not validate until a variable is read', () => {
     expect(() =>
       createEnv({
         ...schemas,
-        runtimeEnv: {
-          SITE_URL: 'not a url',
-          PORT: undefined,
-          NEXT_PUBLIC_APP_URL: 'https://ok.test',
-        },
+        runtimeEnv: { SITE_URL: undefined, PORT: undefined, NEXT_PUBLIC_APP_URL: undefined },
       }),
-    ).toThrow(/Invalid environment variables:[\s\S]*SITE_URL[\s\S]*PORT/)
+    ).not.toThrow()
+  })
+
+  it('throws on the first read naming every missing or invalid variable', () => {
+    const env = createEnv({
+      ...schemas,
+      runtimeEnv: {
+        SITE_URL: 'not a url',
+        PORT: undefined,
+        NEXT_PUBLIC_APP_URL: 'https://ok.test',
+      },
+    })
+
+    expect(() => env.NEXT_PUBLIC_APP_URL).toThrow(
+      /Invalid environment variables:[\s\S]*SITE_URL[\s\S]*PORT/,
+    )
+  })
+
+  it('validates once and reuses the parsed values', () => {
+    const runtimeEnv = {
+      SITE_URL: 'https://app.surefyos.test',
+      PORT: '3000',
+      NEXT_PUBLIC_APP_URL: 'https://console.surefyos.test',
+    }
+    const env = createEnv({ ...schemas, runtimeEnv })
+
+    expect(env.PORT).toBe(3000)
+    runtimeEnv.PORT = 'not a number'
+    expect(env.PORT).toBe(3000)
   })
 })
 

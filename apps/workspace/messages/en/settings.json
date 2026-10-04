@@ -1,0 +1,43 @@
+{
+  "title": "Settings",
+  "navLabel": "Settings sections",
+  "sections": {
+    "general": "General",
+    "members": "Members",
+    "teams": "Teams",
+    "access": "Roles & access",
+    "vault": "Vault",
+    "dataPrivacy": "Data & privacy",
+    "security": "Security",
+    "install": "Install"
+  },
+  "general": {
+    "description": "Your organization's name, address, logo, time zone and language."
+  },
+  "members": {
+    "description": "People in your organization, their roles and teams, and invitations.",
+    "empty": {
+      "title": "Invite your team",
+      "description": "Invite people by email and choose their role and teams."
+    }
+  },
+  "teams": {
+    "description": "Teams, their members and leads, and what each team can use.",
+    "empty": {
+      "title": "Create your first team",
+      "description": "Group people into teams to share models, knowledge and agents."
+    }
+  },
+  "access": {
+    "description": "What each role can do, and the effective access of a person or team."
+  },
+  "dataPrivacy": {
+    "description": "Where data is stored, how long it is kept, and exporting or deleting it."
+  },
+  "security": {
+    "description": "Two-step verification, session length and sign-in rules."
+  },
+  "install": {
+    "description": "Email server, sign-in methods and sign-up for this install."
+  }
+}

@@ -8,6 +8,76 @@
       "when": 1791105038734,
       "tag": "0000_base-privileges",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791125635866,
+      "tag": "0001_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791125645202,
+      "tag": "0002_notifications-force-rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791126824192,
+      "tag": "0003_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791126830632,
+      "tag": "0004_auth-force-rls",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791128722243,
+      "tag": "0005_organizations",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791128748365,
+      "tag": "0006_organizations-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791131587260,
+      "tag": "0007_install",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791131591442,
+      "tag": "0008_install-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791132841972,
+      "tag": "0009_access-audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791132843144,
+      "tag": "0010_access-audit-security",
+      "breakpoints": true
     }
   ]
 }

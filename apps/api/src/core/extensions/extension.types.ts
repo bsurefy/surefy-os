@@ -5,6 +5,7 @@ import type { Config } from '@/core/config/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
 import type { Queues, RegisteredJob } from '@/core/queue/index.js'
+import type { AccessCheck, EntitlementSource } from '@/modules/access/entitlements.types.js'
 import type { PublicModules } from '@/types/modules.js'
 import type { BetterAuthPlugin } from 'better-auth'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
@@ -37,9 +38,9 @@ export interface MigrationsFolder {
 }
 
 /**
- * Extension points with a Community default each. Module tasks add the hooks their modules read
- * at call time: `setEntitlementSource`, `setRoleResolver`, `setAccessGrantResolver`,
- * `addAccessCheck`, `addAuditSink`, `onEvent`, `addModelSource`, `addModelCallGuard`.
+ * Extension points with a Community default each; modules read the contributions at call time.
+ * Module tasks add the remaining hooks: `setRoleResolver`, `setAccessGrantResolver`,
+ * `addAuditSink`, `onEvent`, `addModelSource`, `addModelCallGuard`.
  */
 export interface ExtensionHooks {
   /** Routes registered under /api/v1, after the core modules' routes. */
@@ -52,6 +53,10 @@ export interface ExtensionHooks {
   addSettingsSchema(key: string, schema: z.ZodType): void
   /** Extension-owned tables, applied by db:migrate after the core folder. */
   addMigrationsFolder(path: string, migrationsTable: string): void
+  /** The license (`ee-api`) or the plans (`cloud-api`) replace Community's; last one wins, logged. */
+  setEntitlementSource(source: EntitlementSource): void
+  /** A per-request organization check after the tenant is known, e.g. an IP allow-list. */
+  addAccessCheck(check: AccessCheck): void
 }
 
 /** The container's registry: the hooks plus readers for what was contributed. */
@@ -61,4 +66,7 @@ export interface ExtensionRegistry extends ExtensionHooks {
   jobs(): readonly RegisteredJob[]
   settingsSchemas(): ReadonlyMap<string, z.ZodType>
   migrationsFolders(): readonly MigrationsFolder[]
+  /** The contributed entitlement source; undefined keeps Community's. */
+  entitlementSource(): EntitlementSource | undefined
+  accessChecks(): readonly AccessCheck[]
 }

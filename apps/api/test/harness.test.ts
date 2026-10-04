@@ -191,7 +191,10 @@ describe('test harness', () => {
   describe('schema guards', () => {
     it('report the table without RLS and a policy table without FORCE', async () => {
       const { owner } = getTestDatabase()
-      const lists = { ...SCHEMA_GUARD_LISTS, joinTables: ['probe_items', 'probe_leaks'] }
+      const lists = {
+        ...SCHEMA_GUARD_LISTS,
+        joinTables: [...SCHEMA_GUARD_LISTS.joinTables, 'probe_items', 'probe_leaks'],
+      }
 
       expect(await runSchemaGuards(owner.global, lists)).toEqual([
         {
@@ -214,7 +217,7 @@ describe('test harness', () => {
     it('report a tenant table without the (organization_id, id) unique key', async () => {
       const findings = await runSchemaGuards(getTestDatabase().owner.global, {
         ...SCHEMA_GUARD_LISTS,
-        globalTables: ['probe_leaks'],
+        globalTables: [...SCHEMA_GUARD_LISTS.globalTables, 'probe_leaks'],
       })
       expect(findings.map((finding) => finding.object).sort((a, b) => a.localeCompare(b))).toEqual([
         'probe_items',

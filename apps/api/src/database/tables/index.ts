@@ -6,4 +6,13 @@
  * §16): auth, organizations and members, install, vault and access, chat and knowledge, usage
  * and audit, platform tables.
  */
-export {}
+export * from './auth.tables.js'
+export * from './organizations.tables.js'
+export * from './teams.tables.js'
+export * from './members.tables.js'
+export * from './install.tables.js'
+export * from './notifications.tables.js'
+export * from './access.tables.js'
+export * from './audit.tables.js'
+export * from './partitioned/audit.tables.js'
+export * from './dataControl.tables.js'

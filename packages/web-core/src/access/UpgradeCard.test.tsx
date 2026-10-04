@@ -15,7 +15,7 @@ import {
   testMessages,
 } from '../testing'
 import { UpgradeCard } from './UpgradeCard'
-import { getFeatureMessageKey } from './UpgradeCard.controller'
+import { getFeatureMessageKey, isLicensable } from './UpgradeCard.controller'
 import { UpgradeLinksProvider, type UpgradeLinks } from './UpgradeLinksProvider'
 
 const ORG_ID = fixtureUuid(2, 1)
@@ -84,6 +84,17 @@ describe('UpgradeCard', () => {
     expect(screen.queryByText('Ask an owner to upgrade')).not.toBeInTheDocument()
   })
 
+  it('offers no license key for a feature a license cannot unlock', () => {
+    renderCard(FEATURES.DATA_REGIONS, { isInstallAdmin: true })
+
+    expect(screen.queryByRole('link', { name: 'Enter license key' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Compare editions' })).toHaveAttribute(
+      'href',
+      LINKS.compareEditionsUrl,
+    )
+    expect(screen.getByText('Ask an owner to upgrade')).toBeInTheDocument()
+  })
+
   it('offers people who manage billing the plans', () => {
     renderCard(FEATURES.SSO, { canManageBilling: true })
 
@@ -115,6 +126,14 @@ describe('UpgradeCard', () => {
     expect(copy.title).toContain('{edition}')
     expect(copy.name).toMatch(/\S/)
     expect(copy.description).toMatch(/\S/)
+  })
+})
+
+describe('isLicensable', () => {
+  it('is true only for features whose minimum edition is Enterprise', () => {
+    expect(isLicensable(FEATURES.SSO)).toBe(true)
+    expect(isLicensable(FEATURES.MULTI_ORGANIZATION)).toBe(true)
+    expect(isLicensable(FEATURES.DATA_REGIONS)).toBe(false)
   })
 })
 

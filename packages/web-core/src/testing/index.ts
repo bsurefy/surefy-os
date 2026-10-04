@@ -5,7 +5,9 @@ export { createIdSequence, defineFactory } from './fixtures/defineFactory'
 export type { Factory } from './fixtures/defineFactory'
 export {
   effectiveAccessFactory,
+  FIXTURE_COMPARE_EDITIONS_URL,
   fixtureUuid,
+  installCapabilitiesFactory,
   meFactory,
   meMembershipFactory,
 } from './fixtures/identity'

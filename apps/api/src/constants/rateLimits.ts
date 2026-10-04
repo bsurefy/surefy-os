@@ -8,4 +8,6 @@ export const RATE_LIMITS = {
   global: { max: 300, timeWindow: '1 minute' },
   /** Sign-in, sign-up, password reset and the other Better Auth routes. */
   auth: { max: 20, timeWindow: '1 minute' },
+  /** Public lookups by slug or invitation link: enough for a form, too few to enumerate. */
+  publicLookup: { max: 30, timeWindow: '1 minute' },
 } as const

@@ -17,6 +17,7 @@
     "./providers": "./src/providers/index.ts",
     "./auth": "./src/auth/index.ts",
     "./auth/server": "./src/auth/server.ts",
+    "./auth/proxy": "./src/auth/proxy.ts",
     "./access": "./src/access/index.ts",
     "./api/me": "./src/api/me/index.ts",
     "./api/access": "./src/api/access/index.ts",
