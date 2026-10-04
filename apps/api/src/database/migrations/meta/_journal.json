@@ -50,6 +50,20 @@
       "when": 1791128748365,
       "tag": "0006_organizations-security",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791131587260,
+      "tag": "0007_install",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791131591442,
+      "tag": "0008_install-security",
+      "breakpoints": true
     }
   ]
 }

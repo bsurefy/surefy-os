@@ -12,15 +12,16 @@ import { createQueues, type Queues } from './core/queue/index.js'
 import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import {
-  AUTH_DEFAULTS,
   createAuthEmails,
   createAuthModule,
   createAuthUsers,
   createSignupPolicy,
 } from './modules/auth/index.js'
+import { createInstallModule, createInstallSettings } from './modules/install/index.js'
 import { createMembersModule, createMemberships } from './modules/members/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
 import { createOrganizationsModule } from './modules/organizations/index.js'
+import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
 
 import type { Config } from './core/config/index.js'
@@ -78,10 +79,12 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
   })
   const memberships = createMemberships()
+  const installSettings = createInstallSettings({ db })
   const organizations = createOrganizationsModule({
     db,
     storage: integrations.storage,
     owners: memberships.service,
+    creationRule: installSettings.service,
   })
   const teams = createTeamsModule({
     db,
@@ -99,7 +102,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
   })
   notifications.onEmailDelivery(members.invitations.onEmailDelivery)
-  const modules = { notifications, organizations, teams, members } satisfies PublicModules
+  const install = createInstallModule({
+    config,
+    db,
+    settings: installSettings,
+    users,
+    logos: organizations.service,
+  })
+  const modules = { notifications, organizations, teams, members, install } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks
   const names =
@@ -116,13 +126,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   }
 
   // 4. Better Auth last: its plugin list must include extension plugins (for example SSO)
+  const signup = createSignupPolicy(installSettings.service, members.invitations)
   const auth = createAuth({
     config,
     db,
     redis: cache.client,
     logger,
     emails: createAuthEmails({ db, notifications: notifications.service }),
-    signup: createSignupPolicy(AUTH_DEFAULTS.signup, members.invitations),
+    signup,
     users,
     plugins: extensions.authPlugins,
   })
@@ -132,7 +143,22 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     auth,
     users,
     memberships: members.service,
+    installAdmins: installSettings.service,
     organizationCreation: organizations.service,
+    signup,
+  })
+  const setup = createSetupModule({
+    config,
+    db,
+    logger,
+    auth,
+    storage: integrations.storage,
+    install: installSettings.service,
+    organizations: organizations.service,
+    profiles: authModule.service,
+    memberPreferences: members.preferences,
+    members: members.service,
+    invitations: members.invitations,
   })
   const tenants = overrides.tenants ?? members.access
 
@@ -147,7 +173,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     extensions,
     auth,
     tenants,
-    modules: { ...modules, auth: authModule },
+    modules: { ...modules, auth: authModule, setup },
     async close() {
       await integrations.mail.close()
       await queues.close()

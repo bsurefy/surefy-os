@@ -79,6 +79,8 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       const api = scope.withTypeProvider<ZodTypeProvider>()
       // Module routes register here, one line each, in dependency order.
       await api.register(container.modules.auth.routes)
+      await api.register(container.modules.setup.routes)
+      await api.register(container.modules.install.routes)
       await api.register(container.modules.notifications.routes)
       await api.register(container.modules.organizations.routes)
       await api.register(container.modules.teams.routes)

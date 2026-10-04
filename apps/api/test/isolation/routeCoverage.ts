@@ -53,6 +53,39 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'POST /api/v1/me/sessions/revoke-others': { class: 'authenticated' },
   'DELETE /api/v1/me/sessions/:sessionId': { class: 'authenticated' },
 
+  // setup
+  'GET /api/v1/setup/status': {
+    class: 'public',
+    reason: 'First-run setup state; the server check only while no organization exists',
+  },
+  'POST /api/v1/setup': {
+    class: 'public',
+    reason: 'First-run setup; refused once an organization exists, SETUP_TOKEN when set',
+  },
+  'POST /api/v1/orgs/:orgId/setup/complete': {
+    class: 'orgScoped',
+    payload: () => ({ skippedSteps: ['model'] }),
+  },
+  'GET /api/v1/orgs/:orgId/setup/checklist': { class: 'orgScoped' },
+
+  // install
+  'GET /api/v1/install/settings': { class: 'installAdmin' },
+  'PATCH /api/v1/install/settings': {
+    class: 'installAdmin',
+    payload: () => ({ signupPolicy: 'open' }),
+  },
+  'POST /api/v1/install/smtp/test': {
+    class: 'installAdmin',
+    payload: () => ({ to: 'intruder@example.test' }),
+  },
+  'GET /api/v1/install/admins': { class: 'installAdmin' },
+  'POST /api/v1/install/admins': {
+    class: 'installAdmin',
+    payload: (f) => ({ userId: f.orgB.ownerId }),
+  },
+  'DELETE /api/v1/install/admins/:userId': { class: 'installAdmin' },
+  'GET /api/v1/install/organizations': { class: 'installAdmin' },
+
   // organizations
   'GET /api/v1/organizations/slug-availability': { class: 'public', reason: PUBLIC_LOOKUP },
   'POST /api/v1/organizations': {

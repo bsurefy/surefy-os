@@ -123,6 +123,8 @@ export async function createTestApp(options: TestAppOptions = {}) {
     tenants: NO_TENANT_ACCESS,
     modules: {
       auth: { routes: noRoutes },
+      setup: { routes: noRoutes },
+      install: { routes: noRoutes },
       notifications: { routes: noRoutes },
       organizations: { routes: noRoutes },
       teams: { routes: noRoutes },
