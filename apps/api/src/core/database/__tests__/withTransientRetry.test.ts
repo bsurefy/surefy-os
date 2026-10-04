@@ -7,6 +7,7 @@ import {
   assertNoActiveScope,
   currentScope,
   isTransientError,
+  sqlState,
   withTransientRetry,
 } from '../index.js'
 import { runInScope } from '../scope.js'
@@ -45,6 +46,12 @@ describe('withTransientRetry', () => {
     expect(isTransientError(pgError('23503'))).toBe(false)
     expect(isTransientError(new Error('plain'))).toBe(false)
     expect(isTransientError(null)).toBe(false)
+  })
+
+  it('reads the SQLSTATE through a wrapping query error', () => {
+    const wrapped = new Error('Failed query', { cause: pgError('40001') })
+    expect(sqlState(wrapped)).toBe('40001')
+    expect(isTransientError(wrapped)).toBe(true)
   })
 })
 

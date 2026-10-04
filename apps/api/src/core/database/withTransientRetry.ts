@@ -15,11 +15,17 @@ export interface TransientRetryOptions {
 
 const DEFAULTS = { attempts: 3, baseDelayMs: 20 } satisfies Required<TransientRetryOptions>
 
-/** The Postgres error code of a thrown value, when `pg` produced it. */
-export const sqlState = (error: unknown): string | undefined => {
+const ownCode = (error: unknown): string | undefined => {
   if (typeof error !== 'object' || error === null || !('code' in error)) return undefined
   return typeof error.code === 'string' ? error.code : undefined
 }
+
+/**
+ * The Postgres error code of a thrown value, when `pg` produced it. Drizzle wraps the driver error
+ * in a `DrizzleQueryError` whose `cause` is the `pg` error, so the code may sit one level down.
+ */
+export const sqlState = (error: unknown): string | undefined =>
+  ownCode(error) ?? (error instanceof Error ? ownCode(error.cause) : undefined)
 
 export const isTransientError = (error: unknown): boolean => {
   const code = sqlState(error)
