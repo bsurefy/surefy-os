@@ -1,0 +1,4 @@
+{
+  "AUDIT_ENTRY_NOT_FOUND": "This audit entry doesn't exist or isn't visible to you.",
+  "AUDIT_VERIFICATION_RUNNING": "A verification is already running. Wait for it to finish."
+}

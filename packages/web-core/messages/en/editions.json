@@ -1,0 +1,70 @@
+{
+  "edition": {
+    "enterprise": "Enterprise",
+    "cloud": "Cloud"
+  },
+  "gate": {
+    "compareEditions": "Compare editions",
+    "enterLicenseKey": "Enter license key",
+    "seePlans": "See plans",
+    "askOwner": "Ask an owner to upgrade",
+    "previewLabel": "Preview of {feature}"
+  },
+  "features": {
+    "sso": {
+      "title": "Single sign-on is part of SurefyOS {edition}",
+      "name": "Single sign-on",
+      "description": "Let people sign in with your identity provider (SAML or OIDC), sync users with SCIM, and require SSO for everyone."
+    },
+    "scim": {
+      "title": "User provisioning is part of SurefyOS {edition}",
+      "name": "User provisioning",
+      "description": "Create, update and remove members automatically from your identity provider with SCIM."
+    },
+    "customRoles": {
+      "title": "Custom roles are part of SurefyOS {edition}",
+      "name": "Custom roles",
+      "description": "Define your own roles with exactly the permissions each group of people needs."
+    },
+    "auditExport": {
+      "title": "Audit export is part of SurefyOS {edition}",
+      "name": "Audit export",
+      "description": "Download the audit log for reviews, investigations and long-term records."
+    },
+    "auditSiem": {
+      "title": "SIEM streaming is part of SurefyOS {edition}",
+      "name": "SIEM streaming",
+      "description": "Send audit events to your security tools as they happen."
+    },
+    "complianceReports": {
+      "title": "Compliance reports are part of SurefyOS {edition}",
+      "name": "Compliance reports",
+      "description": "Produce ready-made reports on access, data handling and AI use for auditors."
+    },
+    "ipAllowList": {
+      "title": "IP allow-lists are part of SurefyOS {edition}",
+      "name": "IP allow-list",
+      "description": "Allow access to your organization only from the networks you trust."
+    },
+    "retentionPolicies": {
+      "title": "Retention policies are part of SurefyOS {edition}",
+      "name": "Retention policies",
+      "description": "Decide how long chats, files and logs are kept, and remove them on schedule."
+    },
+    "whiteLabel": {
+      "title": "Custom branding is part of SurefyOS {edition}",
+      "name": "Custom branding",
+      "description": "Use your own name, logo, colors and domain for the workspace."
+    },
+    "dataRegions": {
+      "title": "Data regions are part of SurefyOS {edition}",
+      "name": "Data regions",
+      "description": "Choose the region where your organization's data is stored and processed."
+    },
+    "multiOrganization": {
+      "title": "Multiple organizations are part of SurefyOS {edition}",
+      "name": "Multiple organizations",
+      "description": "Run several organizations on one install, each with its own members, teams and settings."
+    }
+  }
+}

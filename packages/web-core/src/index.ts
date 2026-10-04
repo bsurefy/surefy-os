@@ -1,3 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Filled by S1-07 to S1-10 (http, query, i18n, forms, auth, access, testing, mock server).
+// Import by subpath: ./http, ./http/server, ./query, ./errors, ./env, ./i18n, ./forms, ./providers,
+// ./auth, ./auth/server, ./access, ./api/me, ./api/access, ./testing.
 export {}

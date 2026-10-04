@@ -3,4 +3,7 @@
 export const TEAMS_ERROR_CODES = {
   TEAM_NAME_TAKEN: 'TEAM_NAME_TAKEN',
   TEAM_NOT_FOUND: 'TEAM_NOT_FOUND',
+  TEAM_LEAD_NOT_A_MEMBER: 'TEAM_LEAD_NOT_A_MEMBER', // 422: the lead must belong to the team
+  TEAM_MEMBER_NOT_FOUND: 'TEAM_MEMBER_NOT_FOUND', // 404: the person is not in this team
+  TEAM_HAS_CONNECTIONS: 'TEAM_HAS_CONNECTIONS', // 409: deletion needs the `connections` decision
 } as const

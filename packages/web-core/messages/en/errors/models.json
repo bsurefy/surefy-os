@@ -1,0 +1,4 @@
+{
+  "MODEL_NOT_ALLOWED": "This model isn't allowed in your organization. Choose another model or ask an admin.",
+  "MODEL_PROVIDER_UNAVAILABLE": "The model's provider isn't responding. Try again in a moment or choose another model."
+}

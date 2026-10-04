@@ -17,7 +17,8 @@ class ApiModel(BaseModel):
 
 
 class ErrorDetail(ApiModel):
-    field: str | None = None
+    path: str  # dot notation over the camelCase wire names, without the location
+    code: str  # Pydantic error type: missing, url_parsing…
     message: str
 
 

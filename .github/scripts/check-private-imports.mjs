@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The public repository never imports or references private packages (docs: open-core rules).
+// The one allowed mention is the optional package list in the API's loadExtensions.ts, which
+// imports them only when installed (docs: backend/extensions.md, "Forbidden").
 // Usage: node .github/scripts/check-private-imports.mjs
 import { execFileSync } from 'node:child_process'
 
@@ -9,7 +11,16 @@ let output = ''
 try {
   output = execFileSync(
     'git',
-    ['grep', '-nE', PRIVATE, '--', '.', ':!*.md', ':!.github/scripts/check-private-imports.mjs'],
+    [
+      'grep',
+      '-nE',
+      PRIVATE,
+      '--',
+      '.',
+      ':!*.md',
+      ':!.github/scripts/check-private-imports.mjs',
+      ':!apps/api/src/core/extensions/loadExtensions.ts',
+    ],
     { encoding: 'utf8' },
   )
 } catch (error) {

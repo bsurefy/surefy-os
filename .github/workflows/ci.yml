@@ -56,11 +56,16 @@ jobs:
         run: node .github/scripts/check-i18n-parity.mjs
       - name: Lint, typecheck, test, build
         run: pnpm turbo run lint typecheck test build
+      - name: ML client matches apps/ml/openapi.json
+        run: |
+          pnpm --filter @surefy/ml-client generate
+          git diff --exit-code -- packages/ml-client/src/generated \
+            || { echo "::error::Run 'pnpm --filter @surefy/ml-client generate' and commit the result."; exit 1; }
 
   python:
     name: ML service
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/ml
@@ -73,4 +78,20 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
-      - run: uv run pytest
+      - name: openapi.json matches the code
+        run: |
+          uv run python -m surefy_ml.export_openapi > openapi.json
+          git diff --exit-code -- openapi.json \
+            || { echo "::error::Run 'uv run python -m surefy_ml.export_openapi > openapi.json' in apps/ml and commit the result."; exit 1; }
+      # Model weights for the slow tests; the docling version in uv.lock decides which weights.
+      - name: Cache model weights
+        id: models
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/ml/.models
+          key: ml-models-${{ hashFiles('apps/ml/uv.lock') }}
+      - name: Download model weights
+        if: steps.models.outputs.cache-hit != 'true'
+        run: uv run docling-tools models download layout tableformer rapidocr -o .models
+      - name: Tests, including the slow ones on real models
+        run: uv run pytest

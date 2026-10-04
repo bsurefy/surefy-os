@@ -1,0 +1,15 @@
+{
+  "MEMBER_NOT_FOUND": "This member no longer exists or isn't visible to you.",
+  "MEMBERS_LAST_OWNER": "An organization needs at least one active owner. Make someone else an owner first.",
+  "MEMBERS_OWNER_ROLE_RESTRICTED": "Only owners can add, change or remove owners.",
+  "MEMBERS_PRIMARY_TEAM_NOT_A_MEMBER": "The primary team must be one of this member's teams.",
+  "MEMBERS_ALREADY_MEMBER": "This person is already a member of the organization.",
+  "MEMBERS_ALREADY_INVITED": "This person already has a pending invitation. Resend it instead.",
+  "MEMBERS_TRANSFER_REQUIRED": "This member owns agents or flows. Choose who takes them over.",
+  "MEMBERS_TRANSFER_TARGET_INVALID": "This person can't take over the agents and flows. Choose an active member.",
+  "INVITATION_NOT_FOUND": "This invitation doesn't exist or is no longer valid.",
+  "INVITATION_EXPIRED": "This invitation has expired. Ask the person who invited you for a new one.",
+  "INVITATION_REVOKED": "This invitation was withdrawn. Ask the person who invited you for a new one.",
+  "INVITATION_ALREADY_ACCEPTED": "This invitation has already been accepted. Sign in to continue.",
+  "INVITATION_EMAIL_MISMATCH": "This invitation was sent to a different email address. Sign in with that address."
+}

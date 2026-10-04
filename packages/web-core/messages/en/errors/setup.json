@@ -1,0 +1,4 @@
+{
+  "SETUP_ALREADY_COMPLETED": "Setup has already been completed. Sign in to continue.",
+  "SETUP_TOKEN_INVALID": "The setup token doesn't match. Use the token from the server configuration."
+}

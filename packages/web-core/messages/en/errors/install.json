@@ -1,0 +1,7 @@
+{
+  "INSTALL_ADMIN_REQUIRED": "Only install administrators can do this.",
+  "INSTALL_ADMIN_EXISTS": "This person is already an install administrator.",
+  "INSTALL_LAST_ADMIN": "At least one install administrator must remain. Add another before removing this one.",
+  "INSTALL_SMTP_NOT_CONFIGURED": "Save the email server settings before sending a test email.",
+  "INSTALL_SMTP_TEST_FAILED": "The email server didn't accept the test message. Check the settings and try again."
+}

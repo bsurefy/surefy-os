@@ -2,6 +2,9 @@
 // @surefy/contracts: everything that crosses the HTTP boundary. Depends only on zod.
 export * from './core/envelope.js'
 export * from './core/pagination.js'
+export * from './core/params.js'
+export * from './core/filters.js'
+export * from './core/locales.js'
 export { COMMON_ERROR_CODES, CLIENT_ERROR_CODES } from './core/errors.js'
 export * from './core/roles.js'
 export * from './core/modules.js'
