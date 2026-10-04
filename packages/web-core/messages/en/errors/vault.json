@@ -1,3 +1,13 @@
 {
-  "VAULT_KEY_INVALID": "The provider rejected this API key. Check the key and try again."
+  "VAULT_KEY_INVALID": "The provider rejected this API key. Check the key and try again.",
+  "VAULT_QUOTA_EXCEEDED": "This key has no quota left at the provider. Add credit there or use another key.",
+  "VAULT_REGION_BLOCKED": "The provider doesn't serve requests from this region. Use a key or endpoint that does.",
+  "VAULT_TEST_TIMEOUT": "Couldn't reach the provider in 20 seconds. Try again.",
+  "LOCAL_SERVER_UNREACHABLE": "Nothing answered at this address. Check the URL and that the server is running and reachable from SurefyOS.",
+  "VAULT_CREDENTIAL_NOT_FOUND": "This key or server no longer exists.",
+  "VAULT_CREDENTIAL_REVOKED": "This key was revoked and can't be changed. Add a new key instead.",
+  "VAULT_PERSONAL_KEYS_DISABLED": "Your organization doesn't allow personal API keys.",
+  "VAULT_PROVIDER_NOT_ALLOWED": "Your organization's access policy doesn't allow this provider.",
+  "VAULT_ROTATION_MISMATCH": "A replacement key must use the same provider and scope as the key it replaces.",
+  "VAULT_SERVER_IN_USE": "A model on this server is still in use. Choose another embedding model or decision model first."
 }
