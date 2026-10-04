@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Exact versions everywhere; one lockfile at the root.
+savePrefix: ''
+engineStrict: true
+# Packages allowed to run install scripts (native builds); everything else is blocked.
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  cpu-features: false
+  esbuild: true
+  msgpackr-extract: true
+  protobufjs: false
+  ssh2: false
+  unrs-resolver: true
