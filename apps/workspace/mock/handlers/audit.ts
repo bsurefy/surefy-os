@@ -203,72 +203,77 @@ const entryNotFound = () =>
   mockError(HTTP_NOT_FOUND, ERROR_CODES.AUDIT_ENTRY_NOT_FOUND, 'Audit entry not found')
 
 /**
- * The audit log (B2-05's routes) until the integration task switches to the real API. Scenarios:
- * `empty` is a fresh install; `integrity-mismatch` reports an entry that no longer matches its
- * chain; `integrity-unverified` has never been checked; `verification-running` refuses a second
- * check with `AUDIT_VERIFICATION_RUNNING`.
+ * The audit log. Live on the real API (B2-05's routes, I4-07); the handlers stay for component
+ * tests and for `MOCK_DOMAINS=audit`, to look at the states: `empty` is a fresh install;
+ * `integrity-mismatch` reports an entry that no longer matches its chain; `integrity-unverified`
+ * has never been checked; `verification-running` refuses a second check with
+ * `AUDIT_VERIFICATION_RUNNING`.
  */
-export const auditDomain = defineMockDomain('audit', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/entries`,
-    response: pageResponse(auditEntryDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const found = entries.filter((entry) => matches(entry, url.searchParams))
-        const limit = Number(url.searchParams.get('limit') ?? PAGE_SIZE.default)
-        const start = Number(url.searchParams.get('cursor') ?? 0)
-        const next = start + limit < found.length ? String(start + limit) : null
-        return mockPage(found.slice(start, start + limit), next)
+export const auditDomain = defineMockDomain(
+  'audit',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/entries`,
+      response: pageResponse(auditEntryDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const found = entries.filter((entry) => matches(entry, url.searchParams))
+          const limit = Number(url.searchParams.get('limit') ?? PAGE_SIZE.default)
+          const start = Number(url.searchParams.get('cursor') ?? 0)
+          const next = start + limit < found.length ? String(start + limit) : null
+          return mockPage(found.slice(start, start + limit), next)
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/entries/:entryId`,
-    response: okResponse(auditEntryDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = entries.find((entry) => entry.id === params.entryId)
-        return found ? mockOk(found) : entryNotFound()
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/entries/:entryId`,
+      response: okResponse(auditEntryDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = entries.find((entry) => entry.id === params.entryId)
+          return found ? mockOk(found) : entryNotFound()
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/integrity`,
-    response: okResponse(auditIntegrityStatusDtoSchema),
-    scenarios: {
-      default: () => mockOk(integrityStatus()),
-      'integrity-mismatch': () => {
-        const broken = entries.find((entry) => entry.action === 'install.settings_updated')
-        return mockOk(
-          integrityStatus({
-            state: 'mismatch',
-            mismatch: broken?.integrity.chainSeq
-              ? { entryId: broken.id, chainSeq: broken.integrity.chainSeq }
-              : null,
-          }),
-        )
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/integrity`,
+      response: okResponse(auditIntegrityStatusDtoSchema),
+      scenarios: {
+        default: () => mockOk(integrityStatus()),
+        'integrity-mismatch': () => {
+          const broken = entries.find((entry) => entry.action === 'install.settings_updated')
+          return mockOk(
+            integrityStatus({
+              state: 'mismatch',
+              mismatch: broken?.integrity.chainSeq
+                ? { entryId: broken.id, chainSeq: broken.integrity.chainSeq }
+                : null,
+            }),
+          )
+        },
+        'integrity-unverified': () =>
+          mockOk(integrityStatus({ state: 'unverified', lastVerifiedAt: null })),
       },
-      'integrity-unverified': () =>
-        mockOk(integrityStatus({ state: 'unverified', lastVerifiedAt: null })),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/verify`,
-    response: okResponse(auditIntegrityStatusDtoSchema),
-    scenarios: {
-      default: () =>
-        mockOk(integrityStatus({ lastVerifiedAt: new Date().toISOString() }), { status: 202 }),
-      'verification-running': () =>
-        mockError(
-          HTTP_CONFLICT,
-          ERROR_CODES.AUDIT_VERIFICATION_RUNNING,
-          'A verification is already running',
-        ),
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/verify`,
+      response: okResponse(auditIntegrityStatusDtoSchema),
+      scenarios: {
+        default: () =>
+          mockOk(integrityStatus({ lastVerifiedAt: new Date().toISOString() }), { status: 202 }),
+        'verification-running': () =>
+          mockError(
+            HTTP_CONFLICT,
+            ERROR_CODES.AUDIT_VERIFICATION_RUNNING,
+            'A verification is already running',
+          ),
+      },
+    }),
+  ],
+  { isLive: true },
+)

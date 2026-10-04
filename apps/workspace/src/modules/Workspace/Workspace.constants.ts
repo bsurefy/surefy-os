@@ -69,7 +69,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     icon: Shield,
     // The audit log is Guard's only tab in the MVP
     href: (orgSlug) => ROUTES.workspace.guard(orgSlug, 'audit-log'),
-    released: false,
+    released: true,
     module: 'guard',
     anyPermission: [PERMISSIONS.AUDIT_READ],
   },

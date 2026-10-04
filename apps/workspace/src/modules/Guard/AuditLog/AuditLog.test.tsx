@@ -26,8 +26,8 @@ import {
 import { dataControlDomain, resetDataControlMock } from '../../../../mock/handlers/dataControl'
 import { membersDomain, resetMembersMock } from '../../../../mock/handlers/members'
 
-/** The export dialog polls every 2 seconds while the file is prepared. */
-const POLL_WAIT_MS = 4000
+/** The export dialog polls every 3 seconds while the file is prepared; room for a slow machine. */
+const POLL_WAIT_MS = 8000
 
 const server = setupTestServer(
   ...auditDomain.handlers,

@@ -2,6 +2,8 @@
 import { getSessionCookie } from 'better-auth/cookies'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { SESSION_COOKIE_PREFIX } from '@surefy/contracts'
+
 import { REDIRECT_PARAM } from './redirects'
 
 export interface SessionProxyOptions {
@@ -23,7 +25,11 @@ function isPublicPath(pathname: string, publicPaths: readonly string[]): boolean
 export function createSessionProxy({ loginPath, publicPaths }: SessionProxyOptions) {
   return function proxy(request: NextRequest): NextResponse {
     const { pathname, search } = request.nextUrl
-    if (isPublicPath(pathname, publicPaths) || getSessionCookie(request)) return NextResponse.next()
+    if (
+      isPublicPath(pathname, publicPaths) ||
+      getSessionCookie(request, { cookiePrefix: SESSION_COOKIE_PREFIX })
+    )
+      return NextResponse.next()
 
     const url = new URL(loginPath, request.url)
     url.searchParams.set(REDIRECT_PARAM, `${pathname}${search}`)

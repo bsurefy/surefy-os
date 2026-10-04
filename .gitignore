@@ -30,3 +30,6 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+
+# Playwright sessions of the e2e runs
+apps/*/e2e/.auth/

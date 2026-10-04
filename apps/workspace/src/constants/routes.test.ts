@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { describe, expect, it } from 'vitest'
 
+import { SESSION_COOKIE_PREFIX } from '@surefy/contracts'
 import { createSessionProxy } from '@surefy/web-core/auth/proxy'
 
 import { PUBLIC_PATHS, ROUTES, SETTINGS_SECTION } from './routes'
@@ -11,7 +12,9 @@ const ORIGIN = 'http://app.surefyos.test'
 const proxy = createSessionProxy({ loginPath: ROUTES.auth.login, publicPaths: PUBLIC_PATHS })
 
 function request(path: string, sessionCookie = false) {
-  const headers = sessionCookie ? { cookie: 'better-auth.session_token=abc.def' } : undefined
+  const headers = sessionCookie
+    ? { cookie: `${SESSION_COOKIE_PREFIX}.session_token=abc.def` }
+    : undefined
   return new NextRequest(new URL(path, ORIGIN), { headers })
 }
 

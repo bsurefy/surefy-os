@@ -15,6 +15,7 @@ export {
 export type { Scenario } from './mock.constants'
 export type {
   MockDomain,
+  MockDomainOptions,
   MockHandlerConfig,
   MockHttpMethod,
   MockResolver,

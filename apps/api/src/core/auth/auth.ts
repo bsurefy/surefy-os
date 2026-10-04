@@ -5,6 +5,7 @@ import { APIError } from 'better-auth/api'
 import { twoFactor } from 'better-auth/plugins'
 
 import { accounts, sessions, twoFactors, users, verifications } from '@/database/tables/index.js'
+import { SESSION_COOKIE_PREFIX } from '@surefy/contracts'
 
 import { appOfUrl, authAllowedHosts } from './origins.js'
 import { redisSecondaryStorage } from './secondaryStorage.js'
@@ -112,7 +113,7 @@ export function createAuth(deps: AuthDeps) {
       // The database generates ids with uuidv7() (database.md, §9: the documented fallback).
       database: { generateId: 'uuid' },
       useSecureCookies: config.app.isProduction,
-      cookiePrefix: 'surefy',
+      cookiePrefix: SESSION_COOKIE_PREFIX,
     },
     emailAndPassword: {
       enabled: true,
