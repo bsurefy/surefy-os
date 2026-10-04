@@ -17,3 +17,4 @@ export type {
   ShellCrumb,
   WorkspaceCommand,
 } from './Workspace.types'
+export { default as UserAvatar } from './UserAvatar'

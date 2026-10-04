@@ -1,2 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-export { memberKeys } from './members.queries'
+export { invitationsApi, membersApi } from './members.api'
+export {
+  useBulkMemberActionMutation,
+  useCreateInvitationLinkMutation,
+  useCreateInvitationMutation,
+  useDeactivateMemberMutation,
+  useReactivateMemberMutation,
+  useRemoveMemberMutation,
+  useResendInvitationMutation,
+  useRevokeInvitationMutation,
+  useUpdateMemberMutation,
+} from './members.mutations'
+export { memberKeys, memberQueries } from './members.queries'
+export type { InvitationListFilters, MemberListFilters } from './members.queries'
