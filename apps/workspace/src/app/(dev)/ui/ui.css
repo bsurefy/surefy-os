@@ -1,0 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/* Design-system showcase (development only): the @surefy/ui styles and its component sources. */
+@import '@surefy/ui/styles.css';
+@source '../../../../../../packages/ui/src';
