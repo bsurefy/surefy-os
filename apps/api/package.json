@@ -5,7 +5,18 @@
   "license": "AGPL-3.0-only",
   "type": "module",
   "description": "API server and background worker",
-  "scripts": {},
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "dev:worker": "tsx watch src/worker.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "start:worker": "node dist/worker.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@ai-sdk/anthropic": "4.0.71",
     "@ai-sdk/google": "4.0.87",
