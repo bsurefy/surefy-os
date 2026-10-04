@@ -6,7 +6,7 @@ import { NotificationsRepository } from './notifications.repository.js'
 import { notificationsRoutes } from './notifications.routes.js'
 import { NotificationsService } from './notifications.service.js'
 
-import type { UserRefLookup } from './notifications.types.js'
+import type { EmailDeliveryListener, UserRefLookup } from './notifications.types.js'
 import type { Config } from '@/core/config/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { Queues } from '@/core/queue/index.js'
@@ -22,7 +22,9 @@ export interface NotificationsModuleDeps {
 
 export function createNotificationsModule(deps: NotificationsModuleDeps) {
   const emails = new NotificationEmailsService({ mail: deps.mail, appName: deps.config.app.name })
-  const sendEmailJob = createSendEmailJob(emails)
+  // Registered after the modules that listen are built; the job reads the list at send time.
+  const deliveryListeners: EmailDeliveryListener[] = []
+  const sendEmailJob = createSendEmailJob(emails, deliveryListeners)
   const repository = new NotificationsRepository()
   const service = new NotificationsService({
     db: deps.db,
@@ -33,6 +35,10 @@ export function createNotificationsModule(deps: NotificationsModuleDeps) {
   })
   return {
     service,
+    /** Adds a listener for how queued emails end (invitation delivery status). */
+    onEmailDelivery(listener: EmailDeliveryListener) {
+      deliveryListeners.push(listener)
+    },
     /** The `email` queue's processors, registered by the worker. */
     jobs: [sendEmailJob],
     routes: notificationsRoutes(new NotificationsController(service)),

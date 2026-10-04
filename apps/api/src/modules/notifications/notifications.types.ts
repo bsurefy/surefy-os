@@ -6,6 +6,8 @@ import type {
   UserRefDto,
 } from '@surefy/contracts'
 
+import type { SendEmailPayload } from './notifications.schema.js'
+
 /**
  * What the service needs from the request's `TenantContext`: the verified organization and the
  * signed-in person (`null` for API keys and system actors, who have no notifications).
@@ -32,3 +34,12 @@ export interface NotifyInput {
   /** Producer key so a retried job does not notify twice (unique per recipient). */
   dedupeKey?: string
 }
+
+/**
+ * Hears how a queued email ended: `sent`, or `failed` after a refusal or the last attempt. The
+ * members module records invitation delivery with it.
+ */
+export type EmailDeliveryListener = (outcome: {
+  payload: SendEmailPayload
+  status: 'sent' | 'failed'
+}) => Promise<void>

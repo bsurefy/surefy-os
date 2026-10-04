@@ -20,7 +20,7 @@ export interface TestAppOptions {
   routes?: readonly FastifyPluginAsyncZod[]
   /** Extension names to report as loaded; no private package is imported either way. */
   extensions?: readonly string[]
-  /** Memberships for `app.authorize()` (`createTestTenants()`); by default nobody has any. */
+  /** Replaces the membership resolver of `app.authorize()`; by default real memberships decide. */
   tenants?: TenantAccessResolver
 }
 

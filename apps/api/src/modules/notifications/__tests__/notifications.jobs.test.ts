@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { UnrecoverableError, type Job } from 'bullmq'
 import { pino } from 'pino'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { MailRejectedError, MailUnavailableError } from '@/integrations/mail/index.js'
 
@@ -9,10 +9,12 @@ import { RecordingMailProvider } from './notificationsTestKit.js'
 import { NotificationEmailsService } from '../notificationEmails/notificationEmails.service.js'
 import { createSendEmailJob } from '../notifications.jobs.js'
 
+import type { EmailDeliveryListener } from '../notifications.types.js'
 import type { JobRuntime } from '@/core/queue/index.js'
 
 const runtime = { logger: pino({ level: 'silent' }) } as unknown as JobRuntime
-const job = (data: unknown) => ({ id: '1', data, attemptsMade: 0 }) as unknown as Job<unknown>
+const job = (data: unknown, attemptsMade = 0) =>
+  ({ id: '1', data, attemptsMade, opts: { attempts: 3 } }) as unknown as Job<unknown>
 const payload = {
   template: 'passwordReset',
   to: 'person@example.test',
@@ -21,10 +23,12 @@ const payload = {
 
 const setup = () => {
   const mail = new RecordingMailProvider()
+  const listener = vi.fn<EmailDeliveryListener>(() => Promise.resolve())
   const sendEmailJob = createSendEmailJob(
     new NotificationEmailsService({ mail, appName: 'SurefyOS' }),
+    [listener],
   )
-  return { mail, sendEmailJob, run: sendEmailJob.bind(runtime) }
+  return { mail, listener, sendEmailJob, run: sendEmailJob.bind(runtime) }
 }
 
 describe('sendEmail job', () => {
@@ -62,5 +66,27 @@ describe('sendEmail job', () => {
     const { mail, run } = setup()
     mail.failWith = new MailUnavailableError()
     await expect(run(job(payload))).rejects.toBeInstanceOf(MailUnavailableError)
+  })
+
+  it('tells the delivery listeners how the send ended', async () => {
+    const { mail, listener, run } = setup()
+    await run(job(payload))
+    expect(listener).toHaveBeenLastCalledWith({ payload, status: 'sent' })
+
+    mail.failWith = new MailUnavailableError()
+    await expect(run(job(payload, 0))).rejects.toBeInstanceOf(MailUnavailableError)
+    expect(listener).toHaveBeenCalledTimes(1) // BullMQ retries: not failed yet
+    await expect(run(job(payload, 2))).rejects.toBeInstanceOf(MailUnavailableError)
+    expect(listener).toHaveBeenLastCalledWith({ payload, status: 'failed' })
+
+    mail.failWith = new MailRejectedError(550)
+    await expect(run(job(payload))).rejects.toBeInstanceOf(UnrecoverableError)
+    expect(listener).toHaveBeenCalledTimes(3)
+  })
+
+  it('still completes the send when a listener fails', async () => {
+    const { listener, run } = setup()
+    listener.mockRejectedValueOnce(new Error('database down'))
+    await expect(run(job(payload))).resolves.toBeUndefined()
   })
 })

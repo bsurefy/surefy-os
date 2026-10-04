@@ -7,4 +7,7 @@
  * and audit, platform tables.
  */
 export * from './auth.tables.js'
+export * from './organizations.tables.js'
+export * from './teams.tables.js'
+export * from './members.tables.js'
 export * from './notifications.tables.js'

@@ -12,11 +12,10 @@ import {
 } from '@surefy/contracts'
 
 import { notificationFactory, RecordingMailProvider } from './notificationsTestKit.js'
-import { createTestUser, newId } from '../../../../test/factories/index.js'
+import { newId, seedOrg } from '../../../../test/factories/index.js'
 import { authHeaders, type AuthHeaders } from '../../../../test/helpers/auth.js'
 import { onFileTeardown } from '../../../../test/helpers/cleanup.js'
 import { expectData, expectError, expectPage, request } from '../../../../test/helpers/request.js'
-import { createTestTenants } from '../../../../test/helpers/tenantAccess.js'
 import { createTestApp } from '../../../../test/helpers/testApp.js'
 import { getTestDatabase } from '../../../../test/helpers/testDatabase.js'
 import {
@@ -30,8 +29,8 @@ import {
 } from '../../../../test/isolation/index.js'
 import { createNotificationsModule } from '../notifications.module.js'
 
-const orgs = { a: newId(), b: newId() }
-/** maya and omar are members of A, bea of B; real users, created per test (tables are truncated). */
+/** maya and omar are members of A, bea of B; seeded per test (tables are truncated). */
+const orgs = { a: '', b: '' }
 const people = { maya: '', omar: '', bea: '' }
 const sessions = new Map<string, AuthHeaders>()
 
@@ -47,19 +46,18 @@ const setup = async () => {
   const queues = createQueues(config, logger)
   onFileTeardown(() => queues.close())
   const mail = new RecordingMailProvider()
-  const tenants = createTestTenants()
-  const { app, container } = await createTestApp({ tenants })
+  const { app, container } = await createTestApp()
   sessions.clear()
-  for (const [key, orgId] of [
-    ['maya', orgs.a],
-    ['omar', orgs.a],
-    ['bea', orgs.b],
-  ] as const) {
-    const user = await createTestUser(container)
-    people[key] = user.id
-    tenants.grant(orgId, user.id)
-    sessions.set(user.id, await authHeaders(app, user))
+  const a = await seedOrg(container, { members: { maya: 'user', omar: 'user' } })
+  const b = await seedOrg(container, { members: { bea: 'user' } })
+  orgs.a = a.id
+  orgs.b = b.id
+  for (const member of [a.members.maya, a.members.omar, b.members.bea]) {
+    sessions.set(member.id, await authHeaders(app, member))
   }
+  people.maya = a.members.maya.id
+  people.omar = a.members.omar.id
+  people.bea = b.members.bea.id
   const module = createNotificationsModule({ config, db, queues, mail })
   return { app, db, queues, service: module.service }
 }
@@ -314,13 +312,18 @@ describe('tenant isolation', () => {
   )
 
   it('holds at the database layer (tenant policy, FORCE RLS)', async () => {
+    await setup()
     await expect(
       assertTenantIsolation(
         getTestDatabase().db,
         {
           table: notifications,
           organizationId: notifications.organizationId,
-          row: (orgId) => notificationFactory.build({ organizationId: orgId }),
+          row: (orgId) =>
+            notificationFactory.build({
+              organizationId: orgId,
+              userId: orgId === orgs.a ? people.maya : people.bea,
+            }),
         },
         orgs,
       ),

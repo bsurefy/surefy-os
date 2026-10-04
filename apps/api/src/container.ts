@@ -16,11 +16,15 @@ import {
   createAuthEmails,
   createAuthModule,
   createAuthUsers,
+  createSignupPolicy,
 } from './modules/auth/index.js'
+import { createMembersModule, createMemberships } from './modules/members/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
-import { NO_TENANT_ACCESS, type TenantAccessResolver } from './plugins/access.plugin.js'
+import { createOrganizationsModule } from './modules/organizations/index.js'
+import { createTeamsModule } from './modules/teams/index.js'
 
 import type { Config } from './core/config/index.js'
+import type { TenantAccessResolver } from './plugins/access.plugin.js'
 import type { PublicModules } from './types/modules.js'
 
 /** External providers behind their interfaces. AI, ML and search join as they are built. */
@@ -40,8 +44,8 @@ export interface ContainerOverrides {
   /** Skips the dynamic import of the private packages (tests). */
   extensions?: readonly string[]
   /**
-   * Memberships and effective access for `app.authorize()`. The access module provides them once
-   * it exists; until then nobody reaches an organization route, and tests pass a stand-in.
+   * Memberships and effective access for `app.authorize()`. The members module's membership
+   * resolver applies until the access module provides effective access.
    */
   tenants?: TenantAccessResolver
 }
@@ -73,7 +77,29 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     mail: integrations.mail,
     users,
   })
-  const modules = { notifications } satisfies PublicModules
+  const memberships = createMemberships()
+  const organizations = createOrganizationsModule({
+    db,
+    storage: integrations.storage,
+    owners: memberships.service,
+  })
+  const teams = createTeamsModule({
+    db,
+    memberships: memberships.service,
+    organizations: organizations.service,
+    users,
+  })
+  const members = createMembersModule({
+    config,
+    db,
+    memberships,
+    organizations: organizations.service,
+    teams: teams.service,
+    users,
+    notifications: notifications.service,
+  })
+  notifications.onEmailDelivery(members.invitations.onEmailDelivery)
+  const modules = { notifications, organizations, teams, members } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks
   const names =
@@ -96,12 +122,19 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     redis: cache.client,
     logger,
     emails: createAuthEmails({ db, notifications: notifications.service }),
-    signup: AUTH_DEFAULTS.signup,
+    signup: createSignupPolicy(AUTH_DEFAULTS.signup, members.invitations),
     users,
     plugins: extensions.authPlugins,
   })
-  const authModule = createAuthModule({ config, db, auth, users })
-  const tenants = overrides.tenants ?? NO_TENANT_ACCESS
+  const authModule = createAuthModule({
+    config,
+    db,
+    auth,
+    users,
+    memberships: members.service,
+    organizationCreation: organizations.service,
+  })
+  const tenants = overrides.tenants ?? members.access
 
   return {
     config,

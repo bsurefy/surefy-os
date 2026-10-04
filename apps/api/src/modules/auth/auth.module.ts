@@ -13,9 +13,10 @@ import type {
   InstallCapabilitiesSource,
   MembershipsReader,
   OrganizationCreationPolicy,
+  PendingInvitationsReader,
   SignupStatus,
 } from './auth.types.js'
-import type { Auth, AuthEmailInput, AuthEmails } from '@/core/auth/index.js'
+import type { Auth, AuthEmailInput, AuthEmails, SignupPolicy } from '@/core/auth/index.js'
 import type { Config } from '@/core/config/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { StorageProvider } from '@/integrations/storage/index.js'
@@ -60,6 +61,21 @@ export function createAuthEmails(deps: AuthEmailsDeps): AuthEmails {
   return {
     verifyEmail: (input) => queue('verifyEmail', input),
     passwordReset: (input) => queue('passwordReset', input),
+  }
+}
+
+/**
+ * The sign-up policy Better Auth asks: the install's policy, or a pending invitation for the
+ * address (open sign-up stays closed for everyone else). `isSignupOpen` reports the install's.
+ */
+export function createSignupPolicy(
+  install: SignupPolicy & SignupStatus,
+  invitations: PendingInvitationsReader,
+): SignupPolicy & SignupStatus {
+  return {
+    allows: async (input) =>
+      (await install.allows(input)) || invitations.hasPendingInvitation(input.email),
+    isSignupOpen: () => install.isSignupOpen(),
   }
 }
 

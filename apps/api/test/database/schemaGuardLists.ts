@@ -8,5 +8,5 @@ import type { SchemaGuardLists } from './schemaGuards.js'
 export const SCHEMA_GUARD_LISTS: SchemaGuardLists = {
   globalTables: ['users', 'sessions', 'accounts', 'verifications', 'two_factors'],
   appendOnlyTables: [],
-  joinTables: [],
+  joinTables: ['team_members', 'invitation_teams', 'member_preferences'],
 }

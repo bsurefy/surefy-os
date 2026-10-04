@@ -29,3 +29,8 @@ export interface InstallCapabilitiesSource {
 export interface SignupStatus {
   isSignupOpen(): Promise<boolean>
 }
+
+/** Pending invitations by address (members module): an invited person may always sign up. */
+export interface PendingInvitationsReader {
+  hasPendingInvitation(email: string): Promise<boolean>
+}

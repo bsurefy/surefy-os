@@ -121,7 +121,13 @@ export async function createTestApp(options: TestAppOptions = {}) {
       api: { getSession: vi.fn(() => Promise.resolve({ headers: new Headers(), response: null })) },
     },
     tenants: NO_TENANT_ACCESS,
-    modules: { auth: { routes: noRoutes }, notifications: { routes: noRoutes } },
+    modules: {
+      auth: { routes: noRoutes },
+      notifications: { routes: noRoutes },
+      organizations: { routes: noRoutes },
+      teams: { routes: noRoutes },
+      members: { routes: noRoutes },
+    },
   } as unknown as Container
   const app = await buildApp(container)
   await app.ready()

@@ -2,6 +2,7 @@
 import { sql } from 'drizzle-orm'
 import {
   check,
+  foreignKey,
   index,
   jsonb,
   pgTable,
@@ -21,8 +22,9 @@ import {
 } from '@surefy/contracts'
 
 import { users } from './auth.tables.js'
+import { organizationMembers, organizations } from './organizations.tables.js'
 import { enumCheck } from '../checks.js'
-import { id, timestamps } from '../columns.js'
+import { id, orgId, timestamps } from '../columns.js'
 import { tenantPolicy } from '../policies.js'
 
 // Notification types are `<domain>.<event>`; enumCheck accepts no dot, so the list is checked here
@@ -35,14 +37,13 @@ const typeList = NOTIFICATION_TYPES.map((type) => {
 
 /**
  * An in-app notification for one member of one organization (database/platform-and-jobs.md, §4).
- * The foreign keys to `organizations` (cascade) and `organization_members (organization_id,
- * user_id)` (cascade) join this table in the migrations of the tasks that create those tables.
+ * Removing the member or the organization deletes their notifications by cascade.
  */
 export const notifications = pgTable(
   'notifications',
   {
     id: id(),
-    organizationId: uuid().notNull(),
+    organizationId: orgId(organizations),
     userId: uuid().notNull(),
     type: text().$type<NotificationType>().notNull(),
     params: jsonb()
@@ -59,6 +60,11 @@ export const notifications = pgTable(
   },
   (t) => [
     unique('notifications_organization_id_id_key').on(t.organizationId, t.id),
+    foreignKey({
+      name: 'notifications_organization_id_user_id_fkey',
+      columns: [t.organizationId, t.userId],
+      foreignColumns: [organizationMembers.organizationId, organizationMembers.userId],
+    }).onDelete('cascade'),
     index('notifications_user_feed_idx').on(t.organizationId, t.userId, t.createdAt.desc(), t.id),
     index('notifications_unread_idx')
       .on(t.organizationId, t.userId)

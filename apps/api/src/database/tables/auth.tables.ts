@@ -146,8 +146,8 @@ export const twoFactors = pgTable(
 
 /**
  * Personal preferences that follow the person across organizations (RLS family `self`). The
- * foreign key `last_organization_id → organizations (set null)` joins in the migration of the task
- * that creates `organizations`.
+ * foreign key `last_organization_id → organizations (set null)` is created in custom SQL: declaring
+ * it here would make this file and organizations.tables.ts import each other.
  */
 export const userPreferences = pgTable(
   'user_preferences',

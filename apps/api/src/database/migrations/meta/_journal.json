@@ -36,6 +36,20 @@
       "when": 1791126830632,
       "tag": "0004_auth-force-rls",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791128722243,
+      "tag": "0005_organizations",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791128748365,
+      "tag": "0006_organizations-security",
+      "breakpoints": true
     }
   ]
 }

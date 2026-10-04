@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { eq, inArray } from 'drizzle-orm'
 
-import { users } from '@/database/tables/index.js'
+import { accounts, users } from '@/database/tables/index.js'
 
 import type { DbExecutor } from '@/core/database/index.js'
 
@@ -15,9 +15,23 @@ export class AuthUsersRepository {
 
   findByIds(executor: DbExecutor, userIds: readonly string[]) {
     return executor
-      .select({ id: users.id, name: users.name, email: users.email, image: users.image })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
+        twoFactorEnabled: users.twoFactorEnabled,
+      })
       .from(users)
       .where(inArray(users.id, [...userIds]))
+  }
+
+  /** How each person signs in: one row per account (`credential`, an OAuth or SSO provider). */
+  findAccountProviders(executor: DbExecutor, userIds: readonly string[]) {
+    return executor
+      .select({ userId: accounts.userId, providerId: accounts.providerId })
+      .from(accounts)
+      .where(inArray(accounts.userId, [...userIds]))
   }
 
   async findDisabledAt(executor: DbExecutor, userId: string): Promise<Date | null | undefined> {
