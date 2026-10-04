@@ -1,1 +1,16 @@
-{}
+{
+  "CHAT_NOT_FOUND": "This chat isn't available.",
+  "CHAT_MESSAGE_NOT_FOUND": "This message no longer exists.",
+  "CHAT_MESSAGE_STATE_INVALID": "That action doesn't apply to this message.",
+  "CHAT_STREAM_IN_PROGRESS": "An answer is still being written. Wait for it to finish or stop it first.",
+  "CHAT_FOLDER_NOT_FOUND": "This folder no longer exists.",
+  "CHAT_FOLDER_NAME_TAKEN": "You already have a folder with this name.",
+  "CHAT_PRIVATE_REQUIRES_LOCAL_MODEL": "Private chats can only use local models. Choose a local model or turn private off.",
+  "CHAT_MODEL_NO_VISION": "This model can't read images. Switch model or remove the images.",
+  "CHAT_ATTACHMENT_NOT_FOUND": "This file is no longer attached.",
+  "CHAT_ATTACHMENT_NOT_READY": "A file is still being prepared. Wait a moment, or send without it.",
+  "CHAT_ATTACHMENT_TOO_LARGE": "This file is larger than the limit for its type.",
+  "CHAT_ATTACHMENT_UNSUPPORTED": "This file type isn't supported.",
+  "CHAT_ATTACHMENT_UPLOAD_FAILED": "The upload didn't finish. Try again.",
+  "CHAT_FEEDBACK_NOT_ALLOWED": "You can only rate a finished answer."
+}
