@@ -12,8 +12,9 @@ import type { UpgradeCardProps } from './UpgradeCard.types'
 
 /**
  * The feature-gate card for one feature: what it does, the edition that includes it, and what
- * this person can do about it. Install administrators get "Enter license key", people who manage
- * billing "See plans", everyone else "Ask an owner to upgrade". Copy comes from `editions`.
+ * this person can do about it. Install administrators get "Enter license key" for features a
+ * license can unlock, people who manage billing "See plans", everyone else "Ask an owner to
+ * upgrade". Copy comes from `editions`.
  */
 export function UpgradeCard(props: Readonly<UpgradeCardProps>) {
   const { preview, headingLevel, className } = props
@@ -29,17 +30,18 @@ export function UpgradeCard(props: Readonly<UpgradeCardProps>) {
     t,
   } = useUpgradeCardController(props)
 
+  // The links are the app's own paths, unknown to the app's `typedRoutes`: passed as URL objects
   const hasActions = Boolean(compareEditionsUrl ?? licenseHref ?? plansHref)
   const actions = hasActions ? (
     <>
       {plansHref && (
         <Button asChild>
-          <Link href={plansHref}>{t('gate.seePlans')}</Link>
+          <Link href={{ pathname: plansHref }}>{t('gate.seePlans')}</Link>
         </Button>
       )}
       {licenseHref && (
         <Button asChild>
-          <Link href={licenseHref}>{t('gate.enterLicenseKey')}</Link>
+          <Link href={{ pathname: licenseHref }}>{t('gate.enterLicenseKey')}</Link>
         </Button>
       )}
       {compareEditionsUrl && (

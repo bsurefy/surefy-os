@@ -26,6 +26,8 @@ export const getSession = cache(async (): Promise<MeDto | null> => {
 /** The session, or a redirect to the app's login page. Each app builds its own guards on it. */
 export async function requireSession(loginPath: string): Promise<MeDto> {
   const session = await getSession()
-  if (!session) redirect(loginPath)
+  // The assertion matters only under the app's `typedRoutes`, where web-core cannot know the path
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- see above
+  if (!session) redirect(loginPath as Parameters<typeof redirect>[0])
   return session
 }

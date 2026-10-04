@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {
   effectiveAccessDtoSchema,
+  installCapabilitiesDtoSchema,
   meDtoSchema,
   meMembershipDtoSchema,
   MODULES,
   ROLE_PERMISSIONS,
 } from '@surefy/contracts'
-import type { EffectiveAccessDto, MeDto, MeMembershipDto } from '@surefy/contracts'
+import type {
+  EffectiveAccessDto,
+  InstallCapabilitiesDto,
+  MeDto,
+  MeMembershipDto,
+} from '@surefy/contracts'
 
 import { defineFactory } from './defineFactory'
 
@@ -22,6 +28,24 @@ export function fixtureUuid(kind: number, sequence: number): string {
 }
 
 const KIND = { user: 1, organization: 2, session: 3 } as const
+
+/** The editions page the fixtures link to; the real one is a constant of the community source. */
+export const FIXTURE_COMPARE_EDITIONS_URL = 'https://surefyos.test/editions'
+
+/**
+ * `install` of `GET /api/v1/me` for a self-hosted Community or Enterprise install: licenses, no
+ * plans. Cloud tests pass `{ licenseManagement: false, planBilling: true, hosting: 'cloud',
+ * compareEditionsUrl: null }`.
+ */
+export const installCapabilitiesFactory = defineFactory(
+  installCapabilitiesDtoSchema,
+  (): InstallCapabilitiesDto => ({
+    licenseManagement: true,
+    planBilling: false,
+    hosting: 'self-hosted',
+    compareEditionsUrl: FIXTURE_COMPARE_EDITIONS_URL,
+  }),
+)
 
 /** An Owner's active membership of `acme-<n>`. */
 export const meMembershipFactory = defineFactory(
@@ -40,7 +64,10 @@ export const meMembershipFactory = defineFactory(
   }),
 )
 
-/** `GET /api/v1/me`: a workspace session with one organization, no platform or partner roles. */
+/**
+ * `GET /api/v1/me`: a workspace session with one organization, no platform or partner roles, on a
+ * self-hosted Community install.
+ */
 export const meFactory = defineFactory(meDtoSchema, (sequence): MeDto => ({
   user: {
     id: fixtureUuid(KIND.user, sequence),
@@ -65,6 +92,7 @@ export const meFactory = defineFactory(meDtoSchema, (sequence): MeDto => ({
   supportAccess: [],
   isInstallAdmin: false,
   canCreateOrganization: false,
+  install: installCapabilitiesFactory(),
 }))
 
 /**

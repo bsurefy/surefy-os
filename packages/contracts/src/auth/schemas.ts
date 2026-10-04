@@ -134,11 +134,36 @@ export const supportAccessNoticeDtoSchema = z.object({
 })
 export type SupportAccessNoticeDto = z.infer<typeof supportAccessNoticeDtoSchema>
 
+/** Where the install's data lives (ADR 0020). Descriptive copy only; it never gates anything. */
+export const INSTALL_HOSTINGS = ['self-hosted', 'cloud'] as const
+export type InstallHosting = (typeof INSTALL_HOSTINGS)[number]
+
+/**
+ * What the install offers, reported by its entitlement source (`community`, `license` or `plan`;
+ * ADR 0020), never by a deployment flag. The two booleans decide install-level screens, navigation
+ * items and upgrade actions; `hosting` is for copy only.
+ */
+export const installCapabilitiesDtoSchema = z.object({
+  /** The install can hold a license: Settings › License, "Enter license key". */
+  licenseManagement: z.boolean(),
+  /** Plans and credits are sold here: Settings › Billing & credits, "See plans", the credits meter. */
+  planBilling: z.boolean(),
+  /** Where the data lives, for descriptive copy only. */
+  hosting: z.enum(INSTALL_HOSTINGS),
+  /** The public page that compares the editions; null where plans replace it. */
+  compareEditionsUrl: z.url().nullable(),
+})
+export type InstallCapabilitiesDto = z.infer<typeof installCapabilitiesDtoSchema>
+
+/** The capabilities a navigation item or screen can require (`installCapability` on nav items). */
+export const INSTALL_CAPABILITIES = ['licenseManagement', 'planBilling'] as const
+export type InstallCapability = (typeof INSTALL_CAPABILITIES)[number]
+
 /**
  * `GET /api/v1/me`: the signed-in person, their preferences, the session in use, every active
- * membership, platform and partner roles, active access grants and what they may do outside an
- * organization. The "Choose organization" and "No organization" screens read `memberships` and
- * `preferences.lastOrganizationId`.
+ * membership, platform and partner roles, active access grants, what they may do outside an
+ * organization and what the install offers. The "Choose organization" and "No organization"
+ * screens read `memberships` and `preferences.lastOrganizationId`.
  */
 export const meDtoSchema = z.object({
   user: userDtoSchema,
@@ -155,6 +180,8 @@ export const meDtoSchema = z.object({
   supportAccess: z.array(supportAccessNoticeDtoSchema),
   /** Row in `install_admins`: shows Settings › Install and License on self-hosted installs. */
   isInstallAdmin: z.boolean(),
+  /** What the install offers: license management, plan billing, hosting, the editions page. */
+  install: installCapabilitiesDtoSchema,
   /** The install's organization limit and creation policy allow this person to create one. */
   canCreateOrganization: z.boolean(),
 })
