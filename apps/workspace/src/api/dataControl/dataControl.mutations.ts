@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import type { CreateDataRequestInput } from '@surefy/contracts'
+import type { CreateDataRequestInput, CreateExportInput, ExportDto } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { MutationHookOptions } from '@surefy/web-core/query'
 
-import { dataControlApi } from './dataControl.api'
+import { dataControlApi, exportsApi } from './dataControl.api'
 import { dataControlKeys } from './dataControl.queries'
 
 function useRefreshRequests(orgId: string) {
@@ -60,5 +60,47 @@ export function useDownloadDataRequestMutation(
     meta: { silent },
     mutationFn: (requestId: string) => dataControlApi.download(apiClient, orgId, requestId),
     onSuccess: refresh,
+  })
+}
+
+/** A started or retried export seeds its query, so polling starts from the answer. */
+function useSeedExport(orgId: string) {
+  const queryClient = useQueryClient()
+  return (started: ExportDto) => {
+    queryClient.setQueryData(dataControlKeys.export(orgId, started.id), started)
+  }
+}
+
+export function useCreateExportMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const seed = useSeedExport(orgId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: CreateExportInput) => exportsApi.create(apiClient, orgId, input),
+    onSuccess: seed,
+  })
+}
+
+export function useRetryExportMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const seed = useSeedExport(orgId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: (exportId: string) => exportsApi.retry(apiClient, orgId, exportId),
+    onSuccess: seed,
+  })
+}
+
+export function useDownloadExportMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  return useMutation({
+    meta: { silent },
+    mutationFn: (exportId: string) => exportsApi.download(apiClient, orgId, exportId),
   })
 }
