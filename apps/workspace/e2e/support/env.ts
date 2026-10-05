@@ -87,14 +87,18 @@ export function webEnv(): Record<string, string> {
   }
 }
 
+// New on every run. The config loads this file in the runner first, and the workers it starts
+// inherit the variable, so the setup project and the specs that sign in again share one password.
+process.env.E2E_OWNER_PASSWORD ??= `E2e-${randomBytes(12).toString('base64url')}`
+
 /**
- * The seeded Owner and organization: test credentials only, never a real account. The password is
- * new on every run; only the setup project signs in, and the specs reuse its session.
+ * The Owner and organization the setup wizard creates: test credentials only, never a real
+ * account. The specs reuse the setup project's session; the sign-in specs sign in again.
  */
 export const OWNER = {
   name: 'Maya Okafor',
   email: 'owner@e2e.test',
-  password: `E2e-${randomBytes(12).toString('base64url')}`,
+  password: process.env.E2E_OWNER_PASSWORD,
 }
 
 export const ORGANIZATION = { name: 'Acme Logistics', slug: 'acme' }
