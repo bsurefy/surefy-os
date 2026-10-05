@@ -17,16 +17,16 @@ export default function SettingsNav({ orgSlug }: Readonly<{ orgSlug: string }>) 
   return (
     <nav aria-label={navLabel} className="lg:w-56 lg:shrink-0">
       {items ? (
-        <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+        // `NavItem` renders its own `<li>`
+        <ul className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible [&>li]:shrink-0">
           {items.map((item) => (
-            <li key={item.id} className="shrink-0">
-              <NavItem
-                linkComponent={Link}
-                href={item.href}
-                label={item.label}
-                isActive={item.isActive}
-              />
-            </li>
+            <NavItem
+              key={item.id}
+              linkComponent={Link}
+              href={item.href}
+              label={item.label}
+              isActive={item.isActive}
+            />
           ))}
         </ul>
       ) : (

@@ -15,18 +15,12 @@ const SERVER_NAME = `Spec server ${String(Date.now())}`
 const servers = (page: Page) => page.getByRole('table', { name: 'Local servers' })
 const models = (page: Page) => page.getByRole('table', { name: 'Local models' })
 
-/**
- * Opens a dialog from a button of the page. The Settings shell regenerates its tree on the client
- * after a hydration mismatch, which can swallow a click made right after the page loads, so the
- * click is retried until the dialog stays open.
- */
+/** Opens a dialog from a button of the page. */
 async function openDialog(page: Page, url: string, button: string, dialog: string) {
   await page.goto(url)
+  await page.getByRole('button', { name: button }).first().click()
   const opened = page.getByRole('dialog', { name: dialog })
-  await expect(async () => {
-    await page.getByRole('button', { name: button }).first().click()
-    await expect(opened).toBeVisible({ timeout: 2_000 })
-  }).toPass()
+  await expect(opened).toBeVisible()
   return opened
 }
 

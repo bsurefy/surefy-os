@@ -334,171 +334,178 @@ const removedUpstream = (): VaultModelDto =>
   })
 
 /**
- * The models a person may use and the Vault's model management (B3-01's routes) until the
- * integration task (I4-02) switches to the real API. Scenarios: `removed-upstream` adds a model the
- * provider no longer lists to the model list; `no-embedding` clears the embedding model and the
- * fallback order; `embedding-invalid` and `server-offline` fail a settings save.
+ * The models a person may use and the Vault's model management (B3-01's routes), live on the real
+ * API (I4-02; the handlers stay for component tests and for `MOCK_DOMAINS=models`, to look at the
+ * states). Scenarios: `removed-upstream` adds a model the provider no longer lists to the model
+ * list; `no-embedding` clears the embedding model and the fallback order; `embedding-invalid` and
+ * `server-offline` fail a settings save.
  */
-export const modelsDomain = defineMockDomain('models', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/models`,
-    response: pageResponse(usableModelDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const q = url.searchParams.get('q')?.toLowerCase()
-        const type = url.searchParams.get('type')
-        const source = url.searchParams.get('source')
-        return page(
-          models
-            .filter(isUsable)
-            .filter((model) => !q || model.displayName.toLowerCase().includes(q))
-            .filter((model) => !type || model.type === type)
-            .filter((model) => !source || model.source === source)
-            .map(toUsable),
-          url,
-        )
+export const modelsDomain = defineMockDomain(
+  'models',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/models`,
+      response: pageResponse(usableModelDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const q = url.searchParams.get('q')?.toLowerCase()
+          const type = url.searchParams.get('type')
+          const source = url.searchParams.get('source')
+          return page(
+            models
+              .filter(isUsable)
+              .filter((model) => !q || model.displayName.toLowerCase().includes(q))
+              .filter((model) => !type || model.type === type)
+              .filter((model) => !source || model.source === source)
+              .map(toUsable),
+            url,
+          )
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/vault/models`,
-    response: pageResponse(vaultModelDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        return page(filterModels(url, models), url)
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/vault/models`,
+      response: pageResponse(vaultModelDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          return page(filterModels(url, models), url)
+        },
+        'removed-upstream': ({ request }) => {
+          const url = new URL(request.url)
+          return page(filterModels(url, [...models, removedUpstream()]), url)
+        },
       },
-      'removed-upstream': ({ request }) => {
-        const url = new URL(request.url)
-        return page(filterModels(url, [...models, removedUpstream()]), url)
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/vault/models/:modelId`,
-    response: okResponse(vaultModelDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findModel(params.modelId)
-        if (!found) return notFound()
-        const input = updateVaultModelInputSchema.parse(await request.json())
-        const updated: VaultModelDto = {
-          ...found,
-          isEnabled: input.isEnabled ?? found.isEnabled,
-          updatedAt: '2026-10-05T09:00:00.000Z',
-        }
-        replaceModel(updated)
-        if (input.access) applyRules(found.id, input.access.rules)
-        else if (updated.isEnabled && !found.isEnabled && !rules.get(found.id)?.length) {
-          // the first time a model is enabled it is offered to the whole organization
-          applyRules(found.id, [{ subjectType: 'organization' }])
-        }
-        return mockOk(updated)
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/vault/models/:modelId/impact`,
-    response: okResponse(credentialImpactDtoSchema),
-    scenarios: {
-      default: ({ params }) => (findModel(params.modelId) ? mockOk(IMPACT) : notFound()),
-      'no-impact': () => mockOk(NO_IMPACT),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/vault/model-access`,
-    response: pageResponse(modelAccessEntryDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const query = listModelAccessQuerySchema.parse(
-          Object.fromEntries(url.searchParams.entries()),
-        )
-        return page(
-          models
-            .filter(
-              (model) =>
-                !query.q || model.displayName.toLowerCase().includes(query.q.toLowerCase()),
-            )
-            .filter((model) => !query.type || query.type.includes(model.type))
-            .filter((model) => query.isEnabled === undefined || model.isEnabled === query.isEnabled)
-            .map((model) => ({
-              modelId: model.id,
-              modelKey: model.modelKey,
-              displayName: model.displayName,
-              providerKey: model.providerKey,
-              type: model.type,
-              isEnabled: model.isEnabled,
-              rules: rules.get(model.id) ?? [],
-            })),
-          url,
-        )
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'put',
-    path: `${path}/vault/models/:modelId/access`,
-    response: okResponse(z.array(modelAccessRuleDtoSchema)),
-    scenarios: {
-      default: async ({ params, request }) => {
-        if (!findModel(params.modelId)) return notFound()
-        const input = setModelAccessInputSchema.parse(await request.json())
-        return mockOk(applyRules(String(params.modelId), input.rules))
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/vault/settings`,
-    response: okResponse(vaultSettingsDtoSchema),
-    scenarios: {
-      default: () => mockOk(settingsDto()),
-      'no-embedding': () =>
-        mockOk({
-          ...settingsDto(),
-          embeddingModel: null,
-          fallback: DEFAULT_VAULT_FALLBACK,
-          fallbackEntries: [],
-        }),
-    },
-  }),
-  defineMockHandler({
-    method: 'put',
-    path: `${path}/vault/settings`,
-    response: okResponse(vaultSettingsDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = updateVaultSettingsInputSchema.parse(await request.json())
-        if (typeof input.embeddingModelId === 'string') {
-          const chosen = findModel(input.embeddingModelId)
-          if (chosen?.type !== 'embedding' || !chosen.isEnabled) {
-            return mockError(
-              HTTP_UNPROCESSABLE,
-              ERROR_CODES.MODEL_EMBEDDING_INVALID,
-              'Choose an enabled embedding model',
-            )
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/vault/models/:modelId`,
+      response: okResponse(vaultModelDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findModel(params.modelId)
+          if (!found) return notFound()
+          const input = updateVaultModelInputSchema.parse(await request.json())
+          const updated: VaultModelDto = {
+            ...found,
+            isEnabled: input.isEnabled ?? found.isEnabled,
+            updatedAt: '2026-10-05T09:00:00.000Z',
           }
-        }
-        if (input.embeddingModelId !== undefined) embeddingModelId = input.embeddingModelId
-        if (input.fallback) fallback = input.fallback
-        return mockOk(settingsDto())
+          replaceModel(updated)
+          if (input.access) applyRules(found.id, input.access.rules)
+          else if (updated.isEnabled && !found.isEnabled && !rules.get(found.id)?.length) {
+            // the first time a model is enabled it is offered to the whole organization
+            applyRules(found.id, [{ subjectType: 'organization' }])
+          }
+          return mockOk(updated)
+        },
       },
-      'embedding-invalid': () =>
-        mockError(
-          HTTP_UNPROCESSABLE,
-          ERROR_CODES.MODEL_EMBEDDING_INVALID,
-          'Choose an enabled embedding model',
-        ),
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/vault/models/:modelId/impact`,
+      response: okResponse(credentialImpactDtoSchema),
+      scenarios: {
+        default: ({ params }) => (findModel(params.modelId) ? mockOk(IMPACT) : notFound()),
+        'no-impact': () => mockOk(NO_IMPACT),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/vault/model-access`,
+      response: pageResponse(modelAccessEntryDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const query = listModelAccessQuerySchema.parse(
+            Object.fromEntries(url.searchParams.entries()),
+          )
+          return page(
+            models
+              .filter(
+                (model) =>
+                  !query.q || model.displayName.toLowerCase().includes(query.q.toLowerCase()),
+              )
+              .filter((model) => !query.type || query.type.includes(model.type))
+              .filter(
+                (model) => query.isEnabled === undefined || model.isEnabled === query.isEnabled,
+              )
+              .map((model) => ({
+                modelId: model.id,
+                modelKey: model.modelKey,
+                displayName: model.displayName,
+                providerKey: model.providerKey,
+                type: model.type,
+                isEnabled: model.isEnabled,
+                rules: rules.get(model.id) ?? [],
+              })),
+            url,
+          )
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'put',
+      path: `${path}/vault/models/:modelId/access`,
+      response: okResponse(z.array(modelAccessRuleDtoSchema)),
+      scenarios: {
+        default: async ({ params, request }) => {
+          if (!findModel(params.modelId)) return notFound()
+          const input = setModelAccessInputSchema.parse(await request.json())
+          return mockOk(applyRules(String(params.modelId), input.rules))
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/vault/settings`,
+      response: okResponse(vaultSettingsDtoSchema),
+      scenarios: {
+        default: () => mockOk(settingsDto()),
+        'no-embedding': () =>
+          mockOk({
+            ...settingsDto(),
+            embeddingModel: null,
+            fallback: DEFAULT_VAULT_FALLBACK,
+            fallbackEntries: [],
+          }),
+      },
+    }),
+    defineMockHandler({
+      method: 'put',
+      path: `${path}/vault/settings`,
+      response: okResponse(vaultSettingsDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = updateVaultSettingsInputSchema.parse(await request.json())
+          if (typeof input.embeddingModelId === 'string') {
+            const chosen = findModel(input.embeddingModelId)
+            if (chosen?.type !== 'embedding' || !chosen.isEnabled) {
+              return mockError(
+                HTTP_UNPROCESSABLE,
+                ERROR_CODES.MODEL_EMBEDDING_INVALID,
+                'Choose an enabled embedding model',
+              )
+            }
+          }
+          if (input.embeddingModelId !== undefined) embeddingModelId = input.embeddingModelId
+          if (input.fallback) fallback = input.fallback
+          return mockOk(settingsDto())
+        },
+        'embedding-invalid': () =>
+          mockError(
+            HTTP_UNPROCESSABLE,
+            ERROR_CODES.MODEL_EMBEDDING_INVALID,
+            'Choose an enabled embedding model',
+          ),
+      },
+    }),
+  ],
+  { isLive: true },
+)
 
 function filterModels(url: URL, items: VaultModelDto[]): VaultModelDto[] {
   const q = url.searchParams.get('q')?.toLowerCase()
