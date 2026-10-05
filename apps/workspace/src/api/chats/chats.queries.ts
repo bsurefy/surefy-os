@@ -5,7 +5,7 @@ import { PAGE_SIZE } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { HttpClient } from '@surefy/web-core/http'
 
-import { chatFoldersApi, chatsApi } from './chats.api'
+import { chatFoldersApi, chatMessagesApi, chatsApi } from './chats.api'
 
 export interface ChatListFilters {
   q?: string
@@ -20,6 +20,16 @@ export interface ChatListFilters {
   cursor?: string
 }
 
+export interface ChatMessageFilters {
+  /** `createdAt`, or `-createdAt` to page backwards from the latest. */
+  sort?: string
+  limit?: number
+  cursor?: string
+}
+
+/** The thread loads the latest messages first and pages backwards. */
+export const CHAT_MESSAGES_PAGE_SIZE = 50
+
 /** Query keys of the `chats` domain (services-api.md §3): chats, folders and messages. */
 export const chatKeys = {
   all: (orgId: string) => ['orgs', orgId, 'chats'] as const,
@@ -27,6 +37,10 @@ export const chatKeys = {
   list: (orgId: string, filters: ChatListFilters) => [...chatKeys.lists(orgId), filters] as const,
   detail: (orgId: string, chatId: string) => [...chatKeys.all(orgId), 'detail', chatId] as const,
   folders: (orgId: string) => [...chatKeys.all(orgId), 'folders'] as const,
+  messages: (orgId: string, chatId: string) =>
+    [...chatKeys.all(orgId), 'messages', chatId] as const,
+  source: (orgId: string, chatId: string, messageId: string, index: number) =>
+    [...chatKeys.messages(orgId, chatId), 'source', messageId, index] as const,
 }
 
 // `http` defaults to the browser client; server components pass getServerHttpClient()
@@ -54,5 +68,34 @@ export const chatQueries = {
     queryOptions({
       queryKey: chatKeys.folders(orgId),
       queryFn: ({ signal }) => chatFoldersApi.list(http, orgId, signal).then((page) => page.items),
+    }),
+  /** Latest messages first (`-createdAt`); the thread reverses them. */
+  messages: (orgId: string, chatId: string, http: HttpClient = apiClient) =>
+    infiniteQueryOptions({
+      queryKey: chatKeys.messages(orgId, chatId),
+      queryFn: ({ pageParam, signal }) =>
+        chatMessagesApi.list(
+          http,
+          orgId,
+          chatId,
+          { sort: '-createdAt', limit: CHAT_MESSAGES_PAGE_SIZE, cursor: pageParam },
+          signal,
+        ),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    }),
+  sourcePreview: (
+    orgId: string,
+    chatId: string,
+    messageId: string,
+    index: number,
+    http: HttpClient = apiClient,
+  ) =>
+    queryOptions({
+      queryKey: chatKeys.source(orgId, chatId, messageId, index),
+      queryFn: ({ signal }) =>
+        chatMessagesApi.sourcePreview(http, orgId, chatId, messageId, index, signal),
+      // access is re-checked on every opening
+      gcTime: 0,
     }),
 }

@@ -3,13 +3,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type {
   CreateChatFolderInput,
+  RequestChatAttachmentUploadInput,
+  SetChatFeedbackInput,
   UpdateChatFolderInput,
   UpdateChatInput,
 } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { MutationHookOptions } from '@surefy/web-core/query'
 
-import { chatFoldersApi, chatsApi } from './chats.api'
+import { chatAttachmentsApi, chatFoldersApi, chatMessagesApi, chatsApi } from './chats.api'
 import { chatKeys } from './chats.queries'
 
 /** Lists, folders (with their chat counts) and open chats all change together. */
@@ -84,4 +86,47 @@ export function useDeleteChatFolderMutation(
     mutationFn: (folderId: string) => chatFoldersApi.delete(apiClient, orgId, folderId),
     onSuccess: refresh,
   })
+}
+
+/** Rates an answer; rating again replaces the rating. The message list refreshes to show it. */
+export function useSetChatFeedbackMutation(
+  orgId: string,
+  chatId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: ({ messageId, ...input }: SetChatFeedbackInput & { messageId: string }) =>
+      chatMessagesApi.setFeedback(apiClient, orgId, chatId, messageId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.messages(orgId, chatId) }),
+  })
+}
+
+export function useClearChatFeedbackMutation(
+  orgId: string,
+  chatId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (messageId: string) =>
+      chatMessagesApi.clearFeedback(apiClient, orgId, chatId, messageId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.messages(orgId, chatId) }),
+  })
+}
+
+/** The attachment steps; the bytes themselves go straight to storage in between. */
+export function useChatAttachmentMutations(orgId: string, chatId: string) {
+  return {
+    requestUpload: (input: RequestChatAttachmentUploadInput) =>
+      chatAttachmentsApi.requestUpload(apiClient, orgId, chatId, input),
+    complete: (attachmentId: string) =>
+      chatAttachmentsApi.complete(apiClient, orgId, chatId, attachmentId),
+    retry: (attachmentId: string) =>
+      chatAttachmentsApi.retry(apiClient, orgId, chatId, attachmentId),
+    remove: (attachmentId: string) =>
+      chatAttachmentsApi.remove(apiClient, orgId, chatId, attachmentId),
+  }
 }

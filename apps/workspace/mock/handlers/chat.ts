@@ -23,6 +23,8 @@ import {
   mockPage,
 } from '@surefy/web-core/testing/mock'
 
+import { createChatMessageHandlers, resetChatMessagesMock } from './chat.messages'
+
 const CHAT_KIND = 70
 const FOLDER_KIND = 71
 const HTTP_CONFLICT = 409
@@ -135,6 +137,7 @@ let folders = seedFolders()
 export function resetChatMock(): void {
   chats = seedChats()
   folders = seedFolders()
+  resetChatMessagesMock()
 }
 
 /** Chat ids of the seed, in the order they were created. */
@@ -209,11 +212,22 @@ const folderNameTaken = () =>
 
 /**
  * Chats and folders (C-03's routes) until the integration task (I4-02) switches to the real API;
- * messages and streaming join with the thread (S3-07). Scenarios: `folder-name-taken` fails a
+ * messages, streaming, feedback, sources and attachments are in `chat.messages.ts` (S3-07). Scenarios: `folder-name-taken` fails a
  * folder create or rename with `CHAT_FOLDER_NAME_TAKEN`; `restore-gone` makes a restore answer
  * `CHAT_NOT_FOUND` (past the 30 days); `delete-fails` fails a chat delete.
  */
+const chatMessageHandlers = createChatMessageHandlers({
+  find: (chatId) => findChat(chatId),
+  create: (chat) => {
+    chats = [{ chat, text: '' }, ...chats]
+  },
+  update: (chat) => {
+    setChat(chat)
+  },
+})
+
 export const chatDomain = defineMockDomain('chat', [
+  ...chatMessageHandlers,
   defineMockHandler({
     method: 'get',
     path,
@@ -255,7 +269,15 @@ export const chatDomain = defineMockDomain('chat', [
       default: async ({ params, request }) => {
         const found = findChat(params.chatId)
         if (!found || found.chat.deletedAt) return chatNotFound()
-        const { title, isPinned, folderId } = updateChatInputSchema.parse(await request.json())
+        const {
+          title,
+          isPinned,
+          folderId,
+          isPrivate,
+          knowledgeScope,
+          knowledgeBaseIds,
+          currentModelKey,
+        } = updateChatInputSchema.parse(await request.json())
         if (folderId && !findFolder(folderId)) return folderNotFound()
         const now = new Date().toISOString()
         const next: ChatDto = {
@@ -263,6 +285,14 @@ export const chatDomain = defineMockDomain('chat', [
           ...(title === undefined ? {} : { title, titleGenerated: false }),
           ...(folderId === undefined ? {} : { folderId }),
           ...(isPinned === undefined ? {} : { isPinned, pinnedAt: isPinned ? now : null }),
+          ...(isPrivate === undefined ? {} : { isPrivate }),
+          ...(knowledgeScope === undefined
+            ? {}
+            : {
+                knowledgeScope,
+                knowledgeBaseIds: knowledgeScope === 'selected' ? (knowledgeBaseIds ?? []) : [],
+              }),
+          ...(currentModelKey === undefined ? {} : { currentModelKey }),
           updatedAt: now,
         }
         setChat(next)
