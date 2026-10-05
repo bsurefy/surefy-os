@@ -2,7 +2,18 @@
 import { eq } from 'drizzle-orm'
 
 import { QUEUES } from '@/constants/queues.js'
-import { auditLogs, organizationPurges, organizationSlugHistory } from '@/database/tables/index.js'
+import {
+  auditLogs,
+  chatAttachments,
+  chatFolders,
+  chatKnowledgeBases,
+  chatMessageCitations,
+  chatMessageFeedback,
+  chatMessages,
+  chats,
+  organizationPurges,
+  organizationSlugHistory,
+} from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
   credentialDtoSchema,
@@ -18,6 +29,102 @@ import { expectData, expectPage, request } from '../helpers/request.js'
 import type { TwoOrgSetup } from '../helpers/orgSetup.js'
 import type { SendEmailPayload } from '@/modules/notifications/index.js'
 
+/**
+ * One chat of Uma's in A, with a folder, an answer with a citation and a rating, and an
+ * attachment: every chat table holds a row of A. Written straight to the tables, so the suite
+ * does not need a model.
+ */
+async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string) {
+  return setup.db.tenant(orgId, async (tx) => {
+    const [folder] = await tx
+      .insert(chatFolders)
+      .values({ organizationId: orgId, ownerUserId: userId, name: 'Secret Folder' })
+      .returning({ id: chatFolders.id })
+    const [chat] = await tx
+      .insert(chats)
+      .values({
+        organizationId: orgId,
+        ownerUserId: userId,
+        title: CHAT_TITLE,
+        folderId: folder?.id ?? null,
+        messageCount: 2,
+        lastMessageAt: new Date(),
+      })
+      .returning({ id: chats.id })
+    if (folder === undefined || chat === undefined) throw new Error('chat seed failed')
+    await tx.insert(chatKnowledgeBases).values({
+      organizationId: orgId,
+      chatId: chat.id,
+      knowledgeBaseId: '0198a000-0000-7000-8000-00000000c0de',
+    })
+    await tx.insert(chatMessages).values({
+      organizationId: orgId,
+      chatId: chat.id,
+      role: 'user',
+      status: 'complete',
+      contentText: CHAT_TEXT,
+      parts: { version: 1, parts: [{ type: 'text', text: CHAT_TEXT }] },
+      authorUserId: userId,
+    })
+    const [answer] = await tx
+      .insert(chatMessages)
+      .values({
+        organizationId: orgId,
+        chatId: chat.id,
+        role: 'assistant',
+        status: 'complete',
+        contentText: 'secret answer [1]',
+        parts: {
+          version: 1,
+          parts: [
+            { type: 'text', text: 'secret answer [1]' },
+            {
+              type: 'source',
+              index: 1,
+              kind: 'web',
+              url: 'https://secret.example.test',
+              title: 'Secret source',
+              snippet: 'snippet',
+            },
+          ],
+        },
+        modelKey: 'openai/gpt-test',
+      })
+      .returning({ id: chatMessages.id })
+    if (answer === undefined) throw new Error('chat seed failed')
+    await tx
+      .insert(chatMessageCitations)
+      .values({ organizationId: orgId, messageId: answer.id, rank: 1 })
+    await tx.insert(chatMessageFeedback).values({
+      organizationId: orgId,
+      messageId: answer.id,
+      userId,
+      rating: 'helpful',
+      isTrainEligible: true,
+    })
+    const [attachment] = await tx
+      .insert(chatAttachments)
+      .values({
+        organizationId: orgId,
+        chatId: chat.id,
+        objectKey: `orgs/${orgId}/chats/${chat.id}/attachments/seed`,
+        fileName: 'secret-plan.pdf',
+        contentType: 'application/pdf',
+        sizeBytes: 10,
+        kind: 'document',
+        status: 'ready',
+      })
+      .returning({ id: chatAttachments.id })
+    if (attachment === undefined) throw new Error('chat seed failed')
+    return {
+      chatId: chat.id,
+      messageId: answer.id,
+      folderId: folder.id,
+      attachmentId: attachment.id,
+    }
+  })
+}
+
 /** Organization A with one real resource of every kind a route can name, and B's Owner. */
 export interface IsolationFixture {
   orgA: { id: string }
@@ -30,6 +137,8 @@ export interface IsolationFixture {
 
 const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
+const CHAT_TITLE = 'Secret Chat of Uma'
+const CHAT_TEXT = 'secret question about the merger'
 
 const tokenFromQueue = async (setup: TwoOrgSetup): Promise<string> => {
   const jobs = await setup.container.queues.get(QUEUES.EMAIL).getJobs(['waiting', 'delayed'])
@@ -181,6 +290,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     }),
   )
   await usage.rollup.aggregate('hourly')
+  const chat = await seedChat(setup, a.id, uma.id)
   const entryId = await setup.db.system('test', async (tx) => {
     await tx.insert(organizationPurges).values({
       organizationId: a.id,
@@ -214,6 +324,11 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       credentialId: credential.id,
       serverId: server.id,
       modelId: model.id,
+      chatId: chat.chatId,
+      messageId: chat.messageId,
+      folderId: chat.folderId,
+      attachmentId: chat.attachmentId,
+      index: '1',
     },
     markers: [
       a.id,
@@ -236,6 +351,13 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       'Secret Ollama',
       'ollama.secret-lab.test',
       model.id,
+      chat.chatId,
+      chat.messageId,
+      chat.folderId,
+      chat.attachmentId,
+      CHAT_TITLE,
+      CHAT_TEXT,
+      'secret-plan.pdf',
       ...[olivia, adam, uma].flatMap((member) => [member.id, member.memberId, member.email]),
     ],
   }

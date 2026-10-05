@@ -24,5 +24,6 @@ export const SCHEMA_GUARD_LISTS: SchemaGuardLists = {
     'vault_settings',
     'usage_daily',
     'usage_monthly',
+    'chat_knowledge_bases',
   ],
 }

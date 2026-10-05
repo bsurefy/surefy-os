@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { createUIMessageStreamResponse, type UIMessageChunk } from 'ai'
 import fp from 'fastify-plugin'
 
 import '@/types/fastify.js'
@@ -21,6 +22,13 @@ export const replyPlugin = fp(
     app.decorateReply('noContent', function noContent() {
       return this.status(204).send()
     })
+    // streaming handlers (controllers.md, §4): the AI SDK UI message stream as a web Response
+    app.decorateReply(
+      'uiMessageStream',
+      function uiMessageStream(stream: ReadableStream<UIMessageChunk>) {
+        return this.send(createUIMessageStreamResponse({ stream }))
+      },
+    )
   },
   { name: 'reply' },
 )

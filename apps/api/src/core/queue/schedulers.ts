@@ -4,6 +4,7 @@ import {
   SEAL_AUDIT_LOG_JOB_NAME,
   VERIFY_AUDIT_LOG_JOB_NAME,
 } from '@/modules/audit/audit.constants.js'
+import { CHAT_JOBS } from '@/modules/chats/chats.constants.js'
 import { DATA_CONTROL_JOBS } from '@/modules/dataControl/dataControl.constants.js'
 import { USAGE_JOBS } from '@/modules/usage/usage.constants.js'
 import { VAULT_JOBS } from '@/modules/vault/vault.constants.js'
@@ -35,6 +36,18 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     queue: QUEUES.USAGE,
     repeat: { pattern: '15 3 * * *' },
     job: { name: USAGE_JOBS.AGGREGATE, data: { mode: 'nightly' } },
+  },
+  {
+    id: 'sweep-chat-streams',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '*/5 * * * *' },
+    job: { name: CHAT_JOBS.SWEEP_STREAMS },
+  },
+  {
+    id: 'cleanup-chat-attachments-daily',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '25 2 * * *' },
+    job: { name: CHAT_JOBS.CLEANUP_ATTACHMENTS },
   },
   {
     id: 'seal-audit-log',

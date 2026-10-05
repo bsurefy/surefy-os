@@ -2,6 +2,7 @@
 import type { Feature, Permission } from '@surefy/contracts'
 
 import type { ActorContext, TenantContext } from './context.js'
+import type { UIMessageChunk } from 'ai'
 import type {
   ContextConfigDefault,
   FastifyReply,
@@ -74,5 +75,7 @@ declare module 'fastify' {
     page(items: readonly unknown[], nextCursor: string | null): FastifyReply
     /** `204`, no body */
     noContent(): FastifyReply
+    /** `200 text/event-stream`: an AI SDK UI message stream (chat answers, agent runs) */
+    uiMessageStream(stream: ReadableStream<UIMessageChunk>): FastifyReply
   }
 }

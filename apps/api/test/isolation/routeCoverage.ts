@@ -182,6 +182,56 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   },
 
   // audit
+  // chats
+  'GET /api/v1/orgs/:orgId/chats': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chats/:chatId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/chats/:chatId': {
+    class: 'orgScoped',
+    payload: () => ({ title: 'Taken over' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/restore': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chats/:chatId/messages': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/messages': {
+    class: 'orgScoped',
+    payload: () => ({ trigger: 'submit', text: 'hello from B' }),
+  },
+  'GET /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/sources/:index': {
+    class: 'orgScoped',
+  },
+  'PUT /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/feedback': {
+    class: 'orgScoped',
+    payload: () => ({ rating: 'not_helpful' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/feedback': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/attachments': {
+    class: 'orgScoped',
+    payload: () => ({ fileName: 'b.txt', contentType: 'text/plain', sizeBytes: 5 }),
+  },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/attachments/:attachmentId/complete': {
+    class: 'orgScoped',
+  },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/attachments/:attachmentId/retry': { class: 'orgScoped' },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId/attachments/:attachmentId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chat-folders': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chat-folders': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'B folder' }),
+  },
+  'PUT /api/v1/orgs/:orgId/chat-folders/order': {
+    class: 'orgScoped',
+    payload: (f) => ({ folderIds: [f.params.folderId] }),
+  },
+  'PATCH /api/v1/orgs/:orgId/chat-folders/:folderId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Renamed by B' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chat-folders/:folderId': { class: 'orgScoped' },
+  'PUT /api/v1/chat-uploads/:attachmentId': {
+    class: 'public',
+    reason: 'Signed upload URL of an attachment; the HMAC signature is the credential',
+  },
+
   // usage (Insights)
   'GET /api/v1/orgs/:orgId/insights/overview': { class: 'orgScoped', query: INSIGHTS_RANGE },
   'GET /api/v1/orgs/:orgId/insights/breakdown': {

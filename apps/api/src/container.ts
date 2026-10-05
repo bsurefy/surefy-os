@@ -12,6 +12,7 @@ import { createLogger, type Logger } from './core/logger/index.js'
 import { createQueues, type Queues } from './core/queue/index.js'
 import { createAiProviders, type AiProviders } from './integrations/ai/index.js'
 import { createMail, type MailProvider } from './integrations/mail/index.js'
+import { createMlDocuments } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
 import { createAuditModule, createInstallAudit } from './modules/audit/index.js'
@@ -21,6 +22,7 @@ import {
   createAuthUsers,
   createSignupPolicy,
 } from './modules/auth/index.js'
+import { createChatDocumentParser, createChatsModule } from './modules/chats/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
 import { createMembersModule, createMemberships } from './modules/members/index.js'
@@ -190,6 +192,19 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     hooks,
     usage: usage.meter,
   })
+  const chats = createChatsModule({
+    db,
+    queues,
+    logger,
+    storage: integrations.storage,
+    encryptionKey: config.crypto.encryptionKey,
+    gateway: modelGateway.service,
+    models: modelGrants.modelsRepository,
+    parser: createChatDocumentParser({
+      ml: createMlDocuments({ url: config.ml.url, token: config.ml.token }),
+      storage: integrations.storage,
+    }),
+  })
   const dataControl = createDataControlModule({
     db,
     queues,
@@ -212,6 +227,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     access,
     vault,
     modelGateway,
+    chats,
     usage,
     dataControl,
   } satisfies PublicModules
