@@ -12,6 +12,7 @@ const INTEGRATION_PATTERNS = [
   'src/**/*.repository.test.ts',
   'src/**/*.routes.test.ts',
   'src/**/*.processor.test.ts',
+  'src/**/*.integration.test.ts',
 ]
 
 export default defineConfig({

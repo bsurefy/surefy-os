@@ -5,6 +5,7 @@ import {
   VERIFY_AUDIT_LOG_JOB_NAME,
 } from '@/modules/audit/audit.constants.js'
 import { DATA_CONTROL_JOBS } from '@/modules/dataControl/dataControl.constants.js'
+import { VAULT_JOBS } from '@/modules/vault/vault.constants.js'
 
 import type { Queues } from './queues.js'
 import type { Logger } from '@/core/logger/index.js'
@@ -58,6 +59,24 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     queue: QUEUES.MAINTENANCE,
     repeat: { pattern: '10 4 * * *' },
     job: { name: DATA_CONTROL_JOBS.SCHEDULE_PURGES },
+  },
+  {
+    id: 'vault-keys-daily',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '40 3 * * *' },
+    job: { name: VAULT_JOBS.EXPIRE_KEYS },
+  },
+  {
+    id: 'vault-sync-daily',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '50 3 * * *' },
+    job: { name: VAULT_JOBS.SYNC_MODELS },
+  },
+  {
+    id: 'vault-servers-health',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { every: 5 * 60_000 },
+    job: { name: VAULT_JOBS.CHECK_SERVERS },
   },
 ]
 

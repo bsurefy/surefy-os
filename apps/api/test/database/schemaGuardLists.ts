@@ -16,5 +16,11 @@ export const SCHEMA_GUARD_LISTS: SchemaGuardLists = {
     'install_admins',
   ],
   appendOnlyTables: ['audit_logs', 'audit_chain_heads'],
-  joinTables: ['team_members', 'invitation_teams', 'member_preferences', 'audit_chain_heads'],
+  joinTables: [
+    'team_members',
+    'invitation_teams',
+    'member_preferences',
+    'audit_chain_heads',
+    'vault_settings',
+  ],
 }

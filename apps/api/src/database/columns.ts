@@ -54,20 +54,39 @@ export interface EncryptedSecretOptions {
   display?: boolean
 }
 
+const encryptedColumns = (p: string, display: boolean) => ({
+  [`${p}Ciphertext`]: bytea(),
+  [`${p}Iv`]: bytea(), // 12 bytes
+  [`${p}AuthTag`]: bytea(), // 16 bytes
+  [p === 'secret' ? 'dataKeyVersion' : `${p}DataKeyVersion`]: integer(),
+  ...(display ? { [`${p}Last4`]: text(), [`${p}Fingerprint`]: text() } : {}),
+})
+
+/** The default column set (`secret_*`, `data_key_version`), typed so tables and queries see it. */
+const secretColumns = () => ({
+  secretCiphertext: bytea(),
+  secretIv: bytea(), // 12 bytes
+  secretAuthTag: bytea(), // 16 bytes
+  dataKeyVersion: integer(),
+  secretLast4: text(),
+  secretFingerprint: text(),
+})
+
 /**
  * AES-256-GCM ciphertext, IV, auth tag and the organization data key version that wrapped it,
- * plus the display-only last four characters and fingerprint (configuration.md, §5).
+ * plus the display-only last four characters and fingerprint (configuration.md, §5). With the
+ * default prefix and display columns the result is typed; another prefix builds the names at run
+ * time, so such a table writes its columns out for their types (see install_settings).
  */
-export const encryptedSecret = (options: EncryptedSecretOptions) => {
-  const p = options.prefix ?? 'secret'
+export function encryptedSecret(
+  options: EncryptedSecretOptions & { prefix?: undefined; display?: true },
+): ReturnType<typeof secretColumns>
+export function encryptedSecret(options: EncryptedSecretOptions): Record<string, unknown>
+export function encryptedSecret(options: EncryptedSecretOptions) {
   ENCRYPTED_TABLES.add(options.table)
-  return {
-    [`${p}Ciphertext`]: bytea(),
-    [`${p}Iv`]: bytea(), // 12 bytes
-    [`${p}AuthTag`]: bytea(), // 16 bytes
-    [p === 'secret' ? 'dataKeyVersion' : `${p}DataKeyVersion`]: integer(),
-    ...(options.display === false ? {} : { [`${p}Last4`]: text(), [`${p}Fingerprint`]: text() }),
-  }
+  const p = options.prefix ?? 'secret'
+  const display = options.display !== false
+  return p === 'secret' && display ? secretColumns() : encryptedColumns(p, display)
 }
 
 export interface EncryptedColumns {

@@ -3,6 +3,7 @@ import type { ExtensionRegistry, MigrationsFolder } from './extension.types.js'
 import type { Logger } from '@/core/logger/index.js'
 import type { RegisteredJob } from '@/core/queue/index.js'
 import type { AccessCheck, EntitlementSource } from '@/modules/access/entitlements.types.js'
+import type { ModelCallGuard, ModelSource } from '@/modules/modelGateway/modelGateway.types.js'
 import type { BetterAuthPlugin } from 'better-auth'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import type { z } from 'zod'
@@ -15,6 +16,8 @@ export function createExtensionRegistry(logger: Logger): ExtensionRegistry {
   const settingsSchemas = new Map<string, z.ZodType>()
   const migrationsFolders: MigrationsFolder[] = []
   const accessChecks: AccessCheck[] = []
+  const modelSources: ModelSource[] = []
+  const modelCallGuards: ModelCallGuard[] = []
   let entitlementSource: EntitlementSource | undefined
 
   return {
@@ -49,6 +52,12 @@ export function createExtensionRegistry(logger: Logger): ExtensionRegistry {
     addAccessCheck(check) {
       accessChecks.push(check)
     },
+    addModelSource(source) {
+      modelSources.push(source)
+    },
+    addModelCallGuard(guard) {
+      modelCallGuards.push(guard)
+    },
     routes: () => routes,
     authPlugins: () => authPlugins,
     jobs: () => jobs,
@@ -56,5 +65,7 @@ export function createExtensionRegistry(logger: Logger): ExtensionRegistry {
     migrationsFolders: () => migrationsFolders,
     entitlementSource: () => entitlementSource,
     accessChecks: () => accessChecks,
+    modelSources: () => modelSources,
+    modelCallGuards: () => modelCallGuards,
   }
 }

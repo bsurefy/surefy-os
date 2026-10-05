@@ -2,6 +2,7 @@
 import { API_PREFIX } from '@/app.js'
 
 import { routeKey, type RouteKey, type RouteTableEntry } from './routeTable.js'
+import { testKey } from '../fixtures/fakeAi.js'
 
 import type { IsolationFixture } from './isolationFixture.js'
 
@@ -20,6 +21,8 @@ export interface RouteCoverage {
   reason?: string
   /** A valid body, so validation does not answer before the access check does. */
   payload?: (fixture: IsolationFixture) => unknown
+  /** A valid query string, for routes that require one (org-scoped routes). */
+  query?: Readonly<Record<string, string>>
 }
 
 const PUBLIC_LOOKUP = 'Public lookup by slug or invitation token, rate limited (publicLookup)'
@@ -197,6 +200,85 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'POST /api/v1/orgs/:orgId/exports/:exportId/retry': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/exports/:exportId/download': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/data-control/retention': { class: 'orgScoped' },
+
+  // vault
+  'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/credentials': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/credentials': {
+    class: 'orgScoped',
+    payload: (f) => ({
+      scope: 'team',
+      teamId: f.params.teamId,
+      name: 'Intruder key',
+      providerKey: 'openai',
+      secret: testKey('intruder-key-1234'),
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/vault/connection-tests': {
+    class: 'orgScoped',
+    payload: () => ({
+      kind: 'ai_provider',
+      providerKey: 'openai',
+      secret: testKey('intruder-key-1234'),
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/credentials/:credentialId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/vault/credentials/:credentialId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Renamed by B' }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/credentials/:credentialId/impact': {
+    class: 'orgScoped',
+    query: { action: 'revoke' },
+  },
+  'POST /api/v1/orgs/:orgId/vault/credentials/:credentialId/test': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/credentials/:credentialId/make-primary': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/credentials/:credentialId/revoke': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/local-servers': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/local-servers': {
+    class: 'orgScoped',
+    payload: (f) => ({
+      scope: 'team',
+      teamId: f.params.teamId,
+      name: 'Intruder server',
+      providerKey: 'ollama',
+      baseUrl: 'http://ollama.intruder.test:11434',
+    }),
+  },
+  'DELETE /api/v1/orgs/:orgId/vault/local-servers/:serverId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/local-servers/:serverId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/local-servers/:serverId/sync': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/my-credentials': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/my-credentials': {
+    class: 'orgScoped',
+    payload: () => ({
+      name: 'Intruder personal',
+      providerKey: 'openai',
+      secret: testKey('intruder-key-1234'),
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/models': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/models': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/models/:modelId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/vault/models/:modelId': {
+    class: 'orgScoped',
+    payload: () => ({ isEnabled: false }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/models/:modelId/impact': {
+    class: 'orgScoped',
+    query: { action: 'disable' },
+  },
+  'GET /api/v1/orgs/:orgId/vault/models/:modelId/access': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/vault/models/:modelId/access': {
+    class: 'orgScoped',
+    payload: (f) => ({ rules: [{ subjectType: 'user', userId: f.params.userId }] }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/model-access': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/settings': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/vault/settings': {
+    class: 'orgScoped',
+    payload: (f) => ({ embeddingModelId: f.params.modelId }),
+  },
 }
 
 /** One covered route, with its method and path split out of the key. */

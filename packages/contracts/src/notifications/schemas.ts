@@ -15,6 +15,7 @@ import { orgParamsSchema } from '../core/params.js'
 export const NOTIFICATION_TYPES = [
   'invitation.reissue_requested',
   'model_access.requested',
+  'vault_key.expiring',
   'knowledge_source.ready',
   'knowledge_source.failed',
   'export.ready',
@@ -37,6 +38,7 @@ export const NOTIFICATION_TARGET_TYPES = [
   'approval',
   'invitation',
   'vault_model',
+  'vault_credential',
   'knowledge_source',
   'export',
   'data_request',
@@ -70,6 +72,7 @@ const required: NotificationDefault = { inApp: true, email: true, emailRequired:
 export const NOTIFICATION_DEFAULTS = {
   'invitation.reissue_requested': emailed,
   'model_access.requested': emailed,
+  'vault_key.expiring': optional,
   'knowledge_source.ready': optional,
   'knowledge_source.failed': emailed,
   'export.ready': emailed,

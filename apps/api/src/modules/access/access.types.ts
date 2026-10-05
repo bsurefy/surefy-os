@@ -39,6 +39,18 @@ export interface AccessModels {
       userId: string | null
       teamIds: readonly string[]
       providersAllowed: readonly string[] | null
+      /** Off when a policy turns local models off: they are left out. */
+      localModels: boolean
     },
   ): Promise<string[]>
+}
+
+/** The provider rules of the access chain that the vault and the gateway enforce. */
+export interface ProviderRules {
+  /** Provider keys allowed; null = every provider. */
+  providersAllowed: string[] | null
+  /** People may add personal keys and use them in their own chats. */
+  personalKeys: boolean
+  /** Local model servers may be added and used. */
+  localModels: boolean
 }

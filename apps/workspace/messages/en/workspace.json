@@ -144,6 +144,9 @@
       "model_access": {
         "requested": "A member asked for access to a model"
       },
+      "vault_key": {
+        "expiring": "A provider key expires soon: rotate it before it stops working"
+      },
       "knowledge_source": {
         "ready": "A knowledge source is ready to use",
         "failed": "A knowledge source couldn't be processed"

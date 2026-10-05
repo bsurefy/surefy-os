@@ -21,6 +21,14 @@ export interface OrganizationOwnerWriter {
 }
 
 /**
+ * Rows another module keeps for every organization, written in the creating transaction (for
+ * example the vault's first data key and settings row), so they exist as soon as it does.
+ */
+export interface OrganizationInitializer {
+  initializeInTx(tx: DbTransaction, orgId: string): Promise<void>
+}
+
+/**
  * The install-level limits of the active entitlement source (extensions.md, §3; ADR 0016). The
  * access module's `EntitlementSource` satisfies it; until then the Community default applies.
  */

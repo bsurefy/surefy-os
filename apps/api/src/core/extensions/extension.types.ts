@@ -6,6 +6,7 @@ import type { Database } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
 import type { Queues, RegisteredJob } from '@/core/queue/index.js'
 import type { AccessCheck, EntitlementSource } from '@/modules/access/entitlements.types.js'
+import type { ModelCallGuard, ModelSource } from '@/modules/modelGateway/modelGateway.types.js'
 import type { PublicModules } from '@/types/modules.js'
 import type { BetterAuthPlugin } from 'better-auth'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
@@ -40,7 +41,7 @@ export interface MigrationsFolder {
 /**
  * Extension points with a Community default each; modules read the contributions at call time.
  * Module tasks add the remaining hooks: `setRoleResolver`, `setAccessGrantResolver`,
- * `addAuditSink`, `onEvent`, `addModelSource`, `addModelCallGuard`.
+ * `addAuditSink`, `onEvent`.
  */
 export interface ExtensionHooks {
   /** Routes registered under /api/v1, after the core modules' routes. */
@@ -57,6 +58,10 @@ export interface ExtensionHooks {
   setEntitlementSource(source: EntitlementSource): void
   /** A per-request organization check after the tenant is known, e.g. an IP allow-list. */
   addAccessCheck(check: AccessCheck): void
+  /** Models outside Vault for keys with its prefix, e.g. Cloud's `platform/` models. */
+  addModelSource(source: ModelSource): void
+  /** A check before every model call, e.g. Cloud's credit balance (402). */
+  addModelCallGuard(guard: ModelCallGuard): void
 }
 
 /** The container's registry: the hooks plus readers for what was contributed. */
@@ -69,4 +74,6 @@ export interface ExtensionRegistry extends ExtensionHooks {
   /** The contributed entitlement source; undefined keeps Community's. */
   entitlementSource(): EntitlementSource | undefined
   accessChecks(): readonly AccessCheck[]
+  modelSources(): readonly ModelSource[]
+  modelCallGuards(): readonly ModelCallGuard[]
 }

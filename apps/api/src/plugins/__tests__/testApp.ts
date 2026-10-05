@@ -130,6 +130,7 @@ export async function createTestApp(options: TestAppOptions = {}) {
       teams: { routes: noRoutes },
       members: { routes: noRoutes },
       access: { routes: noRoutes },
+      vault: { routes: noRoutes },
       audit: { routes: noRoutes },
       dataControl: { routes: noRoutes },
     },

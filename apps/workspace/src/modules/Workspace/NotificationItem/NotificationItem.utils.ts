@@ -8,6 +8,7 @@ const TARGET_HREFS = {
   approval: (orgSlug, id) => ROUTES.workspace.approval(orgSlug, id),
   invitation: (orgSlug) => ROUTES.workspace.settings(orgSlug, SETTINGS_SECTION.MEMBERS),
   vault_model: (orgSlug) => ROUTES.workspace.vault(orgSlug),
+  vault_credential: (orgSlug) => ROUTES.workspace.vault(orgSlug),
   knowledge_source: (orgSlug) => ROUTES.workspace.knowledge(orgSlug),
   export: (orgSlug) => ROUTES.workspace.settings(orgSlug, SETTINGS_SECTION.DATA_PRIVACY),
   data_request: (orgSlug) => ROUTES.workspace.settings(orgSlug, SETTINGS_SECTION.DATA_PRIVACY),

@@ -8,6 +8,7 @@ export type {
   OrganizationAccessHeader,
   OrganizationContext,
   OrganizationCreationRule,
+  OrganizationInitializer,
   OrganizationOwner,
   OrganizationOwnerWriter,
 } from './organizations.types.js'

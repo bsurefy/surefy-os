@@ -14,6 +14,7 @@ import { MembershipsService } from './memberships/memberships.service.js'
 import type {
   MemberNotifications,
   MemberOrganizations,
+  MemberRemovalStep,
   MemberTeams,
   MemberUsers,
 } from './members.types.js'
@@ -41,6 +42,8 @@ export interface MembersModuleDeps {
   users: MemberUsers
   notifications: MemberNotifications
   audit: AuditRecorder
+  /** Other modules' work when a person is removed (the vault revokes their personal keys). */
+  removalSteps?: readonly MemberRemovalStep[]
 }
 
 export function createMembersModule(deps: MembersModuleDeps) {
@@ -53,6 +56,7 @@ export function createMembersModule(deps: MembersModuleDeps) {
     teams: deps.teams,
     users: deps.users,
     audit: deps.audit,
+    removalSteps: deps.removalSteps ?? [],
   })
   const preferences = new MemberPreferencesService({
     db,

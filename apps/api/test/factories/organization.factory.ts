@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { organizationMembers, organizations } from '@/database/tables/index.js'
+import { organizationMembers, organizations, vaultSettings } from '@/database/tables/index.js'
 import type { OrgRole } from '@surefy/contracts'
 
 import { defineTableFactory } from './defineFactory.js'
@@ -50,13 +50,16 @@ export async function seedOrg<Name extends string>(
   options: SeedOrgOptions<Name>,
 ): Promise<SeededOrg<Name>> {
   const orgId = newId()
-  const org = await container.db.tenant(orgId, (tx) =>
-    organizationFactory.create(tx, {
+  const org = await container.db.tenant(orgId, async (tx) => {
+    const created = await organizationFactory.create(tx, {
       id: orgId,
       ...(options.name === undefined ? {} : { name: options.name }),
       ...(options.slug === undefined ? {} : { slug: options.slug }),
-    }),
-  )
+    })
+    // every organization has its vault settings row (its data key is made on first use)
+    await tx.insert(vaultSettings).values({ organizationId: orgId })
+    return created
+  })
   const members = {} as Record<Name, TestMember>
   for (const [name, role] of Object.entries(options.members) as [Name, OrgRole][]) {
     members[name] = await addMember(container, orgId, role, { name })

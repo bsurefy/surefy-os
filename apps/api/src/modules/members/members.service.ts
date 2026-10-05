@@ -31,9 +31,10 @@ import {
 
 import type {
   MemberOrganizations,
-  MembersContext,
+  MemberRemovalStep,
   MemberTeams,
   MemberUsers,
+  MembersContext,
 } from './members.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { AuditEntryInput, AuditRecorder } from '@/modules/audit/index.js'
@@ -45,6 +46,7 @@ export interface MembersServiceDeps {
   teams: MemberTeams
   users: MemberUsers
   audit: AuditRecorder
+  removalSteps: readonly MemberRemovalStep[]
 }
 
 /** The audit entries one membership change writes, from the row before and the patch. */
@@ -162,8 +164,8 @@ export class MembersService {
 
   /**
    * Removes the membership. The delete cascades to team memberships, member preferences and
-   * notifications. Agents, flows and personal credentials move or are revoked here as their
-   * modules arrive (`transferToUserId`).
+   * notifications; the removal steps of other modules run first (personal Vault keys are
+   * revoked). Agents and flows move here as their modules arrive (`transferToUserId`).
    */
   async remove(ctx: MembersContext, memberId: string, query: RemoveMemberQuery): Promise<void> {
     await this.deps.db.tenant(ctx.orgId, async (tx) => {
@@ -183,6 +185,7 @@ export class MembersService {
         }
       }
       await this.deps.teams.clearLeadForUserInTx(tx, ctx.orgId, target.userId)
+      for (const step of this.deps.removalSteps) await step.onRemoveInTx(tx, ctx, target.userId)
       await this.deps.membershipsRepository.delete(tx, ctx.orgId, target.id)
       await this.deps.organizations.bumpAccessVersionInTx(tx, ctx.orgId)
       await this.deps.audit.record(tx, ctx, {

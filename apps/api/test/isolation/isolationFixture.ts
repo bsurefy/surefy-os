@@ -5,13 +5,15 @@ import { QUEUES } from '@/constants/queues.js'
 import { auditLogs, organizationPurges, organizationSlugHistory } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
+  credentialDtoSchema,
   dataRequestDtoSchema,
   exportDtoSchema,
   invitationDtoSchema,
   teamDtoSchema,
+  vaultModelDtoSchema,
 } from '@surefy/contracts'
 
-import { expectData, request } from '../helpers/request.js'
+import { expectData, expectPage, request } from '../helpers/request.js'
 
 import type { TwoOrgSetup } from '../helpers/orgSetup.js'
 import type { SendEmailPayload } from '@/modules/notifications/index.js'
@@ -27,6 +29,7 @@ export interface IsolationFixture {
 }
 
 const INVITEE = 'secret.invitee@example.test'
+const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
 
 const tokenFromQueue = async (setup: TwoOrgSetup): Promise<string> => {
   const jobs = await setup.container.queues.get(QUEUES.EMAIL).getJobs(['waiting', 'delayed'])
@@ -84,6 +87,41 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     return notificationFactory.create(tx, { organizationId: a.id, userId: uma.id })
   })
 
+  // Vault rows of A: a key (its data key and the provider's models with their access rules) and
+  // a local server with its models; the settings row exists from the organization's creation.
+  const vaultUrl = `${orgUrl}/vault`
+  const credential = expectData(
+    await request(app, 'POST', `${vaultUrl}/credentials`, {
+      headers,
+      payload: {
+        scope: 'organization',
+        name: 'Secret OpenAI',
+        providerKey: 'openai',
+        secret: VAULT_SECRET,
+      },
+    }),
+    201,
+    credentialDtoSchema,
+  )
+  const server = expectData(
+    await request(app, 'POST', `${vaultUrl}/local-servers`, {
+      headers,
+      payload: {
+        scope: 'organization',
+        name: 'Secret Ollama',
+        providerKey: 'ollama',
+        baseUrl: 'http://ollama.secret-lab.test:11434',
+      },
+    }),
+    201,
+    credentialDtoSchema,
+  )
+  const [model] = expectPage(
+    await request(app, 'GET', `${vaultUrl}/models`, { headers, query: { providerKey: 'openai' } }),
+    vaultModelDtoSchema,
+  ).data
+  if (model === undefined) throw new Error('no vault model of A')
+
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
   // request, a background export, a sealed chain head and a purge record.
   const policy = await request(app, 'PUT', `${orgUrl}/access/policy`, {
@@ -135,6 +173,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       entryId,
       dataRequestId: dataRequest.id,
       exportId: dataExport.id,
+      credentialId: credential.id,
+      serverId: server.id,
+      modelId: model.id,
     },
     markers: [
       a.id,
@@ -150,6 +191,13 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       entryId,
       dataRequest.id,
       dataExport.id,
+      credential.id,
+      'Secret OpenAI',
+      VAULT_SECRET,
+      server.id,
+      'Secret Ollama',
+      'ollama.secret-lab.test',
+      model.id,
       ...[olivia, adam, uma].flatMap((member) => [member.id, member.memberId, member.email]),
     ],
   }

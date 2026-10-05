@@ -78,6 +78,27 @@
       "when": 1791132843144,
       "tag": "0010_access-audit-security",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791143299978,
+      "tag": "0011_vault",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791143319180,
+      "tag": "0012_vault-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791171230558,
+      "tag": "0013_vault-notifications",
+      "breakpoints": true
     }
   ]
 }

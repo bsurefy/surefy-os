@@ -124,7 +124,8 @@ describe('org-scoped routes: B never reaches A', () => {
   it.each(coveredRoutes('orgScoped'))('$key', async (route) => {
     const context = await prepare()
     const { setup, fixture } = context
-    const path = route.url.slice(API_PREFIX.length)
+    const query = route.query === undefined ? '' : `?${new URLSearchParams(route.query).toString()}`
+    const path = `${route.url.slice(API_PREFIX.length)}${query}`
     const payload = route.payload?.(fixture)
     const markers = unknownMarkers(fixture.markers, payload)
     const orgRoute: OrgScopedRoute = { method: route.method, path, ...payloadOf(payload) }
