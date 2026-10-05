@@ -29,6 +29,7 @@
     "@ai-sdk/openai": "4.0.83",
     "@ai-sdk/openai-compatible": "3.0.62",
     "@aws-sdk/client-s3": "3.1146.0",
+    "@aws-sdk/s3-request-presigner": "3.1146.0",
     "@fastify/cookie": "11.1.2",
     "@fastify/cors": "11.3.0",
     "@fastify/helmet": "13.1.1",
