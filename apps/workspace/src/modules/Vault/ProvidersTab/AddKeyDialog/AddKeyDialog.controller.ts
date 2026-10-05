@@ -10,7 +10,7 @@ import {
   useCreatePersonalCredentialMutation,
   useTestConnectionMutation,
 } from '@/api/vault'
-import { AI_PROVIDER_KEYS, ERROR_CODES } from '@surefy/contracts'
+import { AI_PROVIDER_KEYS, BASE_URL_PROVIDER_KEYS, ERROR_CODES } from '@surefy/contracts'
 import type { ConnectionTestDto, CredentialDto } from '@surefy/contracts'
 import { toast } from '@surefy/ui/components/Feedback'
 import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
@@ -71,6 +71,14 @@ export function useAddKeyController({ orgId, mode, rotate, onClose }: AddKeyDial
   const current = tested?.key === fingerprint(values) ? tested.result : null
   const isTestCurrent = current?.ok === true
   const needsTeam = mode === 'organization' && values.scope === KEY_SCOPE.TEAM && !values.teamId
+  // a personal key reaches its provider at the provider's own address, so providers that need
+  // an address of their own are not offered for one
+  const providerKeys =
+    mode === 'personal'
+      ? AI_PROVIDER_KEYS.filter(
+          (key) => !(BASE_URL_PROVIDER_KEYS as readonly string[]).includes(key),
+        )
+      : AI_PROVIDER_KEYS
 
   const runTest = async () => {
     const isValid = await form.trigger(['providerKey', 'secret', 'baseUrl'])
@@ -113,7 +121,7 @@ export function useAddKeyController({ orgId, mode, rotate, onClose }: AddKeyDial
     t,
     form,
     teams: subjects.teams.map((team) => ({ value: team.id, label: team.name })),
-    providerOptions: AI_PROVIDER_KEYS.map((key) => ({ value: key, label: getProviderName(key) })),
+    providerOptions: providerKeys.map((key) => ({ value: key, label: getProviderName(key) })),
     testResult: current,
     isTestCurrent,
     isTesting: testConnection.isPending,

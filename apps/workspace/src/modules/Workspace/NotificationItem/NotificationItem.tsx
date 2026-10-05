@@ -51,7 +51,8 @@ export default function NotificationItem(props: Readonly<NotificationItemProps>)
         ) : (
           <span className={titleClass}>{title}</span>
         )}
-        <span className="text-caption text-muted-foreground">
+        {/* the server and the browser each count "seconds ago" from their own clock */}
+        <span className="text-caption text-muted-foreground" suppressHydrationWarning>
           {actorName ? t('meta', { actor: actorName, time }) : time}
         </span>
       </div>

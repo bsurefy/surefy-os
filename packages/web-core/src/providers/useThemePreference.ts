@@ -2,6 +2,7 @@
 'use client'
 
 import { useTheme } from 'next-themes'
+import { useSyncExternalStore } from 'react'
 
 import { DEFAULT_THEME, isTheme } from './providers.constants'
 
@@ -19,5 +20,18 @@ export interface ThemePreference {
  */
 export function useThemePreference(): ThemePreference {
   const { theme, setTheme } = useTheme()
-  return { theme: isTheme(theme) ? theme : DEFAULT_THEME, setTheme }
+  // The server renders the default; a browser that reads the stored choice while it hydrates would
+  // render something else, and React keeps the server's markup for a control whose attributes differ.
+  const isHydrated = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  )
+  return { theme: isHydrated && isTheme(theme) ? theme : DEFAULT_THEME, setTheme }
 }
+
+function stopListening(): void {
+  // nothing to unsubscribe from
+}
+
+const subscribeToNothing = () => stopListening
