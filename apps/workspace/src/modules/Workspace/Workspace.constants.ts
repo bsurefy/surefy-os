@@ -58,7 +58,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     group: 'operate',
     icon: ChartLine,
     href: (orgSlug) => ROUTES.workspace.insights(orgSlug),
-    released: false,
+    released: true,
     module: 'insights',
     anyPermission: [PERMISSIONS.INSIGHTS_READ],
     goKey: 'i',

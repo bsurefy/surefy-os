@@ -312,66 +312,71 @@ const searchOf = (request: Request) => new URL(request.url).searchParams
 const path = '/orgs/:orgId/insights'
 
 /**
- * Insights › Overview on synthetic usage: three people in two teams and an API key, on three
- * cloud models and a local one, three times a day; the same instant always has the same numbers.
+ * Insights › Overview on synthetic usage: three people in two teams and an API key, on three cloud
+ * models and a local one, three times a day; the same instant always has the same numbers.
  * Scenarios: `empty` is an organization without usage; `restricted` hides the cost KPIs;
- * `unpriced` flags a model without a known price; `chart-error` fails both charts while the
- * KPIs load (a partial failure).
+ * `unpriced` flags a model without a known price; `chart-error` fails both charts while the KPIs
+ * load (a partial failure). Live on the real API (B3-04's routes, I4-06); the handlers stay for
+ * component tests and for `MOCK_DOMAINS=usage`, to look at the states.
  */
-export const usageDomain = defineMockDomain('usage', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/overview`,
-    response: okResponse(insightsOverviewDtoSchema),
-    scenarios: {
-      default: ({ request }) => mockOk(overview(searchOf(request))),
-      empty: () =>
-        mockOk({
-          messages: { state: 'value', value: 0 },
-          activePeople: { state: 'value', value: 0 },
-          tokens: { state: 'value', value: 0 },
-          cost: { state: 'value', value: [] },
-          costThisMonth: { state: 'value', value: [] },
-          hasUsage: false,
-          unpricedModels: [],
-          dataThrough: null,
-        } satisfies InsightsOverviewDto),
-      restricted: ({ request }) =>
-        mockOk({
-          ...overview(searchOf(request)),
-          cost: { state: 'restricted' },
-          costThisMonth: { state: 'restricted' },
-        } satisfies InsightsOverviewDto),
-      unpriced: ({ request }) =>
-        mockOk({
-          ...overview(searchOf(request)),
-          unpricedModels: [CLAUDE],
-        } satisfies InsightsOverviewDto),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/breakdown`,
-    response: okResponse(insightsBreakdownDtoSchema),
-    scenarios: {
-      default: ({ request }) => mockOk(breakdown(searchOf(request))),
-      empty: ({ request }) =>
-        mockOk({
-          by: (searchOf(request).get('by') ?? 'team') as InsightsBreakdownDimension,
-          rows: [],
-          others: null,
-          total: emptyTotals(),
-        } satisfies InsightsBreakdownDto),
-      'chart-error': chartError,
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/timeseries`,
-    response: okResponse(insightsTimeseriesDtoSchema),
-    scenarios: {
-      default: ({ request }) => mockOk(timeseries(searchOf(request))),
-      'chart-error': chartError,
-    },
-  }),
-])
+export const usageDomain = defineMockDomain(
+  'usage',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/overview`,
+      response: okResponse(insightsOverviewDtoSchema),
+      scenarios: {
+        default: ({ request }) => mockOk(overview(searchOf(request))),
+        empty: () =>
+          mockOk({
+            messages: { state: 'value', value: 0 },
+            activePeople: { state: 'value', value: 0 },
+            tokens: { state: 'value', value: 0 },
+            cost: { state: 'value', value: [] },
+            costThisMonth: { state: 'value', value: [] },
+            hasUsage: false,
+            unpricedModels: [],
+            dataThrough: null,
+          } satisfies InsightsOverviewDto),
+        restricted: ({ request }) =>
+          mockOk({
+            ...overview(searchOf(request)),
+            cost: { state: 'restricted' },
+            costThisMonth: { state: 'restricted' },
+          } satisfies InsightsOverviewDto),
+        unpriced: ({ request }) =>
+          mockOk({
+            ...overview(searchOf(request)),
+            unpricedModels: [CLAUDE],
+          } satisfies InsightsOverviewDto),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/breakdown`,
+      response: okResponse(insightsBreakdownDtoSchema),
+      scenarios: {
+        default: ({ request }) => mockOk(breakdown(searchOf(request))),
+        empty: ({ request }) =>
+          mockOk({
+            by: (searchOf(request).get('by') ?? 'team') as InsightsBreakdownDimension,
+            rows: [],
+            others: null,
+            total: emptyTotals(),
+          } satisfies InsightsBreakdownDto),
+        'chart-error': chartError,
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/timeseries`,
+      response: okResponse(insightsTimeseriesDtoSchema),
+      scenarios: {
+        default: ({ request }) => mockOk(timeseries(searchOf(request))),
+        'chart-error': chartError,
+      },
+    }),
+  ],
+  { isLive: true },
+)
