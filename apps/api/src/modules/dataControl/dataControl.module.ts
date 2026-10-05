@@ -6,7 +6,7 @@ import { DataControlRepository } from './dataControl.repository.js'
 import { dataControlRoutes } from './dataControl.routes.js'
 import { DataControlService } from './dataControl.service.js'
 import { DataExportsService } from './dataExports/dataExports.service.js'
-import { CORE_EXPORT_PRODUCERS } from './dataExports/exportProducers.js'
+import { CORE_EXPORT_PRODUCERS, type ExportProducer } from './dataExports/exportProducers.js'
 import { DataRetentionRepository } from './dataRetention/dataRetention.repository.js'
 import { DataRetentionService } from './dataRetention/dataRetention.service.js'
 
@@ -33,6 +33,8 @@ export interface DataControlModuleDeps {
   notifications: DataControlNotifications
   access: DataControlAccess & Pick<AccessService, 'hasFeature'>
   audit: AuditRecorder
+  /** The producing modules' exports (usage CSV…), next to the core ones. */
+  producers?: readonly ExportProducer[]
 }
 
 export function createDataControlModule(deps: DataControlModuleDeps) {
@@ -64,7 +66,7 @@ export function createDataControlModule(deps: DataControlModuleDeps) {
     access: deps.access,
     notifications: deps.notifications,
     audit: deps.audit,
-    producers: CORE_EXPORT_PRODUCERS,
+    producers: [...CORE_EXPORT_PRODUCERS, ...(deps.producers ?? [])],
     prepareExportJob: () => jobs.prepareExport,
   })
   const retention = new DataRetentionService({

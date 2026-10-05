@@ -44,7 +44,11 @@ export interface StoredInstallSettings {
 
 // `encryptedSecret({ prefix: 'smtp_password', display: false })`, written out so the column types
 // stay exact; the registry entry is what the re-encryption job walks.
-ENCRYPTED_TABLES.add('install_settings')
+ENCRYPTED_TABLES.set('install_settings', {
+  prefix: 'smtp_password',
+  display: false,
+  key: 'install',
+})
 
 /**
  * The install's one settings row (`id = 1`). The custom migration inserts it with the defaults;

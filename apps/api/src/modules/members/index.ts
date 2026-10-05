@@ -16,4 +16,4 @@ export type {
   MembershipsService,
   NewMembership,
 } from './memberships/memberships.service.js'
-export type { MembersContext } from './members.types.js'
+export type { MemberRemovalStep, MembersContext } from './members.types.js'

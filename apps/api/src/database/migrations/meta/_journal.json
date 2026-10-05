@@ -78,6 +78,83 @@
       "when": 1791132843144,
       "tag": "0010_access-audit-security",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791143299978,
+      "tag": "0011_vault",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791143319180,
+      "tag": "0012_vault-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791171230558,
+      "tag": "0013_vault-notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791173410989,
+      "tag": "0014_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791173432541,
+      "tag": "0015_usage-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791176161950,
+      "tag": "0016_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791176167372,
+      "tag": "0017_chat-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791179799643,
+      "tag": "0018_knowledge",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791179801432,
+      "tag": "0019_knowledge-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791183751720,
+      "tag": "0020_outbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791183768634,
+      "tag": "0021_outbox-security",
+      "breakpoints": true
     }
   ]
 }

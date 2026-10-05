@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import type { DbTransaction } from '@/core/database/index.js'
 import type { AuthUsersService } from '@/modules/auth/index.js'
 import type { NotificationsService } from '@/modules/notifications/index.js'
 import type { OrganizationsService } from '@/modules/organizations/index.js'
@@ -34,3 +35,11 @@ export type MemberTeams = Pick<
 
 /** Invitation emails and the inviter's notification. */
 export type MemberNotifications = Pick<NotificationsService, 'queueEmail' | 'notify'>
+
+/**
+ * What another module does in the removal transaction for the person leaving (their personal
+ * Vault keys are revoked; agents and flows move with their modules).
+ */
+export interface MemberRemovalStep {
+  onRemoveInTx(tx: DbTransaction, ctx: MembersContext, removedUserId: string): Promise<void>
+}

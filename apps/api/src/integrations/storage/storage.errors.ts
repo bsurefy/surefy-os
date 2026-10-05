@@ -32,6 +32,3 @@ export class StorageUnavailableError extends StorageError {
     super(`storage ${operation} failed`, options)
   }
 }
-
-/** The provider cannot produce a signed URL in this installation. */
-export class StorageSignedUrlUnavailableError extends StorageError {}

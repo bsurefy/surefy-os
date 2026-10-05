@@ -1,6 +1,192 @@
 {
   "wizard": {
     "title": "Set up your workspace",
-    "description": "Check the server, create your organization and connect an AI model."
+    "description": "Check the server, create your organization and connect an AI model.",
+    "phone": {
+      "title": "Open on a computer to finish setup",
+      "description": "Setup needs a larger screen. Open this address on a computer and carry on there."
+    },
+    "progress": {
+      "label": "Setup progress",
+      "step": "Step {current} of {total}",
+      "steps": {
+        "welcome": "Server check",
+        "organization": "Organization and owner",
+        "model": "AI model",
+        "ready": "Ready"
+      }
+    },
+    "back": "Back",
+    "continue": "Continue",
+    "loading": "Checking this server…",
+    "unavailable": {
+      "title": "Can't reach the server",
+      "message": "The setup service did not answer. Check that the server is running, then try again."
+    }
+  },
+  "welcome": {
+    "title": "Welcome to SurefyOS",
+    "description": "First, a quick check that this server is ready.",
+    "checksLabel": "Server checks",
+    "help": "Takes about two minutes.",
+    "checks": {
+      "server": "Server",
+      "database": "Database",
+      "storage": "File storage",
+      "email": "Email (SMTP)",
+      "gpu": "GPU"
+    },
+    "status": {
+      "ok": "Ready",
+      "warning": "Optional",
+      "failed": "Needs attention"
+    },
+    "fixes": {
+      "DATABASE_UNREACHABLE": "The database can't be reached. Check the database address in your server settings and that it is running, then check again.",
+      "STORAGE_UNAVAILABLE": "File storage isn't available. Uploads and exports won't work until it is.",
+      "EMAIL_NOT_CONFIGURED": "No email server is set up. Invitations and password reset need one; until then you can copy invite links.",
+      "GPU_NOT_DETECTED": "No GPU found. Local models run slowly without one; cloud models are not affected.",
+      "unknown": "This check failed. The server log has the details."
+    },
+    "blocked": "Fix the database before you continue.",
+    "checkAgain": "Check again",
+    "continue": "Continue"
+  },
+  "organization": {
+    "title": "Your organization and owner",
+    "description": "This creates your organization and your account as its Owner, and signs you in.",
+    "organizationName": "Organization name",
+    "slug": "URL address",
+    "slugPreview": "People open your workspace at {address}",
+    "slugStatus": {
+      "checking": "Checking the address…",
+      "available": "This address is available.",
+      "taken": "This address is taken.",
+      "reserved": "This address is reserved.",
+      "invalid": "Use 3–48 lowercase letters, numbers and hyphens."
+    },
+    "token": "Setup token",
+    "tokenHelp": "This server asks for the setup token from its settings before the first account is created.",
+    "tokenInvalid": "The setup token is missing or wrong.",
+    "name": "Your name",
+    "email": "Work email",
+    "password": "Password",
+    "passwordHint": "At least 12 characters.",
+    "language": "Language",
+    "languages": {
+      "en": "English"
+    },
+    "submit": "Create organization",
+    "ownerEmailTaken": "An account with this email already exists on this server."
+  },
+  "model": {
+    "title": "Connect an AI model",
+    "description": "Chat needs a model to answer. Add a cloud provider key or a model that runs on your own server. You can do this later.",
+    "connectedLabel": "Connected models",
+    "connected": "{count, plural, =0 {Connected} one {Connected · # model} other {Connected · # models}}",
+    "cloud": {
+      "title": "Cloud provider",
+      "description": "Use your own key from OpenAI, Anthropic, Google and others. The key is tested before it is saved.",
+      "action": "Add API key"
+    },
+    "local": {
+      "title": "Local server",
+      "description": "Ollama, vLLM, LM Studio or any OpenAI-compatible server on your network.",
+      "action": "Add local server"
+    },
+    "skipNote": "Without a model, Chat opens with a prompt to connect one.",
+    "skip": "Skip for now",
+    "continue": "Continue"
+  },
+  "ready": {
+    "title": "You're ready",
+    "description": "Your workspace is set up. Here is what you chose.",
+    "summaryLabel": "Summary",
+    "summary": {
+      "organization": "Organization",
+      "organizationValue": "{name} · {slug}",
+      "model": "AI model",
+      "modelConnected": "{count, plural, one {# model connected} other {# models connected}}",
+      "modelSkipped": "Not connected yet",
+      "email": "Email",
+      "emailOn": "Invitations are sent by email",
+      "emailOff": "No email server · invite links only",
+      "change": "Change",
+      "changeLabel": "Change {item}"
+    },
+    "invite": {
+      "title": "Invite your team",
+      "description": "Optional. You can invite people any time from Settings › Members.",
+      "emails": "Email addresses",
+      "emailsHelp": "One per line, or separated by commas.",
+      "emailsRequired": "Enter at least one email address.",
+      "emailsTooMany": "Invite up to {max} people at a time.",
+      "role": "Role",
+      "roles": {
+        "user": {
+          "name": "User",
+          "description": "Uses chat and the agents and knowledge shared with them."
+        },
+        "builder": {
+          "name": "Builder",
+          "description": "Also builds agents and flows and manages knowledge."
+        },
+        "admin": {
+          "name": "Admin",
+          "description": "Also manages members, teams, models and settings."
+        }
+      },
+      "submit": "{count, plural, one {Send invitation} other {Send # invitations}}",
+      "submitLinks": "{count, plural, one {Create invite link} other {Create # invite links}}",
+      "noEmail": "There is no email server, so invitations are shared as links.",
+      "results": "Invitation results",
+      "sent": "Invitation created",
+      "undelivered": "Not delivered",
+      "copyLink": "Copy invite link",
+      "linkCopied": "Invite link copied"
+    },
+    "checklist": "A setup checklist stays on your home screen until you finish the rest.",
+    "open": "Open Chat",
+    "finishFailed": "Setup could not be finished. Try again."
+  },
+  "complete": {
+    "title": "Setup is already complete",
+    "description": "This server has an organization already, so setup is closed.",
+    "signIn": "Sign in",
+    "openWorkspace": "Open your workspace"
+  },
+  "checklist": {
+    "title": "Finish setting up",
+    "progress": "{done} of {total} done",
+    "items": {
+      "connect-model": {
+        "title": "Connect a model",
+        "description": "Add a provider key or a local server so Chat can answer.",
+        "action": "Open Vault"
+      },
+      "add-documents": {
+        "title": "Add documents",
+        "description": "Create a knowledge base so answers can use your own files.",
+        "action": "Open Knowledge"
+      },
+      "invite-team": {
+        "title": "Invite your team",
+        "description": "Bring people in with the role that fits them.",
+        "action": "Invite people"
+      },
+      "create-agent": {
+        "title": "Create an agent",
+        "description": "Build an assistant for a repeated task.",
+        "action": "Create agent"
+      },
+      "set-budget": {
+        "title": "Set a budget",
+        "description": "Cap the monthly spend on AI models.",
+        "action": "Set budget"
+      }
+    },
+    "done": "Done",
+    "dismiss": "Dismiss checklist",
+    "dismissed": "Checklist hidden. It stays out of your way."
   }
 }

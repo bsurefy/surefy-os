@@ -12,6 +12,7 @@ import { membersDomain } from './members'
 import { modelsDomain } from './models'
 import { notificationsDomain } from './notifications'
 import { organizationsDomain } from './organizations'
+import { setupChecklistDomain } from './setupChecklist'
 import { teamsDomain } from './teams'
 import { usageDomain } from './usage'
 import { vaultDomain } from './vault'
@@ -35,5 +36,6 @@ export const mockDomains: MockDomain[] = [
   chatDomain,
   knowledgeDomain,
   usageDomain,
+  setupChecklistDomain,
   auditDomain,
 ]

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { components } from './generated/schema'
+import type { components } from './generated/schema.js'
 
 type Schemas = components['schemas']
 

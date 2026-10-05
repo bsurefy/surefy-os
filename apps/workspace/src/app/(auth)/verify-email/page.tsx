@@ -10,6 +10,9 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t('title') }
 }
 
-export default function VerifyEmailPage() {
-  return <VerifyEmail />
+export default async function VerifyEmailPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<{ error?: string | string[] }> }>) {
+  const { error } = await searchParams
+  return <VerifyEmail hasLinkError={error !== undefined} />
 }

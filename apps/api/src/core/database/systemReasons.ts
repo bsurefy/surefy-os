@@ -13,6 +13,7 @@ export type SystemScopeReason =
   | 'connection-refresh'
   | 'piece-catalog-sync'
   | 'access-version'
+  | 'knowledge-sync'
   | 'partner-portal'
   | 'platform'
   | 'billing'

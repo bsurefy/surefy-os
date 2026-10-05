@@ -8,6 +8,7 @@ import { OrganizationsService } from './organizations.service.js'
 import type {
   InstallLimitsSource,
   OrganizationCreationRule,
+  OrganizationInitializer,
   OrganizationOwnerWriter,
 } from './organizations.types.js'
 import type { Database } from '@/core/database/index.js'
@@ -24,6 +25,8 @@ export interface OrganizationsModuleDeps {
   /** The install's organization creation policy (install module); nobody by default. */
   creationRule?: OrganizationCreationRule
   audit: AuditRecorder
+  /** Run in every creating transaction, after the Owner membership (vault keys and settings). */
+  initializers?: readonly OrganizationInitializer[]
 }
 
 export function createOrganizationsModule(deps: OrganizationsModuleDeps) {
@@ -35,6 +38,7 @@ export function createOrganizationsModule(deps: OrganizationsModuleDeps) {
     installLimits: deps.installLimits ?? ORGANIZATIONS_DEFAULTS.installLimits,
     creationRule: deps.creationRule ?? ORGANIZATIONS_DEFAULTS.creationRule,
     audit: deps.audit,
+    initializers: deps.initializers ?? [],
   })
   return { service, routes: organizationsRoutes(new OrganizationsController(service)) }
 }

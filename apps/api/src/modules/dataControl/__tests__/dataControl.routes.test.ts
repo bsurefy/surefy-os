@@ -245,7 +245,8 @@ describe('background exports', () => {
     )
     expectError(await post('members_csv', setup.a.members.uma), 403, ERROR_CODES.ACCESS_FORBIDDEN)
     expectError(await post('audit_csv'), 403, ERROR_CODES.FEATURE_NOT_AVAILABLE)
-    expectError(await post('usage_csv'), 422, ERROR_CODES.VALIDATION_FAILED)
+    expectError(await post('runs_csv'), 422, ERROR_CODES.VALIDATION_FAILED)
+    expectError(await post('usage_csv', setup.a.members.uma), 403, ERROR_CODES.ACCESS_FORBIDDEN)
     expect(await actionsOf(setup, setup.a.id)).toEqual(
       expect.arrayContaining(['export.requested', 'export.downloaded']),
     )

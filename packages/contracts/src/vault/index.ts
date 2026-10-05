@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Schemas and types of the vault domain are added by its contract task.
+export * from './audit.js'
 export { VAULT_ERROR_CODES } from './errors.js'
 export { VAULT_PERMISSIONS } from './permissions.js'
+export * from './providers.js'
+export * from './schemas.js'

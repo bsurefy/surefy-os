@@ -112,8 +112,11 @@ export function createDataControlJobs(services: DataControlJobServices): DataCon
       name: DATA_CONTROL_JOBS.PURGE_SOFT_DELETED,
       schema: emptyPayloadSchema,
       options: { attempts: 2 },
-      process: () => async () => {
-        await services.retention().purgeSoftDeleted()
+      process: (runtime) => async () => {
+        runtime.logger.info(
+          { purged: await services.retention().purgeSoftDeleted() },
+          'soft-deleted rows purged',
+        )
       },
     }),
     schedulePurges: defineJob({

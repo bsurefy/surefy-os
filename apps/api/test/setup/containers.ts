@@ -65,6 +65,9 @@ const startPostgres = () =>
       'synchronous_commit=off',
       '-c',
       'full_page_writes=off',
+      // every test app keeps its pool until its file ends, and files run in parallel
+      '-c',
+      'max_connections=400',
     ])
     .start()
 

@@ -37,6 +37,7 @@ import type {
   AccessOrganizations,
   AccessTeams,
   AccessUsers,
+  ProviderRules,
 } from './access.types.js'
 import type { EntitlementGrant, EntitlementSource } from './entitlements.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
@@ -169,11 +170,50 @@ export class AccessService implements TenantAccessResolver {
           userId: null,
           teamIds: [teamId],
           providersAllowed: level.providersAllowed,
+          localModels: level.providerFlags.localModels,
         }),
         limits: level.limits,
         reasons: level.reasons,
       }
     })
+  }
+
+  /**
+   * The provider rules for a person (across their teams), a team, or the organization level:
+   * which providers, personal keys and local servers the vault and the gateway allow.
+   */
+  async providerRules(
+    orgId: string,
+    subject: { userId: string } | { teamId: string } | null,
+  ): Promise<ProviderRules> {
+    const grant = await this.deps.entitlements.getEntitlements({ orgId })
+    return this.deps.db.tenant(orgId, async (tx) => {
+      const teamIds = await this.subjectTeamIds(tx, orgId, subject)
+      const policies = await this.deps.accessRepository.listForOrgAndTeams(tx, orgId, teamIds)
+      const organization = this.organizationLevel(grant, policyOf(policies, null))
+      const level = unionAcrossTeams(
+        organization,
+        teamIds.map((teamId) =>
+          narrow(organization, policyOf(policies, teamId), { source: 'team', teamId }),
+        ),
+      )
+      return {
+        providersAllowed: level.providersAllowed,
+        personalKeys: level.providerFlags.personalKeys,
+        localModels: level.providerFlags.localModels,
+      }
+    })
+  }
+
+  private async subjectTeamIds(
+    tx: DbExecutor,
+    orgId: string,
+    subject: { userId: string } | { teamId: string } | null,
+  ): Promise<string[]> {
+    if (subject === null) return []
+    if ('teamId' in subject) return [subject.teamId]
+    const member = await this.deps.accessRepository.findMemberForAccess(tx, orgId, subject.userId)
+    return member?.teamIds ?? []
   }
 
   /** The organization's (`teamId` null) or a team's own restrictions. */
@@ -292,6 +332,7 @@ export class AccessService implements TenantAccessResolver {
         userId,
         teamIds: member.teamIds,
         providersAllowed: level.providersAllowed,
+        localModels: level.providerFlags.localModels,
       }),
       limits: level.limits,
       reasons: level.reasons,

@@ -14,3 +14,4 @@ export type {
   InstallOrganizationLogos,
   SmtpTestMailerFactory,
 } from './install.types.js'
+export { DATA_KEY_AAD as INSTALL_DATA_KEY_AAD } from './installSecrets.js'

@@ -2,6 +2,7 @@
 import { getTranslations } from 'next-intl/server'
 
 import { getCurrentOrg } from '@/core/auth'
+import { PersonalKeys } from '@/modules/Vault'
 import { ProfileSettings } from '@/modules/Workspace'
 
 import type { Metadata } from 'next'
@@ -15,5 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ProfilePage({ params }: Readonly<PageProps<'/[orgSlug]/profile'>>) {
   const { orgSlug } = await params
   await getCurrentOrg(orgSlug)
-  return <ProfileSettings orgSlug={orgSlug} />
+  return (
+    <ProfileSettings orgSlug={orgSlug}>
+      <PersonalKeys />
+    </ProfileSettings>
+  )
 }

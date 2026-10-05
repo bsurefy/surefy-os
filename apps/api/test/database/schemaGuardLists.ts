@@ -15,6 +15,17 @@ export const SCHEMA_GUARD_LISTS: SchemaGuardLists = {
     'install_settings',
     'install_admins',
   ],
-  appendOnlyTables: ['audit_logs', 'audit_chain_heads'],
-  joinTables: ['team_members', 'invitation_teams', 'member_preferences', 'audit_chain_heads'],
+  appendOnlyTables: ['audit_logs', 'audit_chain_heads', 'usage_events'],
+  joinTables: [
+    'team_members',
+    'invitation_teams',
+    'member_preferences',
+    'audit_chain_heads',
+    'vault_settings',
+    'usage_daily',
+    'usage_monthly',
+    'chat_knowledge_bases',
+    // the largest table: nothing references chunks, so it has no (organization_id, id) key
+    'knowledge_chunks',
+  ],
 }

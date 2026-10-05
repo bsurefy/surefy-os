@@ -12,6 +12,12 @@ describe('the mock domain registry', () => {
     expect(selectMockDomains(mockDomains, names).passthrough).toEqual([])
   })
 
+  it('forwards the live domains to the real API by default', () => {
+    const live = mockDomains.filter((domain) => domain.isLive).map((domain) => domain.name)
+    expect(live).toContain('audit')
+    expect(selectMockDomains(mockDomains).passthrough).toEqual(live)
+  })
+
   it('never registers sign-in or setup, which always use the real backend', () => {
     const names = mockDomains.map((domain) => domain.name)
     expect(names).not.toContain('auth')

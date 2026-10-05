@@ -12,7 +12,7 @@ export interface SchemaGuardLists {
   globalTables: readonly string[]
   /** Tables `surefy_app` may only read and insert. */
   appendOnlyTables: readonly string[]
-  /** Join tables that have no `(organization_id, id)` unique key because they have no `id`. */
+  /** Join tables and one-row-per-owner tables: no `id`, so no `(organization_id, id)` unique key. */
   joinTables: readonly string[]
 }
 

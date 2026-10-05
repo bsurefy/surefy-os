@@ -3,10 +3,13 @@
 import { NextRequest } from 'next/server'
 import { describe, expect, it } from 'vitest'
 
+import { SESSION_COOKIE_PREFIX } from '@surefy/contracts'
+
 import { createSessionProxy } from './createSessionProxy'
 
 const ORIGIN = 'https://app.surefyos.test'
-const SESSION_COOKIE = 'better-auth.session_token=token.signature'
+// the API's own cookie name; another prefix is not this app's session
+const SESSION_COOKIE = `${SESSION_COOKIE_PREFIX}.session_token=token.signature`
 
 const proxy = createSessionProxy({ loginPath: '/login', publicPaths: ['/login', '/invite'] })
 
@@ -21,6 +24,16 @@ function isPassedThrough(response: Response): boolean {
 describe('createSessionProxy', () => {
   it('lets a request with this app’s session cookie through', () => {
     expect(isPassedThrough(proxy(request('/acme/agents', SESSION_COOKIE)))).toBe(true)
+  })
+
+  it('takes the production cookie, with its __Secure- prefix', () => {
+    const secure = `__Secure-${SESSION_COOKIE}`
+    expect(isPassedThrough(proxy(request('/acme/agents', secure)))).toBe(true)
+  })
+
+  it('does not take a session cookie with another prefix', () => {
+    const other = 'better-auth.session_token=token.signature'
+    expect(isPassedThrough(proxy(request('/acme/agents', other)))).toBe(false)
   })
 
   it('lets public paths and everything below them through without a session', () => {

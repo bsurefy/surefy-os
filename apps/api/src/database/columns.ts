@@ -39,11 +39,30 @@ export const currency = () => ({
   currency: char({ length: 3 }).notNull().default('USD'),
 })
 
+/** How the re-encryption and re-fingerprint jobs find a table's secret columns. */
+export interface EncryptedTable {
+  /** Column prefix: `secret` (`secret_ciphertext`, …, `data_key_version`) or another. */
+  prefix: string
+  /** Whether the table has `<prefix>_last4` and `<prefix>_fingerprint`. */
+  display: boolean
+  /** Organization data key (versioned, re-encrypted) or the install data key (re-wrapped only). */
+  key: 'organization' | 'install'
+}
+
 /**
  * Tables with an `encryptedSecret()` column set: the registry the re-encryption job walks.
  * Extension tables register through the same helper.
  */
-export const ENCRYPTED_TABLES = new Set<string>()
+export const ENCRYPTED_TABLES = new Map<string, EncryptedTable>()
+
+/** The snake_case column names of a registered table's secret. */
+export const encryptedColumnNames = (entry: EncryptedTable) => ({
+  ciphertext: `${entry.prefix}_ciphertext`,
+  iv: `${entry.prefix}_iv`,
+  authTag: `${entry.prefix}_auth_tag`,
+  keyVersion: entry.prefix === 'secret' ? 'data_key_version' : `${entry.prefix}_data_key_version`,
+  fingerprint: entry.display ? `${entry.prefix}_fingerprint` : null,
+})
 
 export interface EncryptedSecretOptions {
   /** The table that holds the secret, for the re-encryption registry. */
@@ -54,20 +73,39 @@ export interface EncryptedSecretOptions {
   display?: boolean
 }
 
+const encryptedColumns = (p: string, display: boolean) => ({
+  [`${p}Ciphertext`]: bytea(),
+  [`${p}Iv`]: bytea(), // 12 bytes
+  [`${p}AuthTag`]: bytea(), // 16 bytes
+  [p === 'secret' ? 'dataKeyVersion' : `${p}DataKeyVersion`]: integer(),
+  ...(display ? { [`${p}Last4`]: text(), [`${p}Fingerprint`]: text() } : {}),
+})
+
+/** The default column set (`secret_*`, `data_key_version`), typed so tables and queries see it. */
+const secretColumns = () => ({
+  secretCiphertext: bytea(),
+  secretIv: bytea(), // 12 bytes
+  secretAuthTag: bytea(), // 16 bytes
+  dataKeyVersion: integer(),
+  secretLast4: text(),
+  secretFingerprint: text(),
+})
+
 /**
  * AES-256-GCM ciphertext, IV, auth tag and the organization data key version that wrapped it,
- * plus the display-only last four characters and fingerprint (configuration.md, §5).
+ * plus the display-only last four characters and fingerprint (configuration.md, §5). With the
+ * default prefix and display columns the result is typed; another prefix builds the names at run
+ * time, so such a table writes its columns out for their types (see install_settings).
  */
-export const encryptedSecret = (options: EncryptedSecretOptions) => {
+export function encryptedSecret(
+  options: EncryptedSecretOptions & { prefix?: undefined; display?: true },
+): ReturnType<typeof secretColumns>
+export function encryptedSecret(options: EncryptedSecretOptions): Record<string, unknown>
+export function encryptedSecret(options: EncryptedSecretOptions) {
   const p = options.prefix ?? 'secret'
-  ENCRYPTED_TABLES.add(options.table)
-  return {
-    [`${p}Ciphertext`]: bytea(),
-    [`${p}Iv`]: bytea(), // 12 bytes
-    [`${p}AuthTag`]: bytea(), // 16 bytes
-    [p === 'secret' ? 'dataKeyVersion' : `${p}DataKeyVersion`]: integer(),
-    ...(options.display === false ? {} : { [`${p}Last4`]: text(), [`${p}Fingerprint`]: text() }),
-  }
+  const display = options.display !== false
+  ENCRYPTED_TABLES.set(options.table, { prefix: p, display, key: 'organization' })
+  return p === 'secret' && display ? secretColumns() : encryptedColumns(p, display)
 }
 
 export interface EncryptedColumns {

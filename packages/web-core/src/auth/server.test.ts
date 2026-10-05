@@ -12,7 +12,7 @@ const ME_URL = `${INTERNAL_API_URL}/api/v1/me`
 const server = setupServer()
 
 vi.mock('next/headers', () => ({
-  cookies: () => Promise.resolve({ toString: () => 'better-auth.session_token=t' }),
+  cookies: () => Promise.resolve({ toString: () => 'surefy.session_token=t' }),
   headers: () => Promise.resolve(new Headers({ host: 'app.surefyos.test' })),
 }))
 vi.mock('next/navigation', () => ({

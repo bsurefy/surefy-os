@@ -2,6 +2,7 @@
 import { API_PREFIX } from '@/app.js'
 
 import { routeKey, type RouteKey, type RouteTableEntry } from './routeTable.js'
+import { testKey } from '../fixtures/fakeAi.js'
 
 import type { IsolationFixture } from './isolationFixture.js'
 
@@ -20,7 +21,15 @@ export interface RouteCoverage {
   reason?: string
   /** A valid body, so validation does not answer before the access check does. */
   payload?: (fixture: IsolationFixture) => unknown
+  /** A valid query string, for routes that require one (org-scoped routes). */
+  query?: Readonly<Record<string, string>>
 }
+
+const INSIGHTS_RANGE = {
+  from: '2026-09-01T00:00:00.000Z',
+  to: '2026-10-01T00:00:00.000Z',
+  timeZone: 'UTC',
+} as const
 
 const PUBLIC_LOOKUP = 'Public lookup by slug or invitation token, rate limited (publicLookup)'
 
@@ -41,6 +50,15 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'GET /api/docs/js/scalar.js': { class: 'public', reason: 'API reference script' },
   'GET /api/docs/openapi.json': { class: 'public', reason: 'OpenAPI document, no data' },
   'GET /api/docs/openapi.yaml': { class: 'public', reason: 'OpenAPI document, no data' },
+
+  'GET /api/v1/files': {
+    class: 'public',
+    reason: 'Signed local-storage download: the signature in the query is the authorization',
+  },
+  'PUT /api/v1/files': {
+    class: 'public',
+    reason: 'Signed local-storage upload: the signature in the query is the authorization',
+  },
 
   // auth
   'GET /api/v1/auth/options': { class: 'public', reason: 'Sign-in methods for the sign-in page' },
@@ -173,6 +191,67 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   },
 
   // audit
+  // chats
+  'GET /api/v1/orgs/:orgId/chats': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chats/:chatId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/chats/:chatId': {
+    class: 'orgScoped',
+    payload: () => ({ title: 'Taken over' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/restore': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chats/:chatId/messages': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/messages': {
+    class: 'orgScoped',
+    payload: () => ({ trigger: 'submit', text: 'hello from B' }),
+  },
+  'GET /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/sources/:index': {
+    class: 'orgScoped',
+  },
+  'PUT /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/feedback': {
+    class: 'orgScoped',
+    payload: () => ({ rating: 'not_helpful' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/feedback': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/attachments': {
+    class: 'orgScoped',
+    payload: () => ({ fileName: 'b.txt', contentType: 'text/plain', sizeBytes: 5 }),
+  },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/attachments/:attachmentId/complete': {
+    class: 'orgScoped',
+  },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/attachments/:attachmentId/retry': { class: 'orgScoped' },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId/attachments/:attachmentId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chat-folders': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chat-folders': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'B folder' }),
+  },
+  'PUT /api/v1/orgs/:orgId/chat-folders/order': {
+    class: 'orgScoped',
+    payload: (f) => ({ folderIds: [f.params.folderId] }),
+  },
+  'PATCH /api/v1/orgs/:orgId/chat-folders/:folderId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Renamed by B' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chat-folders/:folderId': { class: 'orgScoped' },
+  'PUT /api/v1/chat-uploads/:attachmentId': {
+    class: 'public',
+    reason: 'Signed upload URL of an attachment; the HMAC signature is the credential',
+  },
+
+  // usage (Insights)
+  'GET /api/v1/orgs/:orgId/insights/overview': { class: 'orgScoped', query: INSIGHTS_RANGE },
+  'GET /api/v1/orgs/:orgId/insights/breakdown': {
+    class: 'orgScoped',
+    query: { ...INSIGHTS_RANGE, by: 'team' },
+  },
+  'GET /api/v1/orgs/:orgId/insights/timeseries': {
+    class: 'orgScoped',
+    query: { ...INSIGHTS_RANGE, interval: 'day' },
+  },
+
   'GET /api/v1/orgs/:orgId/audit/entries': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/entries/:entryId': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/integrity': { class: 'orgScoped' },
@@ -197,6 +276,176 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'POST /api/v1/orgs/:orgId/exports/:exportId/retry': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/exports/:exportId/download': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/data-control/retention': { class: 'orgScoped' },
+
+  // vault
+  'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/credentials': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/credentials': {
+    class: 'orgScoped',
+    payload: (f) => ({
+      scope: 'team',
+      teamId: f.params.teamId,
+      name: 'Intruder key',
+      providerKey: 'openai',
+      secret: testKey('intruder-key-1234'),
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/vault/connection-tests': {
+    class: 'orgScoped',
+    payload: () => ({
+      kind: 'ai_provider',
+      providerKey: 'openai',
+      secret: testKey('intruder-key-1234'),
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/credentials/:credentialId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/vault/credentials/:credentialId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Renamed by B' }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/credentials/:credentialId/impact': {
+    class: 'orgScoped',
+    query: { action: 'revoke' },
+  },
+  'POST /api/v1/orgs/:orgId/vault/credentials/:credentialId/test': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/credentials/:credentialId/make-primary': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/credentials/:credentialId/revoke': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/local-servers': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/local-servers': {
+    class: 'orgScoped',
+    payload: (f) => ({
+      scope: 'team',
+      teamId: f.params.teamId,
+      name: 'Intruder server',
+      providerKey: 'ollama',
+      baseUrl: 'http://ollama.intruder.test:11434',
+    }),
+  },
+  'DELETE /api/v1/orgs/:orgId/vault/local-servers/:serverId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/local-servers/:serverId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/local-servers/:serverId/sync': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/my-credentials': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/my-credentials': {
+    class: 'orgScoped',
+    payload: () => ({
+      name: 'Intruder personal',
+      providerKey: 'openai',
+      secret: testKey('intruder-key-1234'),
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/models': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/models': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/models/:modelId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/vault/models/:modelId': {
+    class: 'orgScoped',
+    payload: () => ({ isEnabled: false }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/models/:modelId/impact': {
+    class: 'orgScoped',
+    query: { action: 'disable' },
+  },
+  'GET /api/v1/orgs/:orgId/vault/models/:modelId/access': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/vault/models/:modelId/access': {
+    class: 'orgScoped',
+    payload: (f) => ({ rules: [{ subjectType: 'user', userId: f.params.userId }] }),
+  },
+  'GET /api/v1/orgs/:orgId/vault/model-access': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/vault/settings': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/vault/settings': {
+    class: 'orgScoped',
+    payload: (f) => ({ embeddingModelId: f.params.modelId }),
+  },
+
+  // knowledge
+  'GET /api/v1/orgs/:orgId/knowledge/summary': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge/recently-deleted': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder base' }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/knowledge-bases/:baseId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder base' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/knowledge-bases/:baseId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/restore': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/reindex': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/reindex-impact': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/knowledge-bases/:baseId/embedding-model': {
+    class: 'orgScoped',
+    payload: () => ({ modelKey: 'openai/text-embedding-3-small' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/knowledge-bases/:baseId/embedding-model': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/access': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/knowledge-bases/:baseId/access': {
+    class: 'orgScoped',
+    payload: () => ({ grants: [] }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/access/impact': {
+    class: 'orgScoped',
+    query: { teamId: '0190a5c4-0000-7000-8000-000000000001' },
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/test-search': {
+    class: 'orgScoped',
+    payload: () => ({ question: 'secret leave policy', includeAnswer: false }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/files': {
+    class: 'orgScoped',
+    payload: () => ({
+      fileName: 'intruder.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 10,
+      sha256: 'a'.repeat(64),
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/links': {
+    class: 'orgScoped',
+    payload: () => ({
+      url: 'https://intruder.example.test',
+      crawlDepth: 0,
+      includePaths: [],
+      excludePaths: [],
+      refresh: 'off',
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/bulk': {
+    class: 'orgScoped',
+    payload: (f) => ({ action: 'remove', sourceIds: [f.params.sourceId] }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder source' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/complete': {
+    class: 'orgScoped',
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/retry': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/sync': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/restore': {
+    class: 'orgScoped',
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/documents': {
+    class: 'orgScoped',
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/documents/:documentId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/documents/:documentId/pages': {
+    class: 'orgScoped',
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/documents/:documentId/download': {
+    class: 'orgScoped',
+  },
 }
 
 /** One covered route, with its method and path split out of the key. */

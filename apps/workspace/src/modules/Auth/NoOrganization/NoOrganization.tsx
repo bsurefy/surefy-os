@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { useTranslations } from 'next-intl'
+'use client'
 
-import { PageHeader } from '@surefy/ui/components/Layout'
+import { Button } from '@surefy/ui/primitives/button'
 
-/**
- * Signed in, member of no organization. Module skeleton stub: the page header until the screen is
- * built.
- */
+import AuthCard from '../AuthCard'
+import { useNoOrganizationController } from './NoOrganization.controller'
+
+/** No organization: "You're not in an organization yet · Ask for an invite". */
 export default function NoOrganization() {
-  const t = useTranslations('auth.noOrganization')
+  const { onSignOut, t } = useNoOrganizationController()
+
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-6 px-4 py-16">
-      <PageHeader title={t('title')} description={t('description')} />
-    </div>
+    <AuthCard title={t('title')} description={t('description')}>
+      <Button variant="secondary" onClick={onSignOut}>
+        {t('signOut')}
+      </Button>
+    </AuthCard>
   )
 }

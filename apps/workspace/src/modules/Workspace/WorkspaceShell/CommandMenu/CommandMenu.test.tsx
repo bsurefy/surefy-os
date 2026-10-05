@@ -25,14 +25,14 @@ beforeEach(() => {
 })
 
 describe('CommandMenu', () => {
-  it('offers only the pages the person can open', () => {
+  it('offers only the pages and actions the person can open', () => {
     renderWithProviders(<CommandMenu orgSlug={ORG_SLUG} />, {
       orgId: ORG_ID,
       messages: appMessages,
       queryClient: seededShellClient(accessAs('user')),
     })
     const names = screen.getAllByRole('option').map((option) => option.textContent)
-    expect(names).toEqual(['Chat', 'Notifications', 'Profile'])
+    expect(names).toEqual(['Chat', 'Notifications', 'Profile', 'New chat'])
   })
 
   it('goes to the chosen page and closes', async () => {

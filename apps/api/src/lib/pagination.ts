@@ -52,7 +52,7 @@ export function parseSort<Field extends string>(
 /** A sort key: the expression, how its text form casts back, and the direction. */
 export interface KeysetSort {
   expression: SQL | AnyColumn
-  cast: 'timestamptz' | 'text'
+  cast: 'timestamptz' | 'text' | 'bigint'
   descending: boolean
 }
 

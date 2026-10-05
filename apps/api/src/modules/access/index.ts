@@ -7,7 +7,7 @@ export {
   createEntitlementSource,
 } from './communityEntitlements.js'
 export type { AccessService } from './access.service.js'
-export type { AccessContext, AccessModels } from './access.types.js'
+export type { AccessContext, AccessModels, ProviderRules } from './access.types.js'
 export type {
   AccessCheck,
   AccessCheckInput,

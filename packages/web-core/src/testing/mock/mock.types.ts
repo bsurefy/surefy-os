@@ -45,4 +45,14 @@ export interface MockHandlerConfig<Body extends JsonBodyType> {
 export interface MockDomain {
   readonly name: string
   readonly handlers: readonly HttpHandler[]
+  /**
+   * The domain runs on the real API (its integration task is done): forwarded by default, mocked
+   * only when `MOCK_DOMAINS` names it. Component tests keep using its handlers.
+   */
+  readonly isLive: boolean
+}
+
+export interface MockDomainOptions {
+  /** Set by the domain's integration task once the screens use the real API. */
+  isLive?: boolean
 }

@@ -130,8 +130,13 @@ export async function createTestApp(options: TestAppOptions = {}) {
       teams: { routes: noRoutes },
       members: { routes: noRoutes },
       access: { routes: noRoutes },
+      vault: { routes: noRoutes },
+      chats: { routes: noRoutes },
+      usage: { routes: noRoutes },
+      knowledge: { routes: noRoutes },
       audit: { routes: noRoutes },
       dataControl: { routes: noRoutes },
+      files: { routes: noRoutes },
     },
   } as unknown as Container
   const app = await buildApp(container)

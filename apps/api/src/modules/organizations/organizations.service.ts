@@ -41,6 +41,7 @@ import type {
   OrganizationAccessHeader,
   OrganizationContext,
   OrganizationCreationRule,
+  OrganizationInitializer,
   OrganizationOwner,
   OrganizationOwnerWriter,
 } from './organizations.types.js'
@@ -56,6 +57,7 @@ export interface OrganizationsServiceDeps {
   installLimits: InstallLimitsSource
   creationRule: OrganizationCreationRule
   audit: AuditRecorder
+  initializers: readonly OrganizationInitializer[]
 }
 
 interface AuditChange {
@@ -238,6 +240,7 @@ export class OrganizationsService {
       userId: owner.userId,
       provisioningSource: owner.provisioningSource,
     })
+    for (const initializer of this.deps.initializers) await initializer.initializeInTx(tx, orgId)
     await this.deps.audit.record(
       tx,
       { orgId, userId: owner.userId },
