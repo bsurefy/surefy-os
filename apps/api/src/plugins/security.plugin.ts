@@ -3,6 +3,8 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import fp from 'fastify-plugin'
 
+import { LOCAL_FILES_PATH } from '@/integrations/storage/index.js'
+
 import type { Config } from '@/core/config/index.js'
 
 export interface SecurityPluginOptions {
@@ -31,8 +33,12 @@ export const securityPlugin = fp<SecurityPluginOptions>(
     await app.register(cors, {
       delegator: (request, callback) => {
         const origin = request.headers.origin
+        // a signed storage link carries its own authorization and no cookies, so any origin may use it
+        const isSignedFile = new URL(request.url, 'http://localhost').pathname === LOCAL_FILES_PATH
         const allowed =
-          request.host === apiHost && origin !== undefined && allowedOrigins.has(origin)
+          request.host === apiHost &&
+          origin !== undefined &&
+          (isSignedFile || allowedOrigins.has(origin))
         callback(null, {
           origin: allowed ? origin : false,
           methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],

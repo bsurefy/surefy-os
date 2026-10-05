@@ -24,6 +24,7 @@ import {
 } from './modules/auth/index.js'
 import { createChatDocumentParser, createChatsModule } from './modules/chats/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
+import { createFilesModule } from './modules/files/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
 import { createMembersModule, createMemberships } from './modules/members/index.js'
 import { createModelGatewayModule } from './modules/modelGateway/index.js'
@@ -217,6 +218,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     audit: audit.service,
     producers: usage.exportProducers,
   })
+  const files = createFilesModule({ storage: integrations.storage })
   const modules = {
     audit,
     notifications,
@@ -230,6 +232,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     chats,
     usage,
     dataControl,
+    files,
   } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks

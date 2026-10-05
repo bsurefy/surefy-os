@@ -135,6 +135,7 @@ export async function createTestApp(options: TestAppOptions = {}) {
       usage: { routes: noRoutes },
       audit: { routes: noRoutes },
       dataControl: { routes: noRoutes },
+      files: { routes: noRoutes },
     },
   } as unknown as Container
   const app = await buildApp(container)

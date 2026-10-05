@@ -15,7 +15,6 @@ import {
   S3StorageProvider,
   StorageInvalidKeyError,
   StorageNotFoundError,
-  StorageSignedUrlUnavailableError,
 } from '../index.js'
 
 describe('storage keys', () => {
@@ -88,20 +87,102 @@ describe('LocalStorageProvider', () => {
     expect(storage.verifySignedFile({ ...params, disposition: undefined })).toBe(false)
     expect(storage.verifySignedFile(params, (params.expires + 1) * 1000)).toBe(false)
   })
+
+  it('signs uploads for one key, type and size, and a download signature never authorizes one', async () => {
+    const upload = await storage.getSignedUploadUrl('orgs/o1/up.bin', {
+      expiresInSeconds: 60,
+      contentType: 'application/pdf',
+      sizeBytes: 10,
+    })
+    expect(upload).toMatchObject({ method: 'PUT', headers: { 'content-type': 'application/pdf' } })
+    const url = new URL(upload.url)
+    expect(url.origin + url.pathname).toBe(`http://localhost:4000${LOCAL_FILES_PATH}`)
+    const params = {
+      key: url.searchParams.get('key') ?? '',
+      expires: Number(url.searchParams.get('expires')),
+      contentType: url.searchParams.get('contentType') ?? '',
+      sizeBytes: Number(url.searchParams.get('size')),
+      signature: url.searchParams.get('signature') ?? '',
+    }
+    expect(storage.verifySignedUpload(params)).toBe(true)
+    expect(storage.verifySignedUpload({ ...params, key: 'orgs/o1/other.bin' })).toBe(false)
+    expect(storage.verifySignedUpload({ ...params, contentType: 'text/html' })).toBe(false)
+    expect(storage.verifySignedUpload({ ...params, sizeBytes: 11 })).toBe(false)
+    expect(storage.verifySignedUpload({ ...params, signature: 'x' })).toBe(false)
+    expect(storage.verifySignedUpload(params, (params.expires + 1) * 1000)).toBe(false)
+
+    // the same key, expiry and signature as a download do not verify as an upload, nor the reverse
+    const download = new URL(await storage.getSignedUrl('orgs/o1/up.bin', { expiresInSeconds: 60 }))
+    expect(
+      storage.verifySignedUpload({
+        ...params,
+        signature: download.searchParams.get('signature') ?? '',
+      }),
+    ).toBe(false)
+    expect(
+      storage.verifySignedFile({
+        key: params.key,
+        expires: params.expires,
+        signature: params.signature,
+      }),
+    ).toBe(false)
+  })
+
+  it('reports the size of a stored object, or null', async () => {
+    await storage.put('orgs/o1/sized.txt', Buffer.from('12345'), { contentType: 'text/plain' })
+    await expect(storage.stat('orgs/o1/sized.txt')).resolves.toEqual({ sizeBytes: 5 })
+    await expect(storage.stat('orgs/o1/none.txt')).resolves.toBeNull()
+    await expect(storage.stat('../escape')).rejects.toBeInstanceOf(StorageInvalidKeyError)
+  })
 })
 
 describe('S3StorageProvider', () => {
-  it('reports that signed URLs are unavailable without the presigner', async () => {
-    const storage = new S3StorageProvider({
-      bucket: 'b',
-      region: 'auto',
-      forcePathStyle: true,
-      accessKeyId: 'k',
-      secretAccessKey: 's',
-      endpoint: 'http://127.0.0.1:9',
+  const storage = new S3StorageProvider({
+    bucket: 'files',
+    region: 'auto',
+    forcePathStyle: true,
+    accessKeyId: 'key',
+    secretAccessKey: 'secret',
+    endpoint: 'https://s3.example.test',
+  })
+
+  it('presigns downloads with the disposition and an expiry', async () => {
+    const url = new URL(
+      await storage.getSignedUrl('orgs/o1/a.pdf', {
+        expiresInSeconds: 120,
+        disposition: 'attachment; filename="a.pdf"',
+      }),
+    )
+    expect(url.origin + url.pathname).toBe('https://s3.example.test/files/orgs/o1/a.pdf')
+    expect(url.searchParams.get('X-Amz-Expires')).toBe('120')
+    expect(url.searchParams.get('response-content-disposition')).toBe(
+      'attachment; filename="a.pdf"',
+    )
+    expect(url.searchParams.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('presigns uploads that sign the content type and the exact length', async () => {
+    const upload = await storage.getSignedUploadUrl('orgs/o1/up.pdf', {
+      expiresInSeconds: 600,
+      contentType: 'application/pdf',
+      sizeBytes: 1234,
     })
+    expect(upload).toMatchObject({ method: 'PUT', headers: { 'content-type': 'application/pdf' } })
+    const url = new URL(upload.url)
+    expect(url.pathname).toBe('/files/orgs/o1/up.pdf')
+    expect(url.searchParams.get('X-Amz-Expires')).toBe('600')
+    expect(url.searchParams.get('X-Amz-SignedHeaders')?.split(';')).toEqual(
+      expect.arrayContaining(['content-type', 'content-length']),
+    )
+  })
+
+  it('refuses keys that are not valid', async () => {
     await expect(
-      storage.getSignedUrl('orgs/o1/a.txt', { expiresInSeconds: 60 }),
-    ).rejects.toBeInstanceOf(StorageSignedUrlUnavailableError)
+      storage.getSignedUploadUrl('../x', {
+        expiresInSeconds: 60,
+        contentType: 'a/b',
+        sizeBytes: 1,
+      }),
+    ).rejects.toBeInstanceOf(StorageInvalidKeyError)
   })
 })

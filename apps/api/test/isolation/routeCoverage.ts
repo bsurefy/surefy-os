@@ -51,6 +51,15 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'GET /api/docs/openapi.json': { class: 'public', reason: 'OpenAPI document, no data' },
   'GET /api/docs/openapi.yaml': { class: 'public', reason: 'OpenAPI document, no data' },
 
+  'GET /api/v1/files': {
+    class: 'public',
+    reason: 'Signed local-storage download: the signature in the query is the authorization',
+  },
+  'PUT /api/v1/files': {
+    class: 'public',
+    reason: 'Signed local-storage upload: the signature in the query is the authorization',
+  },
+
   // auth
   'GET /api/v1/auth/options': { class: 'public', reason: 'Sign-in methods for the sign-in page' },
   'GET /api/v1/me': { class: 'authenticated' },

@@ -13,8 +13,20 @@ export {
   StorageUnavailableError,
 } from './storage.errors.js'
 export { assertStorageKey, assertStoragePrefix } from './storage.keys.js'
-export type { PutOptions, SignedUrlOptions, StorageProvider } from './storage.types.js'
-export { LOCAL_FILES_PATH, LocalStorageProvider, type SignedFileParams } from './providers/local.js'
+export type {
+  PutOptions,
+  SignedUpload,
+  SignedUploadOptions,
+  SignedUrlOptions,
+  StorageProvider,
+  StoredObjectInfo,
+} from './storage.types.js'
+export {
+  LOCAL_FILES_PATH,
+  LocalStorageProvider,
+  type SignedFileParams,
+  type SignedUploadParams,
+} from './providers/local.js'
 export { S3StorageProvider } from './providers/s3.js'
 
 /** The storage provider selected by `STORAGE_DRIVER`. */

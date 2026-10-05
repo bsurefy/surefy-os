@@ -5,20 +5,25 @@ import {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   type S3ClientConfig,
 } from '@aws-sdk/client-s3'
+import { getSignedUrl as presign } from '@aws-sdk/s3-request-presigner'
 
-import {
-  StorageNotFoundError,
-  StorageSignedUrlUnavailableError,
-  StorageUnavailableError,
-} from '../storage.errors.js'
+import { StorageNotFoundError, StorageUnavailableError } from '../storage.errors.js'
 import { assertStorageKey, assertStoragePrefix } from '../storage.keys.js'
 
-import type { PutOptions, SignedUrlOptions, StorageProvider } from '../storage.types.js'
+import type {
+  PutOptions,
+  SignedUpload,
+  SignedUploadOptions,
+  SignedUrlOptions,
+  StorageProvider,
+  StoredObjectInfo,
+} from '../storage.types.js'
 
 export interface S3StorageOptions {
   bucket: string
@@ -127,14 +132,67 @@ export class S3StorageProvider implements StorageProvider {
     }
   }
 
-  getSignedUrl(key: string, _options: SignedUrlOptions): Promise<string> {
+  /** A presigned GET; the browser downloads straight from the bucket. */
+  async getSignedUrl(key: string, options: SignedUrlOptions): Promise<string> {
     assertStorageKey(key)
-    // Presigning needs @aws-sdk/s3-request-presigner, which is not a dependency yet. Adding it
-    // is its own dependency change; until then S3 installs cannot hand out direct download URLs.
-    return Promise.reject(
-      new StorageSignedUrlUnavailableError(
-        'S3 signed URLs need @aws-sdk/s3-request-presigner, which is not installed',
-      ),
-    )
+    try {
+      return await presign(
+        this.client,
+        new GetObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          ...(options.disposition === undefined
+            ? {}
+            : { ResponseContentDisposition: options.disposition }),
+        }),
+        { expiresIn: options.expiresInSeconds },
+      )
+    } catch (error) {
+      throw new StorageUnavailableError('sign', { cause: error })
+    }
+  }
+
+  /**
+   * A presigned PUT that signs the content type and the exact length, so the bucket refuses
+   * another type or size even though a presigned URL has no size policy of its own.
+   */
+  async getSignedUploadUrl(key: string, options: SignedUploadOptions): Promise<SignedUpload> {
+    assertStorageKey(key)
+    try {
+      const url = await presign(
+        this.client,
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          ContentType: options.contentType,
+          ContentLength: options.sizeBytes,
+        }),
+        {
+          expiresIn: options.expiresInSeconds,
+          signableHeaders: new Set(['content-type', 'content-length']),
+        },
+      )
+      return {
+        url,
+        method: 'PUT',
+        headers: { 'content-type': options.contentType },
+        expiresAt: new Date(Date.now() + options.expiresInSeconds * 1000),
+      }
+    } catch (error) {
+      throw new StorageUnavailableError('sign', { cause: error })
+    }
+  }
+
+  async stat(key: string): Promise<StoredObjectInfo | null> {
+    assertStorageKey(key)
+    try {
+      const head = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))
+      return { sizeBytes: head.ContentLength ?? 0 }
+    } catch (error) {
+      if (vendorErrorName(error) === 'NotFound' || vendorErrorName(error) === 'NoSuchKey') {
+        return null
+      }
+      throw new StorageUnavailableError('stat', { cause: error })
+    }
   }
 }
