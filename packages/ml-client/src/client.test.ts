@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it, vi } from 'vitest'
 
-import { createMlClient, mlErrorCode, ML_RETRYABLE_CODES } from './index'
+import { createMlClient, mlErrorCode, ML_RETRYABLE_CODES } from './index.js'
 
-import type { ParsedDocument } from './index'
+import type { ParsedDocument } from './index.js'
 
 const parsed: ParsedDocument = {
   title: 'Handbook',

@@ -9,7 +9,6 @@ export {
   StorageError,
   StorageInvalidKeyError,
   StorageNotFoundError,
-  StorageSignedUrlUnavailableError,
   StorageUnavailableError,
 } from './storage.errors.js'
 export { assertStorageKey, assertStoragePrefix } from './storage.keys.js'

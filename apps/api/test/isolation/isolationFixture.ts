@@ -11,6 +11,9 @@ import {
   chatMessageFeedback,
   chatMessages,
   chats,
+  knowledgeChunks,
+  knowledgeDocuments,
+  knowledgeSources,
   organizationPurges,
   organizationSlugHistory,
 } from '@/database/tables/index.js'
@@ -20,6 +23,7 @@ import {
   dataRequestDtoSchema,
   exportDtoSchema,
   invitationDtoSchema,
+  knowledgeBaseDtoSchema,
   teamDtoSchema,
   vaultModelDtoSchema,
 } from '@surefy/contracts'
@@ -139,6 +143,8 @@ const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
+const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
+const KNOWLEDGE_PASSAGE = 'The secret leave policy grants nineteen days'
 
 const tokenFromQueue = async (setup: TwoOrgSetup): Promise<string> => {
   const jobs = await setup.container.queues.get(QUEUES.EMAIL).getJobs(['waiting', 'delayed'])
@@ -307,6 +313,62 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     return entry.id
   })
 
+  // Knowledge of A: a base shared with the team (through the API), then a file source with its
+  // document and one passage written as fixtures, since uploads need storage to sign them.
+  const knowledgeBase = expectData(
+    await request(app, 'POST', `${orgUrl}/knowledge-bases`, {
+      headers,
+      payload: { name: 'Secret Handbook', teamIds: [team.id] },
+    }),
+    201,
+    knowledgeBaseDtoSchema,
+  )
+  const knowledge = await setup.db.tenant(a.id, async (tx) => {
+    const [source] = await tx
+      .insert(knowledgeSources)
+      .values({
+        organizationId: a.id,
+        knowledgeBaseId: knowledgeBase.id,
+        type: 'file',
+        name: KNOWLEDGE_FILE,
+        fileName: KNOWLEDGE_FILE,
+        contentType: 'application/pdf',
+        sizeBytes: 1024,
+        sha256: Buffer.alloc(32, 7),
+        status: 'ready',
+        progressPercent: 100,
+        addedByUserId: olivia.id,
+      })
+      .returning()
+    if (source === undefined) throw new Error('no knowledge source of A')
+    const [document] = await tx
+      .insert(knowledgeDocuments)
+      .values({
+        organizationId: a.id,
+        knowledgeBaseId: knowledgeBase.id,
+        sourceId: source.id,
+        externalRef: 'file',
+        title: KNOWLEDGE_FILE,
+        mimeType: 'application/pdf',
+        status: 'ready',
+        chunkCount: 1,
+      })
+      .returning()
+    if (document === undefined) throw new Error('no knowledge document of A')
+    await tx.insert(knowledgeChunks).values({
+      organizationId: a.id,
+      knowledgeBaseId: knowledgeBase.id,
+      sourceId: source.id,
+      documentId: document.id,
+      ordinal: 0,
+      content: KNOWLEDGE_PASSAGE,
+      tokenCount: 9,
+      embedding: Array.from({ length: 384 }, () => 0.01),
+      embeddingModel: 'isolation/embedding',
+    })
+    return { sourceId: source.id, documentId: document.id }
+  })
+
   return {
     orgA: { id: a.id },
     orgB: { id: b.id, ownerId: b.members.bea.id },
@@ -329,6 +391,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       folderId: chat.folderId,
       attachmentId: chat.attachmentId,
       index: '1',
+      baseId: knowledgeBase.id,
+      sourceId: knowledge.sourceId,
+      documentId: knowledge.documentId,
     },
     markers: [
       a.id,
@@ -358,6 +423,12 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       CHAT_TITLE,
       CHAT_TEXT,
       'secret-plan.pdf',
+      knowledgeBase.id,
+      'Secret Handbook',
+      knowledge.sourceId,
+      knowledge.documentId,
+      KNOWLEDGE_FILE,
+      KNOWLEDGE_PASSAGE,
       ...[olivia, adam, uma].flatMap((member) => [member.id, member.memberId, member.email]),
     ],
   }

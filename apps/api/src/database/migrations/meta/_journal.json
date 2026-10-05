@@ -127,6 +127,20 @@
       "when": 1791176167372,
       "tag": "0017_chat-security",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791179799643,
+      "tag": "0018_knowledge",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791179801432,
+      "tag": "0019_knowledge-security",
+      "breakpoints": true
     }
   ]
 }

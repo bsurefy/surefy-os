@@ -89,6 +89,7 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       await api.register(container.modules.vault.routes)
       await api.register(container.modules.chats.routes)
       await api.register(container.modules.usage.routes)
+      await api.register(container.modules.knowledge.routes)
       await api.register(container.modules.audit.routes)
       await api.register(container.modules.dataControl.routes)
       await api.register(container.modules.files.routes)

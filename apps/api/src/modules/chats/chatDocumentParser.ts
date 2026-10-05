@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { ChatDocumentParser } from './chats.types.js'
-import type { MlDocuments } from '@/integrations/ml/index.js'
+import type { MlService } from '@/integrations/ml/index.js'
 import type { StorageProvider } from '@/integrations/storage/index.js'
 
 const TEXT_TYPES = new Set(['text/plain', 'text/markdown', 'text/csv'])
@@ -14,7 +14,7 @@ export const isTextType = (contentType: string): boolean => TEXT_TYPES.has(conte
  * for one message and are never indexed).
  */
 export function createChatDocumentParser(deps: {
-  ml: MlDocuments
+  ml: MlService
   storage: StorageProvider
 }): ChatDocumentParser {
   return {
@@ -23,12 +23,10 @@ export function createChatDocumentParser(deps: {
       const fileUrl = await deps.storage.getSignedUrl(objectKey, {
         expiresInSeconds: SIGNED_URL_SECONDS,
       })
-      const parsed = await deps.ml.parseDocument({
-        fileUrl,
-        mimeType: contentType,
-        orgId,
-        ...(signal === undefined ? {} : { signal }),
-      })
+      const parsed = await deps.ml.parseDocument(
+        { fileUrl, mimeType: contentType, orgId, ocr: 'auto' },
+        signal,
+      )
       const sections = parsed.sections.map((section) => section.text)
       const tables = parsed.tables.map((table) =>
         table.rows.map((row) => row.join(' | ')).join('\n'),

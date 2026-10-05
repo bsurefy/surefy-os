@@ -133,6 +133,7 @@ export async function createTestApp(options: TestAppOptions = {}) {
       vault: { routes: noRoutes },
       chats: { routes: noRoutes },
       usage: { routes: noRoutes },
+      knowledge: { routes: noRoutes },
       audit: { routes: noRoutes },
       dataControl: { routes: noRoutes },
       files: { routes: noRoutes },

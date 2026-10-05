@@ -6,6 +6,7 @@ import {
 } from '@/modules/audit/audit.constants.js'
 import { CHAT_JOBS } from '@/modules/chats/chats.constants.js'
 import { DATA_CONTROL_JOBS } from '@/modules/dataControl/dataControl.constants.js'
+import { KNOWLEDGE_SCHEDULER } from '@/modules/knowledge/knowledge.constants.js'
 import { USAGE_JOBS } from '@/modules/usage/usage.constants.js'
 import { VAULT_JOBS } from '@/modules/vault/vault.constants.js'
 
@@ -97,6 +98,7 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     repeat: { pattern: '50 3 * * *' },
     job: { name: VAULT_JOBS.SYNC_MODELS },
   },
+  KNOWLEDGE_SCHEDULER,
   {
     id: 'vault-servers-health',
     queue: QUEUES.MAINTENANCE,

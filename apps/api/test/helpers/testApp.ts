@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { buildApp } from '@/app.js'
-import { createContainer, type Container, type Integrations } from '@/container.js'
+import {
+  createContainer,
+  type Container,
+  type ContainerOverrides,
+  type Integrations,
+} from '@/container.js'
 import { parseConfig, type Config } from '@/core/config/index.js'
 import { createDatabase, type Database } from '@/core/database/index.js'
 
@@ -8,6 +13,7 @@ import { onFileTeardown } from './cleanup.js'
 import { getTestDatabase } from './testDatabase.js'
 import { createFakeAi, type FakeAi } from '../fixtures/fakeAi.js'
 
+import type { MlService } from '@/integrations/ml/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
 import type { FastifyInstance } from 'fastify'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
@@ -25,6 +31,10 @@ export interface TestAppOptions {
   extensions?: readonly string[]
   /** Replaces the membership resolver of `app.authorize()`; by default real memberships decide. */
   tenants?: TenantAccessResolver
+  /** The ML service; the default talks to `ML_SERVICE_URL`, which no test serves. */
+  ml?: MlService
+  /** Knowledge's file storage and web access (signed uploads, crawled pages). */
+  knowledge?: NonNullable<ContainerOverrides['knowledge']>
 }
 
 export interface TestApp {
@@ -58,6 +68,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     extensions: options.extensions ?? [],
     ...(options.integrations === undefined ? {} : { integrations: options.integrations }),
     ...(options.tenants === undefined ? {} : { tenants: options.tenants }),
+    ...(options.ml === undefined ? {} : { ml: options.ml }),
+    ...(options.knowledge === undefined ? {} : { knowledge: options.knowledge }),
   })
   const container: Container = {
     ...base,

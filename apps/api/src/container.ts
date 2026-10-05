@@ -12,7 +12,7 @@ import { createLogger, type Logger } from './core/logger/index.js'
 import { createQueues, type Queues } from './core/queue/index.js'
 import { createAiProviders, type AiProviders } from './integrations/ai/index.js'
 import { createMail, type MailProvider } from './integrations/mail/index.js'
-import { createMlDocuments } from './integrations/ml/index.js'
+import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
 import { createAuditModule, createInstallAudit } from './modules/audit/index.js'
@@ -26,6 +26,13 @@ import { createChatDocumentParser, createChatsModule } from './modules/chats/ind
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createFilesModule } from './modules/files/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
+import {
+  createKnowledgeFiles,
+  createKnowledgeModels,
+  createKnowledgeModule,
+  type KnowledgeFiles,
+  type KnowledgeModuleDeps,
+} from './modules/knowledge/index.js'
 import { createMembersModule, createMemberships } from './modules/members/index.js'
 import { createModelGatewayModule } from './modules/modelGateway/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
@@ -45,10 +52,12 @@ import type { Config } from './core/config/index.js'
 import type { TenantAccessResolver } from './plugins/access.plugin.js'
 import type { PublicModules } from './types/modules.js'
 
-/** External providers behind their interfaces. ML and search join as they are built. */
+/** External providers behind their interfaces. Search joins as it is built. */
 export interface Integrations {
   storage: StorageProvider
   mail: MailProvider
+  /** The Python ML service (document parsing); tests pass a fake. */
+  ml: MlService
   /** AI providers by `provider_key`; tests pass `createAiProviders({ fetch })` with a fake. */
   ai: AiProviders
 }
@@ -58,6 +67,10 @@ export interface ContainerOverrides {
   integrations?: Integrations
   /** Only the AI providers, when the other integrations stay real (tests). */
   ai?: AiProviders
+  /** Only the ML service, when the other integrations stay real (tests). */
+  ml?: MlService
+  /** Knowledge's storage and web access, replaced by fakes in tests. */
+  knowledge?: { files?: KnowledgeFiles; get?: NonNullable<KnowledgeModuleDeps['get']> }
   /** Infrastructure clients for tests that run without Redis or Postgres. */
   logger?: Logger
   db?: Database
@@ -83,6 +96,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   const integrations = overrides.integrations ?? {
     storage: createStorage(config, logger),
     mail: createMail(config, logger),
+    ml: overrides.ml ?? createMl(config),
     ai: overrides.ai ?? createAiProviders(),
   }
   const crypto = createCrypto(config) // envelope encryption; keys are read per call, never cached in Redis
@@ -202,7 +216,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     gateway: modelGateway.service,
     models: modelGrants.modelsRepository,
     parser: createChatDocumentParser({
-      ml: createMlDocuments({ url: config.ml.url, token: config.ml.token }),
+      ml: integrations.ml,
       storage: integrations.storage,
     }),
   })
@@ -219,6 +233,22 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     producers: usage.exportProducers,
   })
   const files = createFilesModule({ storage: integrations.storage })
+  const knowledge = createKnowledgeModule({
+    db,
+    logger,
+    queues,
+    ml: integrations.ml,
+    files: overrides.knowledge?.files ?? createKnowledgeFiles(integrations.storage),
+    ...(overrides.knowledge?.get === undefined ? {} : { get: overrides.knowledge.get }),
+    gateway: modelGateway.service,
+    models: createKnowledgeModels(modelGrants),
+    teams: teams.service,
+    users,
+    memberships: memberships.service,
+    organizations: organizations.service,
+    notifications: notifications.service,
+    audit: audit.service,
+  })
   const modules = {
     audit,
     notifications,
@@ -233,6 +263,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     usage,
     dataControl,
     files,
+    knowledge,
   } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks

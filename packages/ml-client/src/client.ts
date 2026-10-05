@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import createClient, { type Client, type Middleware } from 'openapi-fetch'
 
-import type { paths } from './generated/schema'
+import type { paths } from './generated/schema.js'
 
 export type MlClient = Client<paths>
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { MlErrorEnvelope } from './types'
+import type { MlErrorEnvelope } from './types.js'
 
 /** Error codes of the ML service (docs: guidelines/python/api-contract.md, section 5). */
 export const ML_ERROR_CODES = [

@@ -355,6 +355,97 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     class: 'orgScoped',
     payload: (f) => ({ embeddingModelId: f.params.modelId }),
   },
+
+  // knowledge
+  'GET /api/v1/orgs/:orgId/knowledge/summary': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge/recently-deleted': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder base' }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/knowledge-bases/:baseId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder base' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/knowledge-bases/:baseId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/restore': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/reindex': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/reindex-impact': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/knowledge-bases/:baseId/embedding-model': {
+    class: 'orgScoped',
+    payload: () => ({ modelKey: 'openai/text-embedding-3-small' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/knowledge-bases/:baseId/embedding-model': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/access': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/knowledge-bases/:baseId/access': {
+    class: 'orgScoped',
+    payload: () => ({ grants: [] }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/access/impact': {
+    class: 'orgScoped',
+    query: { teamId: '0190a5c4-0000-7000-8000-000000000001' },
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/test-search': {
+    class: 'orgScoped',
+    payload: () => ({ question: 'secret leave policy', includeAnswer: false }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/files': {
+    class: 'orgScoped',
+    payload: () => ({
+      fileName: 'intruder.pdf',
+      contentType: 'application/pdf',
+      sizeBytes: 10,
+      sha256: 'a'.repeat(64),
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/links': {
+    class: 'orgScoped',
+    payload: () => ({
+      url: 'https://intruder.example.test',
+      crawlDepth: 0,
+      includePaths: [],
+      excludePaths: [],
+      refresh: 'off',
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/bulk': {
+    class: 'orgScoped',
+    payload: (f) => ({ action: 'remove', sourceIds: [f.params.sourceId] }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder source' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/complete': {
+    class: 'orgScoped',
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/retry': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/sync': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/restore': {
+    class: 'orgScoped',
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/:sourceId/documents': {
+    class: 'orgScoped',
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/documents/:documentId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/documents/:documentId/pages': {
+    class: 'orgScoped',
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/documents/:documentId/download': {
+    class: 'orgScoped',
+  },
 }
 
 /** One covered route, with its method and path split out of the key. */

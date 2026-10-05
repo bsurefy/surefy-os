@@ -18,6 +18,7 @@ const workers = registerJobs(container, [
   ...container.modules.vault.jobs,
   ...container.modules.chats.jobs,
   ...container.modules.usage.jobs,
+  ...container.modules.knowledge.jobs,
   ...container.extensions.jobs,
 ])
 await registerSchedulers(container.queues, SYSTEM_SCHEDULERS, container.logger)
