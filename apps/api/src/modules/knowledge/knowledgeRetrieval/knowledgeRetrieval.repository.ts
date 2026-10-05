@@ -166,6 +166,28 @@ export class KnowledgeRetrievalRepository {
     }))
   }
 
+  /**
+   * A cited passage as it is now, for a source preview: absent once its chunk, document, source
+   * or knowledge base is gone.
+   */
+  async findPassage(
+    tx: DbExecutor,
+    orgId: string,
+    chunkId: string,
+  ): Promise<{ content: string; pageFrom: number | null } | undefined> {
+    const result = await tx.execute<{ content: string; page_from: number | null }>(sql`
+      select c.content, c.page_from
+      from knowledge_chunks c
+      join knowledge_sources s on s.organization_id = c.organization_id and s.id = c.source_id
+      join knowledge_bases b on b.organization_id = c.organization_id and b.id = c.knowledge_base_id
+      where c.organization_id = ${orgId}::uuid
+        and c.id = ${chunkId}::uuid
+        and s.deleted_at is null
+        and b.deleted_at is null`)
+    const [row] = result.rows
+    return row === undefined ? undefined : { content: row.content, pageFrom: row.page_from }
+  }
+
   /** Sources of the bases that are queued or still processing: never searched, reported back. */
   async openSourceCount(
     tx: DbExecutor,

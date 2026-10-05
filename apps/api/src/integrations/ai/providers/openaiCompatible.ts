@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { embed } from 'ai'
 
+import { EMBEDDING_DIMENSIONS } from '@surefy/contracts'
+
+import { catalogEntry } from '../ai.catalog.js'
 import { trimSlashes, type Fetch } from './http.js'
 import { listOpenAiModels } from './openai.js'
 
-import type { AiProviderCredentials, AiProviderDefinition } from '../ai.types.js'
+import type { AiProviderCredentials, AiProviderDefinition, DiscoveredModel } from '../ai.types.js'
 
 const V1 = '/v1'
 
@@ -55,8 +59,38 @@ export function openaiCompatibleProvider(
     requiresApiKey: false,
     createLanguageModel: (credentials, modelId) => client(credentials).languageModel(modelId),
     createEmbeddingModel: (credentials, modelId) => client(credentials).embeddingModel(modelId),
-    listModels: (credentials, signal) =>
-      listOpenAiModels(fetchFn, options.key, apiBase(credentials), credentials.apiKey, signal),
+    listModels: async (credentials, signal) => {
+      const models = await listOpenAiModels(
+        fetchFn,
+        options.key,
+        apiBase(credentials),
+        credentials.apiKey,
+        signal,
+      )
+      return Promise.all(models.map((model) => withEmbeddingSize(model)))
+
+      // A server does not list the size of its embedding models and the catalog knows none of
+      // its models, so the size is read from one tiny answer; an unusable one leaves it unknown.
+      async function withEmbeddingSize(model: DiscoveredModel): Promise<DiscoveredModel> {
+        if (model.type !== 'embedding' || catalogEntry(options.key, model.providerModelId)) {
+          return model
+        }
+        try {
+          const { embedding } = await embed({
+            model: client(credentials).embeddingModel(model.providerModelId),
+            value: 'size probe',
+            abortSignal: signal,
+            maxRetries: 0,
+          })
+          const size = embedding.length
+          return (EMBEDDING_DIMENSIONS as readonly number[]).includes(size)
+            ? { ...model, embeddingDimensions: size }
+            : model
+        } catch {
+          return model
+        }
+      }
+    },
     checkedUrl: (credentials) => `${apiBase(credentials)}/models`,
   }
 }

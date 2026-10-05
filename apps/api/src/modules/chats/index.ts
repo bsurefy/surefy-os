@@ -9,5 +9,7 @@ export type {
   ChatRetrieval,
   ChatRetrievalRequest,
   ChatRetrievalResult,
+  ChatSourceCheck,
+  ChatSourceLookup,
   RetrievedPassage,
 } from './chats.types.js'

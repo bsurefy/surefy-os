@@ -47,7 +47,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     group: 'build',
     icon: BookOpen,
     href: (orgSlug) => ROUTES.workspace.knowledge(orgSlug),
-    released: false,
+    released: true,
     module: 'knowledge',
     // Builders and above; Users search knowledge only from Chat
     anyPermission: [PERMISSIONS.KNOWLEDGE_UPLOAD],

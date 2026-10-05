@@ -159,6 +159,64 @@ describe('local servers', () => {
     expect(new Headers(init?.headers).get('authorization')).toBe('Bearer local-key')
   })
 
+  describe('the size of an embedding model', () => {
+    const listing = { data: [{ id: 'llama3.1:8b' }, { id: 'nomic-embed-text' }] }
+    const urlOf = (input: Parameters<Fetch>[0]) =>
+      input instanceof Request ? input.url : input.toString()
+    const serverWith = (embeddingSize: number | 'fails') =>
+      vi.fn<Fetch>((input) => {
+        if (urlOf(input).endsWith('/models')) return Promise.resolve(json(listing))
+        if (embeddingSize === 'fails') return Promise.resolve(json({ error: 'nope' }, 500))
+        return Promise.resolve(
+          json({
+            object: 'list',
+            data: [
+              { object: 'embedding', index: 0, embedding: new Array(embeddingSize).fill(0.1) },
+            ],
+            model: 'nomic-embed-text',
+            usage: { prompt_tokens: 2, total_tokens: 2 },
+          }),
+        )
+      })
+    const listFrom = (fetchFn: ReturnType<typeof serverWith>) =>
+      createAiProviders({ fetch: fetchFn })
+        .get('ollama')
+        ?.listModels({ baseUrl: 'http://127.0.0.1:11434' }, signal())
+
+    it('is read from the server, for a model the catalog does not know', async () => {
+      const fetchFn = serverWith(768)
+      const models = await listFrom(fetchFn)
+      expect(models?.find((model) => model.providerModelId === 'nomic-embed-text')).toMatchObject({
+        type: 'embedding',
+        embeddingDimensions: 768,
+      })
+      // a chat model is never probed
+      expect(models?.find((model) => model.providerModelId === 'llama3.1:8b')).not.toHaveProperty(
+        'embeddingDimensions',
+      )
+      const probed = fetchFn.mock.calls.filter(([input]) => urlOf(input).endsWith('/embeddings'))
+      expect(probed).toHaveLength(1)
+    })
+
+    it('stays unknown when no index can hold that size', async () => {
+      const models = await listFrom(serverWith(100))
+      expect(models?.find((model) => model.type === 'embedding')).not.toHaveProperty(
+        'embeddingDimensions',
+      )
+    })
+
+    it('stays unknown, and the listing still works, when the server cannot embed', async () => {
+      const models = await listFrom(serverWith('fails'))
+      expect(models?.map((model) => model.providerModelId)).toEqual([
+        'llama3.1:8b',
+        'nomic-embed-text',
+      ])
+      expect(models?.find((model) => model.type === 'embedding')).not.toHaveProperty(
+        'embeddingDimensions',
+      )
+    })
+  })
+
   it('mark only the servers on the customer hardware as local', () => {
     const providers = createAiProviders()
     expect(providers.get('ollama')?.capabilities.local).toBe(true)

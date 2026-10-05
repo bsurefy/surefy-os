@@ -4,7 +4,14 @@
 // the specs can wait for the answer, stop it midway, regenerate it and edit the question.
 import { createServer } from 'node:http'
 
-import { e2e, LONG_ANSWER_PREFIX, STUB_MODEL_ID, stubTitle } from './env'
+import {
+  e2e,
+  EMBED_DIMENSIONS,
+  EMBED_MODEL_ID,
+  LONG_ANSWER_PREFIX,
+  STUB_MODEL_ID,
+  stubTitle,
+} from './env'
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
@@ -111,8 +118,51 @@ async function completions(request: IncomingMessage, response: ServerResponse) {
   response.end('data: [DONE]\n\n')
 }
 
+const WORD = /[a-z0-9]+/g
+
+/** A bag of words in a fixed number of buckets, normalized: texts that share words are close. */
+function embedText(text: string): number[] {
+  const vector = new Array<number>(EMBED_DIMENSIONS).fill(0)
+  for (const word of text.toLowerCase().match(WORD) ?? []) {
+    let hash = 0
+    for (const char of word) hash = (hash * 31 + char.charCodeAt(0)) % 1_000_003
+    vector[hash % EMBED_DIMENSIONS] = (vector[hash % EMBED_DIMENSIONS] ?? 0) + 1
+  }
+  const length = Math.hypot(...vector)
+  if (length === 0) return vector.map((_, index) => (index === 0 ? 1 : 0))
+  return vector.map((value) => value / length)
+}
+
+async function embeddings(request: IncomingMessage, response: ServerResponse) {
+  const body = (await readJson(request)) as { input?: string | string[] }
+  const inputs = Array.isArray(body.input) ? body.input : [body.input ?? '']
+  send(response, 200, {
+    object: 'list',
+    model: EMBED_MODEL_ID,
+    data: inputs.map((input, index) => ({
+      object: 'embedding',
+      index,
+      embedding: embedText(input),
+    })),
+    usage: { prompt_tokens: inputs.length, total_tokens: inputs.length },
+  })
+}
+
 const server = createServer((request, response) => {
   const path = new URL(request.url ?? '/', 'http://localhost').pathname
+  if (request.method === 'GET' && path === '/embed/v1/models') {
+    send(response, 200, {
+      object: 'list',
+      data: [{ id: EMBED_MODEL_ID, object: 'model', created: 0, owned_by: 'e2e' }],
+    })
+    return
+  }
+  if (request.method === 'POST' && path === '/embed/v1/embeddings') {
+    embeddings(request, response).catch((error: unknown) => {
+      send(response, 500, { error: { message: String(error) } })
+    })
+    return
+  }
   if (request.method === 'GET' && path === '/v1/models') {
     send(response, 200, {
       object: 'list',

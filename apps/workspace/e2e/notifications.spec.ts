@@ -3,11 +3,19 @@ import { expect, test } from '@playwright/test'
 
 import { callApi } from './support/api'
 import { ORGANIZATION } from './support/env'
-import { seedNotifications } from './support/notifications'
+import { clearNotifications, seedNotifications } from './support/notifications'
 
 import type { Page } from '@playwright/test'
 
 const NOTIFICATIONS = `/${ORGANIZATION.slug}/notifications`
+
+async function whoAmI(page: Page) {
+  const me = await callApi<{
+    user: { id: string }
+    memberships: { organization: { id: string } }[]
+  }>(page, 'GET', '/me')
+  return { userId: me.user.id, orgId: me.memberships[0]?.organization.id ?? '' }
+}
 
 const bell = (page: Page, label: string | RegExp) => page.getByRole('button', { name: label })
 const items = (page: Page) =>
@@ -18,6 +26,11 @@ test.describe.configure({ mode: 'serial' })
 
 test.describe('Notifications', () => {
   test('says so when nothing has happened yet', async ({ page }) => {
+    // earlier specs may have had a job tell the person something (a source that is ready)
+    await page.goto(`/${ORGANIZATION.slug}/profile`)
+    const { orgId, userId } = await whoAmI(page)
+    clearNotifications(orgId, userId)
+
     await page.goto(NOTIFICATIONS)
     await expect(page.getByRole('heading', { name: 'Notifications', level: 1 })).toBeVisible()
     await expect(page.getByRole('heading', { name: "You're all caught up" })).toBeVisible()
@@ -26,11 +39,8 @@ test.describe('Notifications', () => {
 
   test('counts what is unread on the bell and lists it in the popover', async ({ page }) => {
     await page.goto(`/${ORGANIZATION.slug}/profile`)
-    const me = await callApi<{
-      user: { id: string }
-      memberships: { organization: { id: string } }[]
-    }>(page, 'GET', '/me')
-    seedNotifications(me.memberships[0]?.organization.id ?? '', me.user.id, [
+    const { orgId, userId } = await whoAmI(page)
+    seedNotifications(orgId, userId, [
       'export.ready',
       'knowledge_source.failed',
       'vault_key.expiring',

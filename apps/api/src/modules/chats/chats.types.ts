@@ -53,6 +53,8 @@ export interface ChatRetrievalRequest {
   scope: ChatKnowledgeScope
   /** The selection when `scope` is `selected`. */
   knowledgeBaseIds: readonly string[]
+  /** "Local models only" bases are searched only when the answering model runs on the server. */
+  answeringModelIsLocal: boolean
   signal?: AbortSignal
 }
 
@@ -76,8 +78,8 @@ export type ChatSourceCheck = Pick<
 >
 
 /**
- * Knowledge retrieval for answers with sources. The knowledge module implements it (B3-03); until
- * then chats answer without sources.
+ * Knowledge retrieval for answers with sources. The knowledge module implements it and the
+ * container passes it in; a chats module built without one answers without sources.
  */
 export interface ChatRetrieval {
   retrieve(request: ChatRetrievalRequest): Promise<ChatRetrievalResult>

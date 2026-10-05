@@ -33,7 +33,10 @@ function toRow(
     supportsTools: entry?.supportsTools ?? false,
     contextWindow: entry?.contextWindow ?? null,
     // null for an embedding model of unknown size: `storable()` leaves it out
-    embeddingDimensions: type === 'embedding' ? (entry?.embeddingDimensions ?? null) : null,
+    embeddingDimensions:
+      type === 'embedding'
+        ? (entry?.embeddingDimensions ?? model.embeddingDimensions ?? null)
+        : null,
     inputPricePerMtokMicros: entry?.prices.inputPerMTokMicros ?? null,
     outputPricePerMtokMicros: entry?.prices.outputPerMTokMicros ?? null,
     cachedInputPricePerMtokMicros: entry?.prices.cachedInputPerMTokMicros ?? null,

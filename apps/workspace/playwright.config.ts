@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { defineConfig, devices } from '@playwright/test'
 
-import { apiEnv, apiUrl, modelServerUrl, OWNER_STATE, webEnv, webUrl } from './e2e/support/env'
+import {
+  apiEnv,
+  apiUrl,
+  mlServerUrl,
+  modelServerUrl,
+  OWNER_STATE,
+  webEnv,
+  webUrl,
+} from './e2e/support/env'
 
 const isCi = process.env.CI !== undefined
 const SERVER_START_MS = 180_000
@@ -39,6 +47,13 @@ export default defineConfig({
       name: 'model',
       command: 'pnpm exec tsx e2e/support/modelServer.ts',
       url: `${modelServerUrl}/v1/models`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'ml',
+      command: 'pnpm exec tsx e2e/support/mlServer.ts',
+      url: `${mlServerUrl}/health/live`,
       timeout: SERVER_START_MS,
       reuseExistingServer: false,
     },

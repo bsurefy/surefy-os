@@ -25,7 +25,8 @@ test.describe('Settings › navigation', () => {
       .getByRole('navigation', { name: 'Main navigation' })
       .getByRole('link', { name: /Settings/ })
       .click()
-    await expect(page).toHaveURL(`${SETTINGS}/general`)
+    // the first visit of Settings compiles its pages under `next dev`, which can take a while
+    await expect(page).toHaveURL(`${SETTINGS}/general`, { timeout: 60_000 })
 
     const sections = page.getByRole('navigation', { name: 'Settings sections' })
     for (const name of [

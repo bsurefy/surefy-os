@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { randomUUID } from 'node:crypto'
+
 import { and, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
@@ -18,6 +20,14 @@ import {
 
 import { setupTwoOrgs, type TwoOrgSetup } from '../../../../test/helpers/orgSetup.js'
 import { expectData, expectError, expectPage, request } from '../../../../test/helpers/request.js'
+import {
+  as,
+  enableProxyModel,
+  orgUrl,
+  send,
+  tenantOf,
+  thread,
+} from '../../chats/__tests__/chatsTestKit.js'
 import { KNOWLEDGE_JOBS } from '../knowledge.constants.js'
 import {
   basesUrl,
@@ -542,6 +552,104 @@ describe('retrieval', () => {
       (await call(setup, 'adam', 'DELETE', basesUrl(setup.a.id, `/${base.id}`))).statusCode,
     ).toBe(204)
     expect((await ask(setup, 'adam', base.id, 'annual leave days')).passages).toEqual([])
+  })
+
+  describe('in chat', () => {
+    const QUESTION = 'How many days of annual leave do I get?'
+    const askInChat = async (setup: TwoOrgSetup, who: 'adam' | 'uma') => {
+      const chatId = randomUUID()
+      const response = await send(
+        setup,
+        chatId,
+        { trigger: 'submit', text: QUESTION, attachmentIds: [] },
+        who,
+      )
+      expect(response.statusCode).toBe(200)
+      const answer = (await thread(setup, chatId, who)).find(
+        (message) => message.role === 'assistant',
+      )
+      if (answer === undefined) throw new Error('no answer was stored')
+      return { chatId, answer }
+    }
+    const sourceParts = (answer: { parts: { parts: { type: string }[] } }) =>
+      answer.parts.parts.filter((part) => part.type === 'source') as unknown as {
+        index: number
+        kind: string
+        title: string
+        snippet: string
+      }[]
+    const previewOf = async (
+      setup: TwoOrgSetup,
+      who: 'adam' | 'uma',
+      chatId: string,
+      messageId: string,
+    ) =>
+      (
+        await request(
+          setup.app,
+          'GET',
+          orgUrl(setup, `/chats/${chatId}/messages/${messageId}/sources/1`),
+          {
+            headers: as(setup, who),
+          },
+        )
+      ).json<{ data: { status: string; passage: string | null; canOpenInKnowledge: boolean } }>()
+        .data
+
+    it('answers with the passage a person may read as a numbered source, and checks it again on preview', async () => {
+      const { setup } = await ingested()
+      await enableProxyModel(setup)
+      const { chatId, answer } = await askInChat(setup, 'adam')
+
+      const [source] = sourceParts(answer)
+      expect(source).toMatchObject({ index: 1, kind: 'knowledge', title: 'leave-policy.pdf' })
+      expect(source?.snippet).toContain('twenty-five days')
+      const preview = await previewOf(setup, 'adam', chatId, answer.id)
+      expect(preview).toMatchObject({ status: 'available', canOpenInKnowledge: true })
+      expect(preview.passage).toContain('twenty-five days')
+    })
+
+    it('finds nothing for a person the base is not shared with', async () => {
+      const { setup } = await ingested()
+      await enableProxyModel(setup)
+      const { answer } = await askInChat(setup, 'uma')
+      expect(sourceParts(answer)).toEqual([])
+    })
+
+    it('reads a cited source as removed once its base is deleted, and as no access for someone who may not read it', async () => {
+      const { setup, base } = await ingested()
+      await enableProxyModel(setup)
+      const { chatId, answer } = await askInChat(setup, 'adam')
+      const [source] = sourceParts(answer) as unknown as { chunkId: string; documentId: string }[]
+      if (source === undefined) throw new Error('the answer has no source')
+      const lookup = {
+        type: 'source' as const,
+        index: 1,
+        kind: 'knowledge' as const,
+        knowledgeBaseId: base.id,
+        documentId: source.documentId,
+        chunkId: source.chunkId,
+        title: 'leave-policy.pdf',
+        snippet: 'x',
+      }
+      const { chatRetrieval } = setup.container.modules.knowledge
+
+      // Uma has no grant on the base
+      expect(
+        await chatRetrieval.checkSource({ ctx: await tenantOf(setup, 'uma'), source: lookup }),
+      ).toMatchObject({ status: 'no_access', passage: null, canOpenInKnowledge: false })
+
+      await setup.db.tenant(setup.a.id, (tx) =>
+        tx
+          .update(knowledgeBases)
+          .set({ deletedAt: new Date() })
+          .where(eq(knowledgeBases.id, base.id)),
+      )
+      expect(await previewOf(setup, 'adam', chatId, answer.id)).toMatchObject({
+        status: 'removed',
+        passage: null,
+      })
+    })
   })
 })
 

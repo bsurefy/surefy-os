@@ -208,6 +208,22 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     hooks,
     usage: usage.meter,
   })
+  const knowledge = createKnowledgeModule({
+    db,
+    logger,
+    queues,
+    ml: integrations.ml,
+    files: overrides.knowledge?.files ?? createKnowledgeFiles(integrations.storage),
+    ...(overrides.knowledge?.get === undefined ? {} : { get: overrides.knowledge.get }),
+    gateway: modelGateway.service,
+    models: createKnowledgeModels(modelGrants),
+    teams: teams.service,
+    users,
+    memberships: memberships.service,
+    organizations: organizations.service,
+    notifications: notifications.service,
+    audit: audit.service,
+  })
   const chats = createChatsModule({
     db,
     queues,
@@ -216,6 +232,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     encryptionKey: config.crypto.encryptionKey,
     gateway: modelGateway.service,
     models: modelGrants.modelsRepository,
+    retrieval: knowledge.chatRetrieval,
     parser: createChatDocumentParser({
       ml: integrations.ml,
       storage: integrations.storage,
@@ -234,22 +251,6 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     producers: usage.exportProducers,
   })
   const files = createFilesModule({ storage: integrations.storage })
-  const knowledge = createKnowledgeModule({
-    db,
-    logger,
-    queues,
-    ml: integrations.ml,
-    files: overrides.knowledge?.files ?? createKnowledgeFiles(integrations.storage),
-    ...(overrides.knowledge?.get === undefined ? {} : { get: overrides.knowledge.get }),
-    gateway: modelGateway.service,
-    models: createKnowledgeModels(modelGrants),
-    teams: teams.service,
-    users,
-    memberships: memberships.service,
-    organizations: organizations.service,
-    notifications: notifications.service,
-    audit: audit.service,
-  })
   const outbox = createOutboxModule({
     db,
     queues,

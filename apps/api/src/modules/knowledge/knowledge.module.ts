@@ -13,6 +13,7 @@ import { KnowledgeReembedService } from './knowledgeIngestion/knowledgeReembed.s
 import { KnowledgeSyncService } from './knowledgeIngestion/knowledgeSync.service.js'
 import { safeGet, type SafeGet } from './knowledgeIngestion/safeFetch.js'
 import { createKnowledgePurgeHandlers } from './knowledgePurge.js'
+import { KnowledgeChatRetrieval } from './knowledgeRetrieval/knowledgeChatRetrieval.js'
 import { KnowledgeRetrievalRepository } from './knowledgeRetrieval/knowledgeRetrieval.repository.js'
 import { KnowledgeRetrievalService } from './knowledgeRetrieval/knowledgeRetrieval.service.js'
 import { KnowledgeSearchService } from './knowledgeRetrieval/knowledgeSearch.service.js'
@@ -139,13 +140,21 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     organizations: deps.organizations,
     audit: deps.audit,
   })
+  const retrievalRepository = new KnowledgeRetrievalRepository()
   const retrieval = new KnowledgeRetrievalService({
     db: deps.db,
     repository,
-    retrieval: new KnowledgeRetrievalRepository(),
+    retrieval: retrievalRepository,
     access,
     models: deps.models,
     gateway: deps.gateway,
+  })
+  const chatRetrieval = new KnowledgeChatRetrieval({
+    db: deps.db,
+    repository,
+    retrieval,
+    passages: retrievalRepository,
+    access,
   })
   const search = new KnowledgeSearchService({
     db: deps.db,
@@ -181,6 +190,8 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     embedding,
     /** Retrieval for chat and agents: access-filtered hybrid search with passages to cite. */
     retrieval,
+    /** What chats search with: pass it to `createChatsModule` as `retrieval`. */
+    chatRetrieval,
     access,
     ingestion,
     sync,
