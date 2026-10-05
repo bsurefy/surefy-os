@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, max, sql } from 'drizzle-orm'
 
 import { organizationKeys } from '@/database/tables/index.js'
 
-import { newDataKey, rowAad, seal, unseal } from './aesGcm.js'
+import { newDataKey, rowAad } from './aesGcm.js'
 
+import type { MasterKeys, WrappedDataKey } from './masterKey.js'
 import type { DbExecutor } from '@/core/database/index.js'
 
 const CACHE_TTL_MS = 5 * 60_000
@@ -17,9 +18,22 @@ export interface DataKey {
 }
 
 export interface OrganizationKeyringOptions {
-  masterKey: Buffer
-  masterKeyId: string
+  masterKeys: MasterKeys
   now?: () => number
+}
+
+/** The result of a data key rotation. */
+export interface RotatedKey {
+  retiredVersion: number
+  version: number
+}
+
+/** The columns a master key re-wrap writes. */
+export interface RewrappedKey {
+  wrappedKey: Buffer
+  wrapIv: Buffer
+  wrapAuthTag: Buffer
+  masterKeyId: string
 }
 
 interface CachedKey {
@@ -27,7 +41,7 @@ interface CachedKey {
   expiresAt: number
 }
 
-type KeyRow = typeof organizationKeys.$inferSelect
+export type OrganizationKeyRow = typeof organizationKeys.$inferSelect
 
 /**
  * The organizations' data keys (vault-and-models.md, §1): one active version per organization,
@@ -48,26 +62,64 @@ export class OrganizationKeyring {
    * no-op: the one-active-key index keeps the first.
    */
   async createInitialKey(tx: DbExecutor, organizationId: string): Promise<void> {
+    await this.insertKey(tx, organizationId, FIRST_VERSION, { onConflictDoNothing: true })
+  }
+
+  /**
+   * Data key rotation: retires the active version and makes version n + 1 active, in the caller's
+   * transaction. Later writes use the new key at once; older rows keep their version until the
+   * re-encryption moves them.
+   */
+  async rotate(tx: DbExecutor, organizationId: string): Promise<RotatedKey> {
+    await this.activeKey(tx, organizationId) // version 1 for an organization that has none yet
+    const [active] = await tx
+      .select({ id: organizationKeys.id, keyVersion: organizationKeys.keyVersion })
+      .from(organizationKeys)
+      .where(
+        and(
+          eq(organizationKeys.organizationId, organizationId),
+          eq(organizationKeys.status, 'active'),
+        ),
+      )
+      .for('update')
+    if (active === undefined) throw new Error(`organization ${organizationId} has no active key`)
+    const [latest] = await tx
+      .select({ version: max(organizationKeys.keyVersion) })
+      .from(organizationKeys)
+      .where(eq(organizationKeys.organizationId, organizationId))
+    const version = (latest?.version ?? active.keyVersion) + 1
+    await tx
+      .update(organizationKeys)
+      .set({ status: 'retired', rotatedAt: new Date() })
+      .where(eq(organizationKeys.id, active.id))
+    await this.insertKey(tx, organizationId, version, { onConflictDoNothing: false })
+    return { retiredVersion: active.keyVersion, version }
+  }
+
+  /** The row wrapped again by the current master key; null when it already is. */
+  rewrap(row: OrganizationKeyRow): RewrappedKey | null {
+    if (row.masterKeyId === this.options.masterKeys.current.id) return null
+    const wrapped = this.options.masterKeys.wrap(
+      this.unwrap(row),
+      aadOf(row.id, row.organizationId),
+    )
+    return toColumns(wrapped)
+  }
+
+  private async insertKey(
+    tx: DbExecutor,
+    organizationId: string,
+    version: number,
+    options: { onConflictDoNothing: boolean },
+  ): Promise<void> {
     const result = await tx.execute<{ id: string }>(sql`select uuidv7() as id`)
     const id = result.rows[0]?.id
     if (id === undefined) throw new Error('uuidv7() returned no row')
-    const wrapped = seal(
-      this.options.masterKey,
-      newDataKey(),
-      rowAad('organization_keys', id, organizationId),
-    )
-    await tx
+    const wrapped = this.options.masterKeys.wrap(newDataKey(), aadOf(id, organizationId))
+    const insert = tx
       .insert(organizationKeys)
-      .values({
-        id,
-        organizationId,
-        keyVersion: FIRST_VERSION,
-        wrappedKey: wrapped.ciphertext,
-        wrapIv: wrapped.iv,
-        wrapAuthTag: wrapped.authTag,
-        masterKeyId: this.options.masterKeyId,
-      })
-      .onConflictDoNothing()
+      .values({ id, organizationId, keyVersion: version, ...toColumns(wrapped) })
+    await (options.onConflictDoNothing ? insert.onConflictDoNothing() : insert)
   }
 
   /**
@@ -84,7 +136,10 @@ export class OrganizationKeyring {
     return { version: row.keyVersion, key: this.unwrap(row) }
   }
 
-  private async findActive(tx: DbExecutor, organizationId: string): Promise<KeyRow | undefined> {
+  private async findActive(
+    tx: DbExecutor,
+    organizationId: string,
+  ): Promise<OrganizationKeyRow | undefined> {
     const [row] = await tx
       .select()
       .from(organizationKeys)
@@ -116,13 +171,13 @@ export class OrganizationKeyring {
     return this.unwrap(row)
   }
 
-  private unwrap(row: KeyRow): Buffer {
+  private unwrap(row: OrganizationKeyRow): Buffer {
     const cached = this.cached(row.organizationId, row.keyVersion)
     if (cached) return cached
-    const key = unseal(
-      this.options.masterKey,
+    const key = this.options.masterKeys.unwrap(
       { ciphertext: row.wrappedKey, iv: row.wrapIv, authTag: row.wrapAuthTag },
-      rowAad('organization_keys', row.id, row.organizationId),
+      aadOf(row.id, row.organizationId),
+      row.masterKeyId,
     )
     if (this.cache.size >= CACHE_MAX_ENTRIES) {
       const oldest = this.cache.keys().next().value
@@ -147,3 +202,14 @@ export class OrganizationKeyring {
 }
 
 const cacheKey = (organizationId: string, version: number) => `${organizationId}:${String(version)}`
+
+/** The wrap's AAD binds the wrapped key to its row and organization. */
+const aadOf = (id: string, organizationId: string) =>
+  rowAad('organization_keys', id, organizationId)
+
+const toColumns = (wrapped: WrappedDataKey): RewrappedKey => ({
+  wrappedKey: wrapped.ciphertext,
+  wrapIv: wrapped.iv,
+  wrapAuthTag: wrapped.authTag,
+  masterKeyId: wrapped.masterKeyId,
+})

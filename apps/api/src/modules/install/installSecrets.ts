@@ -6,6 +6,7 @@
 export {
   masterKeyIdOf,
   masterKeyOf,
+  MasterKeys,
   newDataKey,
   seal,
   unseal,

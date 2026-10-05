@@ -5,6 +5,8 @@ import {
   fingerprintKeyOf,
   masterKeyIdOf,
   masterKeyOf,
+  MasterKeys,
+  MasterKeyUnavailableError,
   newDataKey,
   rowAad,
   seal,
@@ -70,5 +72,32 @@ describe('master key helpers', () => {
 
   it('keeps the last four characters for display', () => {
     expect(secretLast4('sk-proj-abcd1234')).toBe('1234')
+  })
+})
+
+describe('master keys', () => {
+  const OLD = Buffer.alloc(32, 1).toString('base64')
+  const NEW = Buffer.alloc(32, 2).toString('base64')
+  const aad = rowAad('organization_keys', ROW, ORG_A)
+
+  it('wraps with the current key and unwraps with the key that wrapped it', () => {
+    const dataKey = newDataKey()
+    const before = new MasterKeys(OLD).wrap(dataKey, aad)
+    const during = new MasterKeys(NEW, OLD)
+    expect(during.unwrap(before, aad, before.masterKeyId)).toEqual(dataKey)
+    const after = during.wrap(dataKey, aad)
+    expect(after.masterKeyId).toBe(during.current.id)
+    expect(new MasterKeys(NEW).unwrap(after, aad, after.masterKeyId)).toEqual(dataKey)
+  })
+
+  it('names the missing master key instead of failing on the wrong one', () => {
+    const wrapped = new MasterKeys(OLD).wrap(newDataKey(), aad)
+    expect(() => new MasterKeys(NEW).unwrap(wrapped, aad, wrapped.masterKeyId)).toThrow(
+      MasterKeyUnavailableError,
+    )
+  })
+
+  it('ignores a previous key equal to the current one', () => {
+    expect(new MasterKeys(NEW, NEW).previous).toBeUndefined()
   })
 })

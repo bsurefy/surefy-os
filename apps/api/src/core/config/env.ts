@@ -33,6 +33,11 @@ export const baseEnvSchema = z.object({
   ENCRYPTION_KEY: z
     .base64()
     .refine((v) => Buffer.from(v, 'base64').length === 32, 'must be 32 bytes, base64'),
+  // the master key being replaced, kept until every data key is re-wrapped (`cli keys rewrap`)
+  ENCRYPTION_KEY_PREVIOUS: z
+    .base64()
+    .refine((v) => Buffer.from(v, 'base64').length === 32, 'must be 32 bytes, base64')
+    .optional(),
   SETUP_TOKEN: z.string().min(16).optional(),
 
   ML_SERVICE_URL: z.url(), // internal, e.g. http://ml:8000

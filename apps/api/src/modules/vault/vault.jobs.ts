@@ -6,6 +6,7 @@ import { defineJob } from '@/core/queue/index.js'
 
 import { VAULT_JOBS } from './vault.constants.js'
 
+import type { VaultKeysService } from './vaultKeys.service.js'
 import type { VaultMaintenance } from './vaultMaintenance.js'
 
 const noPayload = z.object({})
@@ -48,5 +49,30 @@ export const createCheckServersJob = (maintenance: VaultMaintenance) =>
     process: (runtime) => async () => {
       const result = await maintenance.checkServers()
       if (result.down > 0) runtime.logger.warn(result, 'local model servers down')
+    },
+  })
+
+export const rotateKeysPayloadSchema = z.object({ orgId: z.uuid().optional() })
+
+/**
+ * `maintenance` / `vaultRotateKeys` (scheduler `vault-key-rotation-daily`): re-wraps the data keys
+ * a previous master key still wraps (only while `ENCRYPTION_KEY_PREVIOUS` is set), then
+ * re-encrypts secrets below their organization's active version and deletes retired keys.
+ */
+export const createRotateKeysJob = (keys: VaultKeysService, hasPreviousMasterKey: boolean) =>
+  defineJob({
+    queue: QUEUES.MAINTENANCE,
+    name: VAULT_JOBS.ROTATE_KEYS,
+    schema: rotateKeysPayloadSchema,
+    options: { attempts: 2 },
+    process: (runtime) => async (payload) => {
+      if (hasPreviousMasterKey && payload.orgId === undefined) {
+        const rewrapped = await keys.rewrap()
+        if (rewrapped.keys > 0 || rewrapped.installKey) {
+          runtime.logger.info(rewrapped, 'data keys re-wrapped')
+        }
+      }
+      const result = await keys.reencrypt(payload.orgId)
+      if (result.organizations > 0) runtime.logger.info(result, 'secrets re-encrypted')
     },
   })

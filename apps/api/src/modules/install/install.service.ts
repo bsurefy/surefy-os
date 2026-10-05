@@ -29,8 +29,7 @@ import {
 } from './install.mapper.js'
 import {
   DATA_KEY_AAD,
-  masterKeyIdOf,
-  masterKeyOf,
+  MasterKeys,
   newDataKey,
   seal,
   SMTP_PASSWORD_AAD,
@@ -323,24 +322,31 @@ export class InstallService {
 
   /** The install data key: unwrapped from the row, or a new one with the columns to store. */
   private dataKeyOf(row: InstallSettingsRow): { dataKey: Buffer; patch: InstallSettingsPatch } {
-    const masterKey = masterKeyOf(this.deps.config.crypto.encryptionKey)
-    if (row.dataKeyWrapped !== null && row.dataKeyIv !== null && row.dataKeyAuthTag !== null) {
-      const dataKey = unseal(
-        masterKey,
+    const { encryptionKey, previousEncryptionKey } = this.deps.config.crypto
+    const masterKeys = new MasterKeys(encryptionKey, previousEncryptionKey)
+    if (
+      row.dataKeyWrapped !== null &&
+      row.dataKeyIv !== null &&
+      row.dataKeyAuthTag !== null &&
+      row.dataKeyMasterKeyId !== null
+    ) {
+      // the master key that wrapped it: ENCRYPTION_KEY, or the previous one until `keys rewrap`
+      const dataKey = masterKeys.unwrap(
         { ciphertext: row.dataKeyWrapped, iv: row.dataKeyIv, authTag: row.dataKeyAuthTag },
         DATA_KEY_AAD,
+        row.dataKeyMasterKeyId,
       )
       return { dataKey, patch: {} }
     }
     const dataKey = newDataKey()
-    const wrapped = seal(masterKey, dataKey, DATA_KEY_AAD)
+    const wrapped = masterKeys.wrap(dataKey, DATA_KEY_AAD)
     return {
       dataKey,
       patch: {
         dataKeyWrapped: wrapped.ciphertext,
         dataKeyIv: wrapped.iv,
         dataKeyAuthTag: wrapped.authTag,
-        dataKeyMasterKeyId: masterKeyIdOf(masterKey),
+        dataKeyMasterKeyId: wrapped.masterKeyId,
       },
     }
   }

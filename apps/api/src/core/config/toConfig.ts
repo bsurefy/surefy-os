@@ -110,7 +110,12 @@ export function toConfig(env: Env, processName: ProcessName): Config {
     },
     redis: { url: env.REDIS_URL },
     auth: { secret: env.AUTH_SECRET, oauth: toOauth(env) },
-    crypto: { encryptionKey: env.ENCRYPTION_KEY },
+    crypto: {
+      encryptionKey: env.ENCRYPTION_KEY,
+      ...(env.ENCRYPTION_KEY_PREVIOUS === undefined
+        ? {}
+        : { previousEncryptionKey: env.ENCRYPTION_KEY_PREVIOUS }),
+    },
     setup: env.SETUP_TOKEN === undefined ? {} : { token: env.SETUP_TOKEN },
     storage: toStorage(env),
     mail: toMail(env),

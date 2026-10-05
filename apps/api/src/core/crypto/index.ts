@@ -5,10 +5,20 @@ export {
   fingerprintKeyOf,
   masterKeyIdOf,
   masterKeyOf,
+  MasterKeys,
+  MasterKeyUnavailableError,
   secretFingerprint,
   secretLast4,
+  type MasterKey,
+  type WrappedDataKey,
 } from './masterKey.js'
-export { OrganizationKeyring, type DataKey } from './organizationKeys.js'
+export {
+  OrganizationKeyring,
+  type DataKey,
+  type OrganizationKeyRow,
+  type RewrappedKey,
+  type RotatedKey,
+} from './organizationKeys.js'
 export {
   SecretCipher,
   type EncryptedSecretValues,

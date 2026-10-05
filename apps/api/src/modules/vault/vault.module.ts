@@ -3,11 +3,18 @@ import { ModelsRepository } from './models.repository.js'
 import { ModelsService } from './models.service.js'
 import { ModelSync } from './modelSync.js'
 import { VaultController } from './vault.controller.js'
-import { createCheckServersJob, createExpireKeysJob, createSyncModelsJob } from './vault.jobs.js'
+import {
+  createCheckServersJob,
+  createExpireKeysJob,
+  createRotateKeysJob,
+  createSyncModelsJob,
+} from './vault.jobs.js'
 import { VaultRepository } from './vault.repository.js'
 import { vaultRoutes } from './vault.routes.js'
 import { VaultService } from './vault.service.js'
 import { NO_USAGE } from './vault.types.js'
+import { VaultKeysRepository } from './vaultKeys.repository.js'
+import { VaultKeysService } from './vaultKeys.service.js'
 import { VaultMaintenance } from './vaultMaintenance.js'
 
 import type {
@@ -87,13 +94,23 @@ export function createVaultModule(deps: VaultModuleDeps) {
     audit: deps.audit,
     logger: deps.logger,
   })
+  const keys = new VaultKeysService({
+    db: deps.db,
+    crypto: deps.crypto,
+    repository: new VaultKeysRepository(),
+    audit: deps.audit,
+    logger: deps.logger,
+  })
   return {
     service,
     maintenance,
+    /** Data key rotation, re-encryption and the master key re-wrap (`cli keys …`, Cloud console). */
+    keys,
     jobs: [
       createExpireKeysJob(maintenance),
       createSyncModelsJob(maintenance),
       createCheckServersJob(maintenance),
+      createRotateKeysJob(keys, deps.crypto.masterKeys.previous !== undefined),
     ],
     models: deps.models.service,
     grants: deps.models,

@@ -39,11 +39,30 @@ export const currency = () => ({
   currency: char({ length: 3 }).notNull().default('USD'),
 })
 
+/** How the re-encryption and re-fingerprint jobs find a table's secret columns. */
+export interface EncryptedTable {
+  /** Column prefix: `secret` (`secret_ciphertext`, …, `data_key_version`) or another. */
+  prefix: string
+  /** Whether the table has `<prefix>_last4` and `<prefix>_fingerprint`. */
+  display: boolean
+  /** Organization data key (versioned, re-encrypted) or the install data key (re-wrapped only). */
+  key: 'organization' | 'install'
+}
+
 /**
  * Tables with an `encryptedSecret()` column set: the registry the re-encryption job walks.
  * Extension tables register through the same helper.
  */
-export const ENCRYPTED_TABLES = new Set<string>()
+export const ENCRYPTED_TABLES = new Map<string, EncryptedTable>()
+
+/** The snake_case column names of a registered table's secret. */
+export const encryptedColumnNames = (entry: EncryptedTable) => ({
+  ciphertext: `${entry.prefix}_ciphertext`,
+  iv: `${entry.prefix}_iv`,
+  authTag: `${entry.prefix}_auth_tag`,
+  keyVersion: entry.prefix === 'secret' ? 'data_key_version' : `${entry.prefix}_data_key_version`,
+  fingerprint: entry.display ? `${entry.prefix}_fingerprint` : null,
+})
 
 export interface EncryptedSecretOptions {
   /** The table that holds the secret, for the re-encryption registry. */
@@ -83,9 +102,9 @@ export function encryptedSecret(
 ): ReturnType<typeof secretColumns>
 export function encryptedSecret(options: EncryptedSecretOptions): Record<string, unknown>
 export function encryptedSecret(options: EncryptedSecretOptions) {
-  ENCRYPTED_TABLES.add(options.table)
   const p = options.prefix ?? 'secret'
   const display = options.display !== false
+  ENCRYPTED_TABLES.set(options.table, { prefix: p, display, key: 'organization' })
   return p === 'secret' && display ? secretColumns() : encryptedColumns(p, display)
 }
 

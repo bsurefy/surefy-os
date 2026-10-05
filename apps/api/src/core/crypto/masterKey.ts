@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { createHash, createHmac, hkdfSync } from 'node:crypto'
 
+import { seal, unseal, type Sealed } from './aesGcm.js'
+
 const FINGERPRINT_INFO = 'surefy:secret-fingerprint:v1'
 const FINGERPRINT_HEX_CHARS = 16
 const LAST_CHARS = 4
@@ -34,3 +36,61 @@ export const secretFingerprint = (
 
 /** The last four characters, shown as the masked value. */
 export const secretLast4 = (secret: string): string => secret.slice(-LAST_CHARS)
+
+/** One master key and its id. */
+export interface MasterKey {
+  id: string
+  key: Buffer
+}
+
+/** A data key wrapped by the current master key, with that key's id. */
+export interface WrappedDataKey extends Sealed {
+  masterKeyId: string
+}
+
+/** Thrown when a data key was wrapped by a master key this process does not have. */
+export class MasterKeyUnavailableError extends Error {
+  constructor(readonly masterKeyId: string) {
+    super(
+      `data key wrapped by master key ${masterKeyId}, which is neither ENCRYPTION_KEY nor ENCRYPTION_KEY_PREVIOUS`,
+    )
+    this.name = 'MasterKeyUnavailableError'
+  }
+}
+
+/**
+ * `ENCRYPTION_KEY` and, while a master key change is under way, `ENCRYPTION_KEY_PREVIOUS`. New
+ * wraps always use the current key; a data key wrapped by the previous one stays readable until
+ * the re-wrap moves it (vault-and-models.md, §1).
+ */
+export class MasterKeys {
+  readonly current: MasterKey
+  readonly previous: MasterKey | undefined
+
+  constructor(encryptionKey: string, previousEncryptionKey?: string) {
+    this.current = masterKeyFrom(encryptionKey)
+    const previous =
+      previousEncryptionKey === undefined ? undefined : masterKeyFrom(previousEncryptionKey)
+    this.previous = previous?.id === this.current.id ? undefined : previous
+  }
+
+  wrap(dataKey: Buffer, aad: string): WrappedDataKey {
+    return { ...seal(this.current.key, dataKey, aad), masterKeyId: this.current.id }
+  }
+
+  /** Unwraps with the master key that wrapped the data key. */
+  unwrap(sealed: Sealed, aad: string, masterKeyId: string): Buffer {
+    return unseal(this.keyFor(masterKeyId).key, sealed, aad)
+  }
+
+  private keyFor(masterKeyId: string): MasterKey {
+    if (masterKeyId === this.current.id) return this.current
+    if (masterKeyId === this.previous?.id) return this.previous
+    throw new MasterKeyUnavailableError(masterKeyId)
+  }
+}
+
+const masterKeyFrom = (encryptionKey: string): MasterKey => {
+  const key = masterKeyOf(encryptionKey)
+  return { id: masterKeyIdOf(key), key }
+}

@@ -66,7 +66,11 @@ export interface Config {
       github?: OauthProviderConfig
     }
   }
-  crypto: { encryptionKey: string }
+  crypto: {
+    encryptionKey: string
+    /** The master key being replaced; data keys it wrapped stay readable until re-wrapped. */
+    previousEncryptionKey?: string
+  }
   setup: { token?: string }
   storage: StorageConfig
   mail: MailConfig

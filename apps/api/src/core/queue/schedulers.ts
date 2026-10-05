@@ -94,6 +94,12 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     job: { name: VAULT_JOBS.EXPIRE_KEYS },
   },
   {
+    id: 'vault-key-rotation-daily',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '30 4 * * *' },
+    job: { name: VAULT_JOBS.ROTATE_KEYS },
+  },
+  {
     id: 'vault-sync-daily',
     queue: QUEUES.MAINTENANCE,
     repeat: { pattern: '50 3 * * *' },
