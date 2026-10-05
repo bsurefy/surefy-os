@@ -203,6 +203,14 @@ describe('ProvidersTab', () => {
     )
   })
 
+  it('opens Add API key from the empty state, where nothing else is listed yet', async () => {
+    useScenario('empty')
+    const { user } = renderProviders()
+    await screen.findByText('Connect an AI model to get started')
+    await user.click(screen.getByRole('button', { name: 'Add API key' }))
+    expect(await screen.findByRole('dialog', { name: 'Add API key' })).toBeVisible()
+  })
+
   it('opens Add API key from ?add=key', async () => {
     renderProviders('?add=key')
     expect(await screen.findByRole('dialog', { name: 'Add API key' })).toBeVisible()

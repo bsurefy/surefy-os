@@ -78,7 +78,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     group: 'settings',
     icon: Settings,
     href: (orgSlug) => ROUTES.workspace.settings(orgSlug),
-    released: false,
+    released: true,
     anyPermission: SETTINGS_PERMISSIONS,
   },
 ]

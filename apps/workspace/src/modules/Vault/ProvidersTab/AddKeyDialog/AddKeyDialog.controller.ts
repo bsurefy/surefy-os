@@ -3,6 +3,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { useWatch } from 'react-hook-form'
 
 import {
   useCreateCredentialMutation,
@@ -35,8 +36,9 @@ export interface AddKeyDialogProps {
 const EXPIRY_TIME = 'T23:59:59.000Z'
 
 /** A test result counts only for the provider, key and address it was run with. */
-const fingerprint = (values: Pick<AddKeyFormValues, 'providerKey' | 'secret' | 'baseUrl'>) =>
-  JSON.stringify([values.providerKey, values.secret, values.baseUrl])
+const fingerprint = (
+  values: Partial<Pick<AddKeyFormValues, 'providerKey' | 'secret' | 'baseUrl'>>,
+) => JSON.stringify([values.providerKey, values.secret, values.baseUrl])
 
 /**
  * Add API key: Save stays off until a connection test passed for the values now in the form. The
@@ -64,7 +66,8 @@ export function useAddKeyController({ orgId, mode, rotate, onClose }: AddKeyDial
     } satisfies AddKeyFormValues,
   })
 
-  const values = form.watch()
+  // `useWatch`, not `form.watch()`: the React Compiler would keep the first value of the latter
+  const values = useWatch({ control: form.control })
   const current = tested?.key === fingerprint(values) ? tested.result : null
   const isTestCurrent = current?.ok === true
   const needsTeam = mode === 'organization' && values.scope === KEY_SCOPE.TEAM && !values.teamId

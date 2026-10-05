@@ -25,8 +25,13 @@ const visibleIds = (context: SettingsContext) =>
   getVisibleSettingsSections(RELEASED, context).map((entry) => entry.id)
 
 describe('settings section visibility', () => {
-  it('hides every section until it is released', () => {
-    expect(getVisibleSettingsSections(SETTINGS_SECTIONS, contextFor('owner'))).toEqual([])
+  it('hides a section until it is released', () => {
+    const unreleased = new Set(
+      SETTINGS_SECTIONS.filter((entry) => !entry.released).map((entry) => entry.id),
+    )
+    const shown = getVisibleSettingsSections(SETTINGS_SECTIONS, contextFor('owner'))
+    expect(shown.filter((entry) => unreleased.has(entry.id))).toEqual([])
+    expect(shown.length).toBeGreaterThan(0)
   })
 
   it('shows each role the sections of navigation.md §6', () => {

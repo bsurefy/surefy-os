@@ -30,22 +30,27 @@ export default function ProvidersTab() {
 
   if (c.isEmpty) {
     return (
-      <EmptyState
-        icon={KeyRound}
-        title={t('empty.title')}
-        description={t('empty.description')}
-        actionLabel={t('addKey')}
-        onAction={() => {
-          c.openDialog({ kind: KEY_DIALOG.ADD })
-        }}
-        secondaryAction={
-          <Button variant="secondary" icon={ServerCog} asChild>
-            <Link href={`${ROUTES.workspace.vault(orgSlug, 'local-models')}?add=server`}>
-              {t('addServer')}
-            </Link>
-          </Button>
-        }
-      />
+      <>
+        <EmptyState
+          icon={KeyRound}
+          title={t('empty.title')}
+          description={t('empty.description')}
+          actionLabel={t('addKey')}
+          onAction={() => {
+            c.openDialog({ kind: KEY_DIALOG.ADD })
+          }}
+          secondaryAction={
+            <Button variant="secondary" icon={ServerCog} asChild>
+              <Link href={`${ROUTES.workspace.vault(orgSlug, 'local-models')}?add=server`}>
+                {t('addServer')}
+              </Link>
+            </Button>
+          }
+        />
+        {c.dialog?.kind === KEY_DIALOG.ADD && (
+          <AddKeyDialog orgId={c.orgId} mode="organization" onClose={c.closeDialog} />
+        )}
+      </>
     )
   }
 

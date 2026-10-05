@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
+import { useWatch } from 'react-hook-form'
+
 import { Banner } from '@surefy/ui/components/Feedback'
 import { SecretInput, SegmentedControl, SelectInput } from '@surefy/ui/components/Forms'
 import { Button } from '@surefy/ui/primitives/button'
@@ -39,8 +41,10 @@ const FORM_ID = 'add-key-form'
 export default function AddKeyDialog(props: Readonly<AddKeyDialogProps>) {
   const c = useAddKeyController(props)
   const { t } = c
-  const showsAddress = c.form.watch('providerKey') === 'openai_compatible'
-  const scope = c.form.watch('scope')
+  // `useWatch`, not `form.watch()`: the React Compiler would keep the first value of the latter
+  const providerKey = useWatch({ control: c.form.control, name: 'providerKey' })
+  const showsAddress = providerKey === 'openai_compatible'
+  const scope = useWatch({ control: c.form.control, name: 'scope' })
 
   return (
     <Dialog

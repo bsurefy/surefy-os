@@ -37,7 +37,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionEntry[] = [
   {
     id: 'vault',
     section: SETTINGS_SECTION.VAULT,
-    released: false,
+    released: true,
     // Builders see the read-only list of the models they may use
     anyPermission: [PERMISSIONS.VAULT_READ],
   },

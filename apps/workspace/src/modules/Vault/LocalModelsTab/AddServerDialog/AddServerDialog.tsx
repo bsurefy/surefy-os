@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
+import { useWatch } from 'react-hook-form'
+
 import { Banner } from '@surefy/ui/components/Feedback'
 import { SecretInput, SegmentedControl, SelectInput } from '@surefy/ui/components/Forms'
 import { Button } from '@surefy/ui/primitives/button'
@@ -34,7 +36,8 @@ const FORM_ID = 'add-server-form'
 export default function AddServerDialog(props: Readonly<{ orgId: string; onClose: () => void }>) {
   const c = useAddServerController(props)
   const { t } = c
-  const scope = c.form.watch('scope')
+  // `useWatch`, not `form.watch()`: the React Compiler would keep the first value of the latter
+  const scope = useWatch({ control: c.form.control, name: 'scope' })
 
   return (
     <Dialog
