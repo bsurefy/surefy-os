@@ -25,6 +25,12 @@ export interface RouteCoverage {
   query?: Readonly<Record<string, string>>
 }
 
+const INSIGHTS_RANGE = {
+  from: '2026-09-01T00:00:00.000Z',
+  to: '2026-10-01T00:00:00.000Z',
+  timeZone: 'UTC',
+} as const
+
 const PUBLIC_LOOKUP = 'Public lookup by slug or invitation token, rate limited (publicLookup)'
 
 /**
@@ -176,6 +182,17 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   },
 
   // audit
+  // usage (Insights)
+  'GET /api/v1/orgs/:orgId/insights/overview': { class: 'orgScoped', query: INSIGHTS_RANGE },
+  'GET /api/v1/orgs/:orgId/insights/breakdown': {
+    class: 'orgScoped',
+    query: { ...INSIGHTS_RANGE, by: 'team' },
+  },
+  'GET /api/v1/orgs/:orgId/insights/timeseries': {
+    class: 'orgScoped',
+    query: { ...INSIGHTS_RANGE, interval: 'day' },
+  },
+
   'GET /api/v1/orgs/:orgId/audit/entries': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/entries/:entryId': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/integrity': { class: 'orgScoped' },

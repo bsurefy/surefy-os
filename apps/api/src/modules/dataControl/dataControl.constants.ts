@@ -28,10 +28,11 @@ export const RETENTION_DAYS = {
 
 /**
  * Monthly partitioned tables and how long their partitions are kept. Tables join this list with
- * their module (`usage_events` 13 months, run steps 90 days).
+ * their module (run steps 90 days).
  */
 export const PARTITIONED_TABLES: readonly { table: string; keep: string }[] = [
   { table: 'audit_logs', keep: '1 year' },
+  { table: 'usage_events', keep: '13 months' },
 ]
 
 /**

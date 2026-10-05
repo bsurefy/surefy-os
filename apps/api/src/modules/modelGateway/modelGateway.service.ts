@@ -89,6 +89,9 @@ const FIRST_PARTS = new Set([
 interface Attempt {
   resolved: ResolvedModel
   fallback: ModelFallbackDto | null
+  /** 0 for the requested model, then one more per model tried. */
+  index: number
+  kind: 'generation' | 'embedding'
 }
 
 /**
@@ -225,7 +228,7 @@ export class ModelGatewayService {
     const resolved = await this.deps.resolver.resolve(ctx, request.modelKey, 'embedding')
     ModelResolver.assertAllowed(resolved)
     if ('reason' in resolved) throw new ModelProviderUnavailableError(null)
-    const attempt: Attempt = { resolved, fallback: null }
+    const attempt: Attempt = { resolved, fallback: null, index: 0, kind: 'embedding' }
     await this.runGuards(ctx, attempt)
     const started = this.now()
     if (resolved.embeddingModel === undefined) throw new ModelProviderUnavailableError(null)
@@ -282,6 +285,7 @@ export class ModelGatewayService {
       throw new ModelProviderUnavailableError(null)
     const order = [modelKey, ...settings.order.filter((key) => key !== modelKey)]
     let requested: ModelRefDto | null = refOf(first)
+    let tried = 0
     for (const [index, key] of order.entries()) {
       const resolved: ResolvedModel | Unresolved =
         index === 0 ? first : await this.deps.resolver.resolve(ctx, key, kind)
@@ -291,6 +295,8 @@ export class ModelGatewayService {
         resolved,
         fallback:
           index === 0 ? null : { from: requested, to: resolved.ref, reason: 'provider_error' },
+        index: tried++,
+        kind: kind === 'embedding' ? 'embedding' : 'generation',
       }
       await this.runGuards(ctx, attempt)
       yield attempt
@@ -367,7 +373,11 @@ export class ModelGatewayService {
     await this.deps.usage.record({
       ctx,
       result,
+      kind: attempt.kind,
+      attempt: attempt.index,
+      startedAt: new Date(started),
       credentialId: resolved.credentialId,
+      vaultModelId: resolved.vaultModelId ?? null,
       outcome,
       errorCode: failure?.reasonCode ?? null,
     })

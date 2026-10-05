@@ -143,6 +143,44 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     exportDtoSchema,
   )
   await setup.container.modules.audit.service.sealPending()
+  // Usage of A: one metered call, rolled up into the daily and monthly totals
+  const { usage } = setup.container.modules
+  await setup.db.tenant(a.id, (tx) =>
+    usage.meter.recordInTx(tx, a.id, {
+      userId: uma.id,
+      teamId: team.id,
+      apiKeyId: null,
+      sourceModule: 'chat',
+      subjectType: null,
+      subjectId: null,
+      sourceRefId: null,
+      kind: 'generation',
+      modelKey: model.modelKey,
+      vaultModelId: model.id,
+      credentialId: null,
+      credentialScope: 'organization',
+      providerKey: 'openai',
+      inputTokens: 10,
+      outputTokens: 5,
+      cachedInputTokens: 0,
+      reasoningTokens: 0,
+      units: 0,
+      costMicros: 7,
+      currency: 'USD',
+      billedVia: 'provider_direct',
+      latencyMs: 100,
+      outcome: 'success',
+      errorCode: null,
+      routed: false,
+      fallbackFromModelKey: null,
+      piiMasked: false,
+      dataLocation: 'provider',
+      dedupeKey: 'chat:isolation:0',
+      requestId: null,
+      occurredAt: new Date().toISOString(),
+    }),
+  )
+  await usage.rollup.aggregate('hourly')
   const entryId = await setup.db.system('test', async (tx) => {
     await tx.insert(organizationPurges).values({
       organizationId: a.id,

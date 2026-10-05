@@ -16,6 +16,7 @@ export type {
 export type {
   ModelCallContext,
   ModelCallGuard,
+  ModelCallMeter,
   ModelCallRecord,
   ModelSource,
   ResolvedModel,

@@ -59,7 +59,8 @@ export const membersCsvProducer: ExportProducer = {
 }
 
 /**
- * The producers available now. Usage and run CSVs, chat exports and audit exports (`audit-export`)
- * join with their modules.
+ * The producers the data control module owns. Other modules pass theirs to
+ * `createDataControlModule` (the usage CSV); run CSVs, chat exports and audit exports
+ * (`audit-export`) join with their modules.
  */
 export const CORE_EXPORT_PRODUCERS: readonly ExportProducer[] = [membersCsvProducer]

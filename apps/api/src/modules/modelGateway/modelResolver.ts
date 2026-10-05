@@ -146,6 +146,7 @@ export class ModelResolver {
       ref: refOf(model),
       credentialScope: scope,
       credentialId: credential.id,
+      vaultModelId: model.id,
       prices: {
         input: model.inputPricePerMtokMicros,
         output: model.outputPricePerMtokMicros,

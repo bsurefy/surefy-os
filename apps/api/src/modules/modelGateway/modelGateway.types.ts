@@ -22,6 +22,22 @@ export interface ModelCallContext {
   /** Private chats only ever use local models. */
   isPrivateChat?: boolean
   requestId?: string
+  /** The API key the request came through, for usage by key. */
+  apiKeyId?: string | null
+  /** What the usage row points at; without it the call is metered under a random key. */
+  meter?: ModelCallMeter
+}
+
+/**
+ * Usage bookkeeping a caller passes along. `key` is deterministic per call (`chat:{messageId}`,
+ * `agent_run:{runId}:{seq}`); the gateway appends the attempt number, so a retried meter and
+ * each fallback attempt record once.
+ */
+export interface ModelCallMeter {
+  key: string
+  /** Chat message, run, document or training job id. */
+  sourceRefId?: string | null
+  subject?: { type: 'agent' | 'flow'; id: string } | null
 }
 
 /** The model that serves a call, ready for the AI SDK. */
@@ -30,6 +46,8 @@ export interface ResolvedModel {
   credentialScope: ModelCallCredentialScope
   /** The key or server used; null for an extension's source. */
   credentialId: string | null
+  /** The Vault model; absent for an extension's source. */
+  vaultModelId?: string
   /** Per million tokens, micros of `currency`; null = unknown (metered as 0). */
   prices: {
     input: number | null
@@ -63,7 +81,13 @@ export interface ModelCallGuard {
 export interface ModelCallRecord {
   ctx: ModelCallContext
   result: ModelCallResultDto
+  kind: 'generation' | 'embedding'
+  /** 0 for the requested model, then one more per fallback attempt. */
+  attempt: number
+  /** The call start; the usage row's event time. */
+  startedAt: Date
   credentialId: string | null
+  vaultModelId: string | null
   outcome: ModelCallOutcome
   errorCode: string | null
 }

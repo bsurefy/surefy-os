@@ -29,6 +29,7 @@ import { createNotificationsModule } from './modules/notifications/index.js'
 import { createOrganizationsModule } from './modules/organizations/index.js'
 import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
+import { createUsageModule } from './modules/usage/index.js'
 import {
   createModelGrants,
   createVaultMemberRemoval,
@@ -144,6 +145,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
     audit: audit.service,
   })
+  const usage = createUsageModule({
+    db,
+    cache,
+    logger,
+    teams: teams.service,
+    users,
+    models: modelGrants.modelsRepository,
+  })
   const access = createAccessModule({
     db,
     cache,
@@ -166,6 +175,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
     audit: audit.service,
     repository: vaultRepository,
+    usage: usage.vaultUsage,
     notifications: notifications.service,
     logger,
   })
@@ -178,6 +188,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     models: modelGrants,
     access: access.service,
     hooks,
+    usage: usage.meter,
   })
   const dataControl = createDataControlModule({
     db,
@@ -189,6 +200,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     access: access.service,
     audit: audit.service,
+    producers: usage.exportProducers,
   })
   const modules = {
     audit,
@@ -200,6 +212,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     access,
     vault,
     modelGateway,
+    usage,
     dataControl,
   } satisfies PublicModules
 
