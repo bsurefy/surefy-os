@@ -22,6 +22,8 @@ export default defineConfig({
           environment: 'happy-dom',
           include: ['**/*.test.tsx'],
           setupFiles: ['./src/test/setup.ts'],
+          // Room for several Testing Library waits (5 s each, see the setup file) in one test.
+          testTimeout: 20000,
           // Processed by Vite so that a test's mock of `next/navigation` reaches the nuqs adapter.
           server: { deps: { inline: ['nuqs'] } },
         },

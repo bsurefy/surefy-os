@@ -53,7 +53,7 @@ function usePostScenario(scenario: string) {
 const UPLOAD_WAIT = { timeout: 5000 }
 
 /** The table row of a source; the same name can also show in the upload list while it uploads. */
-const rowOf = (name: string, options: { timeout: number } = { timeout: 1000 }) =>
+const rowOf = (name: string, options?: { timeout: number }) =>
   waitFor(() => {
     const row = screen
       .queryAllByText(name)
