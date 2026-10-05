@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The Vault module: provider keys, local models, model access and fallback.
+export { default as AddKeyDialog } from './ProvidersTab/AddKeyDialog'
+export type { AddKeyDialogProps } from './ProvidersTab/AddKeyDialog/AddKeyDialog.controller'
+export { default as AddServerDialog } from './LocalModelsTab/AddServerDialog'
 export { default as ModelSelector } from './ModelSelector'
 export type { ModelSelectorProps } from './ModelSelector'
 export { default as PersonalKeys } from './PersonalKeys'
