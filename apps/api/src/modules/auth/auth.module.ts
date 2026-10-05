@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { readFileSync } from 'node:fs'
+
+import { APP_VERSION } from '@/lib/appVersion.js'
 
 import { AUTH_DEFAULTS } from './auth.constants.js'
 import { AuthController } from './auth.controller.js'
@@ -92,13 +93,6 @@ export interface AuthModuleDeps {
   signup?: SignupStatus
 }
 
-/** The product version shown in the sign-in footer: the API package's own version. */
-const readVersion = (): string => {
-  const raw = readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')
-  const { version } = JSON.parse(raw) as { version?: unknown }
-  return typeof version === 'string' ? version : '0.0.0'
-}
-
 export function createAuthModule(deps: AuthModuleDeps) {
   const service = new AuthService({
     config: deps.config,
@@ -111,7 +105,7 @@ export function createAuthModule(deps: AuthModuleDeps) {
     organizationCreation: deps.organizationCreation ?? AUTH_DEFAULTS.organizationCreation,
     installCapabilities: deps.installCapabilities,
     signup: deps.signup ?? AUTH_DEFAULTS.signup,
-    version: readVersion(),
+    version: APP_VERSION,
   })
   return { service, users: deps.users, routes: authRoutes(new AuthController(service)) }
 }

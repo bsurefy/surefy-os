@@ -1,0 +1,14 @@
+# Build context is the repository root; only what the API build needs goes into the image.
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!.node-version
+!apps/api
+!apps/workspace/package.json
+!packages
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo

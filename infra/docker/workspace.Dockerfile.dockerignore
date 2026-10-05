@@ -1,0 +1,17 @@
+# Build context is the repository root; only what the workspace build needs goes into the image.
+*
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!.npmrc
+!.node-version
+!apps/workspace
+!apps/api/package.json
+!packages
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/*.tsbuildinfo
+apps/workspace/playwright-report
+apps/workspace/test-results

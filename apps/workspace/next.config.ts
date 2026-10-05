@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { fileURLToPath } from 'node:url'
+
 import createNextIntlPlugin from 'next-intl/plugin'
 
 import type { NextConfig } from 'next'
@@ -9,6 +11,10 @@ const apiUrl = process.env.INTERNAL_API_URL ?? `http://localhost:${process.env.A
 const withNextIntl = createNextIntlPlugin('./src/core/i18n/request.ts')
 
 const nextConfig: NextConfig = {
+  // Self-contained server for the Docker image; traced from the monorepo root so the workspace
+  // packages are included.
+  output: 'standalone',
+  outputFileTracingRoot: fileURLToPath(new URL('../..', import.meta.url)),
   transpilePackages: ['@surefy/contracts', '@surefy/ui', '@surefy/web-core'],
   experimental: {
     // `@surefy/contracts` is also compiled by the API under NodeNext, so its relative imports end
