@@ -211,8 +211,9 @@ const folderNameTaken = () =>
   mockError(HTTP_CONFLICT, ERROR_CODES.CHAT_FOLDER_NAME_TAKEN, 'Name taken')
 
 /**
- * Chats and folders (C-03's routes) until the integration task (I4-02) switches to the real API;
- * messages, streaming, feedback, sources and attachments are in `chat.messages.ts` (S3-07). Scenarios: `folder-name-taken` fails a
+ * Chats and folders (C-03's routes). Live on the real API (B3-02's routes, I4-04); the handlers
+ * stay for component tests and for `MOCK_DOMAINS=chat`, to look at the states. Messages,
+ * streaming, feedback, sources and attachments are in `chat.messages.ts` (S3-07). Scenarios: `folder-name-taken` fails a
  * folder create or rename with `CHAT_FOLDER_NAME_TAKEN`; `restore-gone` makes a restore answer
  * `CHAT_NOT_FOUND` (past the 30 days); `delete-fails` fails a chat delete.
  */
@@ -226,181 +227,187 @@ const chatMessageHandlers = createChatMessageHandlers({
   },
 })
 
-export const chatDomain = defineMockDomain('chat', [
-  ...chatMessageHandlers,
-  defineMockHandler({
-    method: 'get',
-    path,
-    response: pageResponse(chatDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const query = url.searchParams.get('q')?.toLowerCase()
-        const folderId = url.searchParams.get('folderId')
-        const isPinned = url.searchParams.get('isPinned')
-        const isDeleted = url.searchParams.get('state') === 'deleted'
-        const sort = url.searchParams.get('sort') ?? (isDeleted ? '-deletedAt' : '-lastMessageAt')
-        const items = chats
-          .filter(({ chat }) => Boolean(chat.deletedAt) === isDeleted)
-          .filter(({ chat }) => inFolder(chat, folderId))
-          .filter(({ chat }) => isPinned === null || chat.isPinned === (isPinned === 'true'))
-          .flatMap((state) => matches(state, query) ?? [])
-          .sort(compare(sort))
-        return page(items, url)
+export const chatDomain = defineMockDomain(
+  'chat',
+  [
+    ...chatMessageHandlers,
+    defineMockHandler({
+      method: 'get',
+      path,
+      response: pageResponse(chatDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const query = url.searchParams.get('q')?.toLowerCase()
+          const folderId = url.searchParams.get('folderId')
+          const isPinned = url.searchParams.get('isPinned')
+          const isDeleted = url.searchParams.get('state') === 'deleted'
+          const sort = url.searchParams.get('sort') ?? (isDeleted ? '-deletedAt' : '-lastMessageAt')
+          const items = chats
+            .filter(({ chat }) => Boolean(chat.deletedAt) === isDeleted)
+            .filter(({ chat }) => inFolder(chat, folderId))
+            .filter(({ chat }) => isPinned === null || chat.isPinned === (isPinned === 'true'))
+            .flatMap((state) => matches(state, query) ?? [])
+            .sort(compare(sort))
+          return page(items, url)
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:chatId`,
-    response: okResponse(chatDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findChat(params.chatId)
-        return found && !found.chat.deletedAt ? mockOk(found.chat) : chatNotFound()
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/:chatId`,
+      response: okResponse(chatDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findChat(params.chatId)
+          return found && !found.chat.deletedAt ? mockOk(found.chat) : chatNotFound()
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/:chatId`,
-    response: okResponse(chatDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findChat(params.chatId)
-        if (!found || found.chat.deletedAt) return chatNotFound()
-        const {
-          title,
-          isPinned,
-          folderId,
-          isPrivate,
-          knowledgeScope,
-          knowledgeBaseIds,
-          currentModelKey,
-        } = updateChatInputSchema.parse(await request.json())
-        if (folderId && !findFolder(folderId)) return folderNotFound()
-        const now = new Date().toISOString()
-        const next: ChatDto = {
-          ...found.chat,
-          ...(title === undefined ? {} : { title, titleGenerated: false }),
-          ...(folderId === undefined ? {} : { folderId }),
-          ...(isPinned === undefined ? {} : { isPinned, pinnedAt: isPinned ? now : null }),
-          ...(isPrivate === undefined ? {} : { isPrivate }),
-          ...(knowledgeScope === undefined
-            ? {}
-            : {
-                knowledgeScope,
-                knowledgeBaseIds: knowledgeScope === 'selected' ? (knowledgeBaseIds ?? []) : [],
-              }),
-          ...(currentModelKey === undefined ? {} : { currentModelKey }),
-          updatedAt: now,
-        }
-        setChat(next)
-        return mockOk(next)
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/:chatId`,
+      response: okResponse(chatDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findChat(params.chatId)
+          if (!found || found.chat.deletedAt) return chatNotFound()
+          const {
+            title,
+            isPinned,
+            folderId,
+            isPrivate,
+            knowledgeScope,
+            knowledgeBaseIds,
+            currentModelKey,
+          } = updateChatInputSchema.parse(await request.json())
+          if (folderId && !findFolder(folderId)) return folderNotFound()
+          const now = new Date().toISOString()
+          const next: ChatDto = {
+            ...found.chat,
+            ...(title === undefined ? {} : { title, titleGenerated: false }),
+            ...(folderId === undefined ? {} : { folderId }),
+            ...(isPinned === undefined ? {} : { isPinned, pinnedAt: isPinned ? now : null }),
+            ...(isPrivate === undefined ? {} : { isPrivate }),
+            ...(knowledgeScope === undefined
+              ? {}
+              : {
+                  knowledgeScope,
+                  knowledgeBaseIds: knowledgeScope === 'selected' ? (knowledgeBaseIds ?? []) : [],
+                }),
+            ...(currentModelKey === undefined ? {} : { currentModelKey }),
+            updatedAt: now,
+          }
+          setChat(next)
+          return mockOk(next)
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: `${path}/:chatId`,
-    response: okResponse(z.null()),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findChat(params.chatId)
-        if (!found || found.chat.deletedAt) return chatNotFound()
-        const deletedAt = new Date()
-        setChat({
-          ...found.chat,
-          deletedAt: deletedAt.toISOString(),
-          purgeAt: new Date(deletedAt.getTime() + CHAT_RESTORE_WINDOW_DAYS * DAY_MS).toISOString(),
-        })
-        return noContent()
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: `${path}/:chatId`,
+      response: okResponse(z.null()),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findChat(params.chatId)
+          if (!found || found.chat.deletedAt) return chatNotFound()
+          const deletedAt = new Date()
+          setChat({
+            ...found.chat,
+            deletedAt: deletedAt.toISOString(),
+            purgeAt: new Date(
+              deletedAt.getTime() + CHAT_RESTORE_WINDOW_DAYS * DAY_MS,
+            ).toISOString(),
+          })
+          return noContent()
+        },
+        'delete-fails': () => mockError(500, ERROR_CODES.INTERNAL_ERROR, 'Something went wrong'),
       },
-      'delete-fails': () => mockError(500, ERROR_CODES.INTERNAL_ERROR, 'Something went wrong'),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:chatId/restore`,
-    response: okResponse(chatDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findChat(params.chatId)
-        if (!found?.chat.deletedAt) return chatNotFound()
-        // The folder may have been deleted meanwhile: the chat returns to the list
-        const next: ChatDto = {
-          ...found.chat,
-          deletedAt: null,
-          purgeAt: null,
-          folderId: findFolder(found.chat.folderId) ? found.chat.folderId : null,
-        }
-        setChat(next)
-        return mockOk(next)
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:chatId/restore`,
+      response: okResponse(chatDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findChat(params.chatId)
+          if (!found?.chat.deletedAt) return chatNotFound()
+          // The folder may have been deleted meanwhile: the chat returns to the list
+          const next: ChatDto = {
+            ...found.chat,
+            deletedAt: null,
+            purgeAt: null,
+            folderId: findFolder(found.chat.folderId) ? found.chat.folderId : null,
+          }
+          setChat(next)
+          return mockOk(next)
+        },
+        'restore-gone': () => chatNotFound(),
       },
-      'restore-gone': () => chatNotFound(),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: foldersPath,
-    response: pageResponse(chatFolderDtoSchema),
-    scenarios: {
-      default: ({ request }) =>
-        page(
-          [...folders].sort((a, b) => a.sortOrder - b.sortOrder).map(withCount),
-          new URL(request.url),
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: foldersPath,
-    response: okResponse(chatFolderDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const { name } = createChatFolderInputSchema.parse(await request.json())
-        if (nameTaken(name)) return folderNameTaken()
-        const folder = folderFactory({ name, sortOrder: folders.length })
-        folders = [...folders, folder]
-        return mockOk(withCount(folder), { status: 201 })
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: foldersPath,
+      response: pageResponse(chatFolderDtoSchema),
+      scenarios: {
+        default: ({ request }) =>
+          page(
+            [...folders].sort((a, b) => a.sortOrder - b.sortOrder).map(withCount),
+            new URL(request.url),
+          ),
       },
-      'folder-name-taken': () => folderNameTaken(),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${foldersPath}/:folderId`,
-    response: okResponse(chatFolderDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findFolder(params.folderId)
-        if (!found) return folderNotFound()
-        const { name } = updateChatFolderInputSchema.parse(await request.json())
-        if (nameTaken(name, found.id)) return folderNameTaken()
-        const next = { ...found, name, updatedAt: new Date().toISOString() }
-        folders = folders.map((folder) => (folder.id === next.id ? next : folder))
-        return mockOk(withCount(next))
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: foldersPath,
+      response: okResponse(chatFolderDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const { name } = createChatFolderInputSchema.parse(await request.json())
+          if (nameTaken(name)) return folderNameTaken()
+          const folder = folderFactory({ name, sortOrder: folders.length })
+          folders = [...folders, folder]
+          return mockOk(withCount(folder), { status: 201 })
+        },
+        'folder-name-taken': () => folderNameTaken(),
       },
-      'folder-name-taken': () => folderNameTaken(),
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: `${foldersPath}/:folderId`,
-    response: okResponse(z.null()),
-    scenarios: {
-      default: ({ params }) => {
-        const folderId = String(params.folderId)
-        if (!findFolder(folderId)) return folderNotFound()
-        folders = folders.filter((folder) => folder.id !== folderId)
-        // Its chats move back to the list
-        chats = chats.map((state) =>
-          state.chat.folderId === folderId
-            ? { ...state, chat: { ...state.chat, folderId: null } }
-            : state,
-        )
-        return noContent()
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${foldersPath}/:folderId`,
+      response: okResponse(chatFolderDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findFolder(params.folderId)
+          if (!found) return folderNotFound()
+          const { name } = updateChatFolderInputSchema.parse(await request.json())
+          if (nameTaken(name, found.id)) return folderNameTaken()
+          const next = { ...found, name, updatedAt: new Date().toISOString() }
+          folders = folders.map((folder) => (folder.id === next.id ? next : folder))
+          return mockOk(withCount(next))
+        },
+        'folder-name-taken': () => folderNameTaken(),
       },
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: `${foldersPath}/:folderId`,
+      response: okResponse(z.null()),
+      scenarios: {
+        default: ({ params }) => {
+          const folderId = String(params.folderId)
+          if (!findFolder(folderId)) return folderNotFound()
+          folders = folders.filter((folder) => folder.id !== folderId)
+          // Its chats move back to the list
+          chats = chats.map((state) =>
+            state.chat.folderId === folderId
+              ? { ...state, chat: { ...state.chat, folderId: null } }
+              : state,
+          )
+          return noContent()
+        },
+      },
+    }),
+  ],
+  { isLive: true },
+)

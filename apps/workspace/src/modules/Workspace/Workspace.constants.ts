@@ -37,7 +37,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     group: 'build',
     icon: MessageSquare,
     href: (orgSlug) => ROUTES.workspace.chat(orgSlug),
-    released: false,
+    released: true,
     module: 'chat',
     anyPermission: [PERMISSIONS.CHAT_USE],
     goKey: 'c',

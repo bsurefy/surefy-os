@@ -39,6 +39,7 @@ describe('POST /chats/:chatId/messages', () => {
     const response = await send(setup, chatId, submit('What is the refund policy?'))
     expect(response.statusCode).toBe(200)
     expect(response.headers['content-type']).toContain('text/event-stream')
+    expect(response.headers['cache-control']).toBe('no-cache, no-transform')
 
     const chunks = chunksOf(response.body)
     const types = chunks.map((chunk) => chunk.type)

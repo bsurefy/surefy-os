@@ -43,10 +43,33 @@ export const e2e = {
   redisDatabase: 1 + (slot % (REDIS_DATABASES - 1)),
   postgresPort,
   redisPort,
+  /** The stub OpenAI-compatible model server (`modelServer.ts`), next to the worktree's ports. */
+  modelPort: Number(read('MODEL_STUB_PORT', String(Number(read('API_PORT', '4000')) + 9))),
 }
 
 export const webUrl = `http://localhost:${String(e2e.webPort)}`
 export const apiUrl = `http://localhost:${String(e2e.apiPort)}`
+export const modelServerUrl = `http://127.0.0.1:${String(e2e.modelPort)}`
+
+/** The one model the stub server lists; the chat specs connect it and enable it in the Vault. */
+export const STUB_MODEL_ID = 'e2e-echo'
+/** The stub answers "Echo: <question>"; a question starting with this gets a long answer. */
+export const LONG_ANSWER_PREFIX = 'Tell me a long story'
+
+const TITLE_WORDS = 6
+
+/**
+ * The title the stub gives a chat: the first words of the first question. The title request's
+ * prompt is "Question:\n<question>\n\nAnswer:\n<answer>".
+ */
+export function stubTitle(prompt: string): string {
+  const question = prompt.replace(/^Question:\n/, '').split('\n')[0] ?? ''
+  return question
+    .split(/\s+/)
+    .slice(0, TITLE_WORDS)
+    .join(' ')
+    .replace(/[?.!]$/, '')
+}
 
 const ownerPassword = read('SUREFY_OWNER_PASSWORD', 'surefy_owner')
 const appPassword = read('SUREFY_APP_PASSWORD', 'surefy_app')
