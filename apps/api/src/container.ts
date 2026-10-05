@@ -37,6 +37,7 @@ import { createMembersModule, createMemberships } from './modules/members/index.
 import { createModelGatewayModule } from './modules/modelGateway/index.js'
 import { createNotificationsModule } from './modules/notifications/index.js'
 import { createOrganizationsModule } from './modules/organizations/index.js'
+import { createOutboxModule } from './modules/outbox/index.js'
 import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
 import { createUsageModule } from './modules/usage/index.js'
@@ -249,6 +250,13 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     audit: audit.service,
   })
+  const outbox = createOutboxModule({
+    db,
+    queues,
+    logger,
+    handlers: [...chats.outboxHandlers, ...knowledge.outboxHandlers],
+    hooks,
+  })
   const modules = {
     audit,
     notifications,
@@ -264,6 +272,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     dataControl,
     files,
     knowledge,
+    outbox,
   } satisfies PublicModules
 
   // 3. Optional private extensions (Enterprise / Cloud) contribute through the hooks

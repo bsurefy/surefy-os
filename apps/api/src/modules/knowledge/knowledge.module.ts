@@ -12,6 +12,7 @@ import { KnowledgeIngestionService } from './knowledgeIngestion/knowledgeIngesti
 import { KnowledgeReembedService } from './knowledgeIngestion/knowledgeReembed.service.js'
 import { KnowledgeSyncService } from './knowledgeIngestion/knowledgeSync.service.js'
 import { safeGet, type SafeGet } from './knowledgeIngestion/safeFetch.js'
+import { createKnowledgePurgeHandlers } from './knowledgePurge.js'
 import { KnowledgeRetrievalRepository } from './knowledgeRetrieval/knowledgeRetrieval.repository.js'
 import { KnowledgeRetrievalService } from './knowledgeRetrieval/knowledgeRetrieval.service.js'
 import { KnowledgeSearchService } from './knowledgeRetrieval/knowledgeSearch.service.js'
@@ -184,6 +185,8 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     ingestion,
     sync,
     reembed,
+    /** `knowledge_base.purged` and `knowledge_source.purged` remove the documents' stored objects. */
+    outboxHandlers: createKnowledgePurgeHandlers(deps.files),
     jobs: jobs.all,
     routes,
   }

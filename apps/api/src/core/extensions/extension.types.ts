@@ -7,6 +7,7 @@ import type { Logger } from '@/core/logger/index.js'
 import type { Queues, RegisteredJob } from '@/core/queue/index.js'
 import type { AccessCheck, EntitlementSource } from '@/modules/access/entitlements.types.js'
 import type { ModelCallGuard, ModelSource } from '@/modules/modelGateway/modelGateway.types.js'
+import type { OutboxDelivery, OutboxHandler, OutboxTopic } from '@/modules/outbox/index.js'
 import type { PublicModules } from '@/types/modules.js'
 import type { BetterAuthPlugin } from 'better-auth'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
@@ -41,7 +42,7 @@ export interface MigrationsFolder {
 /**
  * Extension points with a Community default each; modules read the contributions at call time.
  * Module tasks add the remaining hooks: `setRoleResolver`, `setAccessGrantResolver`,
- * `addAuditSink`, `onEvent`.
+ * `addAuditSink`.
  */
 export interface ExtensionHooks {
   /** Routes registered under /api/v1, after the core modules' routes. */
@@ -62,6 +63,11 @@ export interface ExtensionHooks {
   addModelSource(source: ModelSource): void
   /** A check before every model call, e.g. Cloud's credit balance (402). */
   addModelCallGuard(guard: ModelCallGuard): void
+  /** A handler for an outbox topic, run after the core ones; at least once, so idempotent. */
+  onEvent<T extends OutboxTopic>(
+    topic: T,
+    handle: (delivery: OutboxDelivery<T>) => Promise<void>,
+  ): void
 }
 
 /** The container's registry: the hooks plus readers for what was contributed. */
@@ -76,4 +82,5 @@ export interface ExtensionRegistry extends ExtensionHooks {
   accessChecks(): readonly AccessCheck[]
   modelSources(): readonly ModelSource[]
   modelCallGuards(): readonly ModelCallGuard[]
+  outboxHandlers(): readonly OutboxHandler[]
 }

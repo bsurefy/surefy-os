@@ -11,6 +11,7 @@ import {
   PARTITIONED_TABLES,
   PURGE_ERROR_CODES,
   RETENTION_DAYS,
+  SOFT_DELETE_PURGE_BATCH,
   SOFT_DELETE_TABLES,
 } from '../dataControl.constants.js'
 
@@ -51,6 +52,14 @@ export class DataRetentionService {
         repository.deleteResolvedInvitations(tx, RETENTION_DAYS.invitations, CLEANUP_BATCH),
       ),
       slugHistory: await this.loop((tx) => repository.deleteExpiredSlugHistory(tx, CLEANUP_BATCH)),
+      outboxEvents: await this.loop((tx) =>
+        repository.deleteOldOutboxEvents(
+          tx,
+          RETENTION_DAYS.outboxDispatched,
+          RETENTION_DAYS.outboxFailed,
+          CLEANUP_BATCH,
+        ),
+      ),
       exportFiles: await this.expireObjects(
         (tx) => repository.listExpiredExports(tx, CLEANUP_BATCH),
         (tx, ids) => repository.markExportsExpired(tx, ids),
@@ -104,11 +113,29 @@ export class DataRetentionService {
   }
 
   /**
-   * `purge-soft-deleted-daily`: soft-deleted rows past their restore window. The soft-delete
-   * tables and `purge_soft_deleted` arrive with their modules; until then there is nothing to do.
+   * `purge-soft-deleted-daily`: `purge_soft_deleted` per registered table, in batches, each batch
+   * its own transaction. The function writes a `*.purged` outbox event per row in the same
+   * transaction; the outbox handlers remove the stored files. Returns the rows deleted per table.
    */
-  purgeSoftDeleted(): Promise<number> {
-    return Promise.resolve(SOFT_DELETE_TABLES.length)
+  async purgeSoftDeleted(): Promise<Record<string, number>> {
+    const purged: Record<string, number> = {}
+    for (const { table, windowDays } of SOFT_DELETE_TABLES) {
+      let total = 0
+      for (;;) {
+        const removed = await this.deps.db.system('maintenance', (tx) =>
+          this.deps.dataRetentionRepository.purgeSoftDeleted(
+            tx,
+            table,
+            windowDays,
+            SOFT_DELETE_PURGE_BATCH,
+          ),
+        )
+        total += removed
+        if (removed < SOFT_DELETE_PURGE_BATCH) break
+      }
+      purged[table] = total
+    }
+    return purged
   }
 
   /**

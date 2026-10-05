@@ -5,6 +5,7 @@ import { ChatMaintenanceService } from './chatMaintenance.service.js'
 import { ChatMessagesRepository } from './chatMessages.repository.js'
 import { ChatMessagesService } from './chatMessages.service.js'
 import { createChatModels } from './chatModels.js'
+import { createChatPurgeHandlers } from './chatPurge.js'
 import { ChatsController } from './chats.controller.js'
 import {
   createCleanupChatAttachmentsJob,
@@ -101,6 +102,8 @@ export function createChatsModule(deps: ChatsModuleDeps) {
     stream,
     attachments,
     maintenance,
+    /** `chat.purged` removes the purged chat's stored objects. */
+    outboxHandlers: createChatPurgeHandlers(deps.storage),
     jobs: [
       processAttachment,
       createSweepChatStreamsJob(maintenance),

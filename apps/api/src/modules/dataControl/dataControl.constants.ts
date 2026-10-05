@@ -24,6 +24,8 @@ export const RETENTION_DAYS = {
   usageEvents: 395,
   deletedItems: 30,
   runSteps: 90,
+  outboxDispatched: 7,
+  outboxFailed: 30,
 } as const
 
 /**
@@ -36,11 +38,18 @@ export const PARTITIONED_TABLES: readonly { table: string; keep: string }[] = [
 ]
 
 /**
- * Soft-delete tables `purge_soft_deleted` empties after the restore window. Chats, prompts,
- * knowledge bases and sources (30 days), agents and flows (90 days) join with their modules,
- * together with the function itself.
+ * Soft-delete tables `purge_soft_deleted` empties after the restore window, in this order (a
+ * source's documents are listed with the source before its base is purged). Prompts (30 days),
+ * agents and flows (90 days) join with their modules.
  */
-export const SOFT_DELETE_TABLES: readonly { table: string; windowDays: number }[] = []
+export const SOFT_DELETE_TABLES: readonly { table: string; windowDays: number }[] = [
+  { table: 'chats', windowDays: 30 },
+  { table: 'knowledge_sources', windowDays: 30 },
+  { table: 'knowledge_bases', windowDays: 30 },
+]
+
+/** Rows one `purge_soft_deleted` call deletes, each call its own transaction. */
+export const SOFT_DELETE_PURGE_BATCH = 500
 
 /** Months of partitions prepared ahead of time. */
 export const PARTITION_MONTHS_AHEAD = 3

@@ -10,6 +10,7 @@ import type {
 
 import { requireUser } from './chatContext.js'
 import { isTextType } from './chatDocumentParser.js'
+import { chatPrefix } from './chatPurge.js'
 import { UPLOAD_URL_TTL_SECONDS } from './chats.constants.js'
 import {
   ChatAttachmentNotFoundError,
@@ -62,7 +63,7 @@ export interface UploadParams {
 }
 
 const objectKeyOf = (orgId: string, chatId: string, attachmentId: string) =>
-  `orgs/${orgId}/chats/${chatId}/attachments/${attachmentId}`
+  `${chatPrefix(orgId, chatId)}attachments/${attachmentId}`
 
 async function readAll(stream: Readable): Promise<Buffer> {
   const chunks: Buffer[] = []

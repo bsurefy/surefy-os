@@ -54,6 +54,23 @@ export class DataRetentionRepository {
     )
   }
 
+  /** Dispatched outbox events and failed ones past their retention (outbox_events_cleanup_idx). */
+  async deleteOldOutboxEvents(
+    tx: DbExecutor,
+    dispatchedDays: number,
+    failedDays: number,
+    limit: number,
+  ): Promise<number> {
+    return count(
+      await tx.execute(sql`
+        delete from outbox_events where id in (
+          select id from outbox_events
+          where (status = 'dispatched' and updated_at < now() - make_interval(days => ${dispatchedDays}))
+             or (status = 'failed' and updated_at < now() - make_interval(days => ${failedDays}))
+          limit ${limit})`),
+    )
+  }
+
   /** Sessions and verification links expired longer ago than the grace (`db.global`). */
   async deleteExpiredAuthRows(executor: DbExecutor, days: number, limit: number): Promise<number> {
     const sessions = count(
@@ -148,6 +165,23 @@ export class DataRetentionRepository {
           inArray(dataRequests.status, ['ready', 'delivered']),
         ),
       )
+  }
+
+  /**
+   * `purge_soft_deleted(table, before, null, limit)`: deletes up to `limit` rows soft-deleted
+   * before the window and writes their `*.purged` outbox events. Returns how many it deleted.
+   */
+  async purgeSoftDeleted(
+    tx: DbExecutor,
+    table: string,
+    windowDays: number,
+    limit: number,
+  ): Promise<number> {
+    return count(
+      await tx.execute(sql`
+        select organization_id, id from purge_soft_deleted(
+          ${table}::regclass, now() - make_interval(days => ${windowDays}), null, ${limit}::integer)`),
+    )
   }
 
   /** `ensure_partitions(parent, months)`: partitions created, rows sitting in the default one. */

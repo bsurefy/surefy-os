@@ -16,6 +16,7 @@ import {
   knowledgeSources,
   organizationPurges,
   organizationSlugHistory,
+  outboxEvents,
 } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
@@ -303,6 +304,12 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       reason: 'owner_request',
       status: 'canceled',
       scheduledFor: new Date(),
+    })
+    await tx.insert(outboxEvents).values({
+      organizationId: a.id,
+      topic: 'chat.purged',
+      payload: { version: 1, id: chat.chatId },
+      status: 'dispatched',
     })
     const [entry] = await tx
       .select({ id: auditLogs.id })
