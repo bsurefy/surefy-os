@@ -4,9 +4,13 @@ import type { OrganizationDto } from '@surefy/contracts'
 
 import type { GeneralSettingsValues } from './GeneralSettings.schema'
 
-/** The IANA zones of this runtime, for the picker and the check. */
+/**
+ * The IANA zones of this runtime, for the picker and the check. `UTC` is added because the list
+ * leaves it out, while a browser set to UTC reports it and setup stores it as the organization's.
+ */
 export function getTimeZones(): string[] {
-  return Intl.supportedValuesOf('timeZone')
+  const zones = Intl.supportedValuesOf('timeZone')
+  return zones.includes('UTC') ? zones : ['UTC', ...zones]
 }
 
 export function isSupportedTimeZone(value: string): boolean {

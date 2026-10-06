@@ -84,37 +84,42 @@ function applyUpdate(input: UpdateOrganizationInput): OrganizationDto {
 }
 
 /**
- * The organization's settings (B2-03's routes) until the integration task (I4-02) switches to the
- * real API. Scenarios: `slug-taken` makes a save fail with `ORGANIZATION_SLUG_TAKEN`, and the
- * built-in ones cover the rest.
+ * The organization's settings (B2-03's routes), live on the real API (I4-02; the handlers stay for
+ * component tests and for `MOCK_DOMAINS=organizations`, to look at the states). Scenarios:
+ * `slug-taken` makes a save fail with `ORGANIZATION_SLUG_TAKEN`, and the built-in ones cover the
+ * rest.
  */
-export const organizationsDomain = defineMockDomain('organizations', [
-  defineMockHandler({
-    method: 'get',
-    path: '/orgs/:orgId',
-    response: okResponse(organizationDtoSchema),
-    scenarios: { default: () => mockOk(organization) },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: '/orgs/:orgId',
-    response: okResponse(organizationDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        organization = applyUpdate((await request.json()) as UpdateOrganizationInput)
-        return mockOk(organization)
+export const organizationsDomain = defineMockDomain(
+  'organizations',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: '/orgs/:orgId',
+      response: okResponse(organizationDtoSchema),
+      scenarios: { default: () => mockOk(organization) },
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: '/orgs/:orgId',
+      response: okResponse(organizationDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          organization = applyUpdate((await request.json()) as UpdateOrganizationInput)
+          return mockOk(organization)
+        },
+        'slug-taken': () =>
+          mockError(HTTP_CONFLICT, ERROR_CODES.ORGANIZATION_SLUG_TAKEN, 'Slug taken'),
       },
-      'slug-taken': () =>
-        mockError(HTTP_CONFLICT, ERROR_CODES.ORGANIZATION_SLUG_TAKEN, 'Slug taken'),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: '/organizations/slug-availability',
-    response: okResponse(slugAvailabilityDtoSchema),
-    scenarios: {
-      default: ({ request }) =>
-        mockOk(slugAvailability(new URL(request.url).searchParams.get('slug') ?? '')),
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: '/organizations/slug-availability',
+      response: okResponse(slugAvailabilityDtoSchema),
+      scenarios: {
+        default: ({ request }) =>
+          mockOk(slugAvailability(new URL(request.url).searchParams.get('slug') ?? '')),
+      },
+    }),
+  ],
+  { isLive: true },
+)

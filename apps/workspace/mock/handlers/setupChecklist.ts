@@ -59,33 +59,38 @@ const preferences = (checklistDismissed: boolean): MemberPreferencesDto => ({
 })
 
 /**
- * The home-screen setup checklist and its dismissal, until the integration task (I4-02) switches to
- * the real API. First-run setup itself is never mocked: it always uses the real backend.
- * Scenarios: `fresh` (nothing done), `finished` (everything done), `dismissed`; `empty` has no items.
+ * The home-screen setup checklist and its dismissal, live on the real API (I4-02; the handlers
+ * stay for component tests and for `MOCK_DOMAINS=setupChecklist`, to look at the states).
+ * First-run setup itself is never mocked: it always uses the real backend. Scenarios: `fresh`
+ * (nothing done), `finished` (everything done), `dismissed`; `empty` has no items.
  */
-export const setupChecklistDomain = defineMockDomain('setupChecklist', [
-  defineMockHandler({
-    method: 'get',
-    path: checklistPath,
-    response: okResponse(setupChecklistDtoSchema),
-    scenarios: {
-      default: () => mockOk(withDismissal(startedChecklist)),
-      fresh: () => mockOk(withDismissal(freshChecklist)),
-      finished: () => mockOk(withDismissal(finishedChecklist)),
-      dismissed: () => mockOk({ ...startedChecklist, dismissed: true }),
-      empty: () => mockOk({ items: [], dismissed: false }),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: preferencesPath,
-    response: okResponse(memberPreferencesDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = updateMemberPreferencesInputSchema.parse(await request.json())
-        isDismissed = input.checklistDismissed ?? isDismissed
-        return mockOk(preferences(isDismissed))
+export const setupChecklistDomain = defineMockDomain(
+  'setupChecklist',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: checklistPath,
+      response: okResponse(setupChecklistDtoSchema),
+      scenarios: {
+        default: () => mockOk(withDismissal(startedChecklist)),
+        fresh: () => mockOk(withDismissal(freshChecklist)),
+        finished: () => mockOk(withDismissal(finishedChecklist)),
+        dismissed: () => mockOk({ ...startedChecklist, dismissed: true }),
+        empty: () => mockOk({ items: [], dismissed: false }),
       },
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: preferencesPath,
+      response: okResponse(memberPreferencesDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = updateMemberPreferencesInputSchema.parse(await request.json())
+          isDismissed = input.checklistDismissed ?? isDismissed
+          return mockOk(preferences(isDismissed))
+        },
+      },
+    }),
+  ],
+  { isLive: true },
+)

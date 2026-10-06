@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { useWatch } from 'react-hook-form'
 
 import { organizationQueries, useUpdateOrganizationMutation } from '@/api/organizations'
 import { ROUTES, SETTINGS_SECTION } from '@/constants/routes'
@@ -47,7 +48,7 @@ export function useGeneralSettingsFormController({
     defaultValues: toGeneralSettingsValues(organization),
   })
 
-  const slug = form.watch('slug')
+  const slug = useWatch({ control: form.control, name: 'slug' })
   const checkedSlug = useDebouncedValue(slug, SLUG_CHECK_DELAY_MS)
   const isChecking = isCheckableSlug(checkedSlug, organization.slug) && checkedSlug === slug
   const availability = useQuery({

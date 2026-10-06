@@ -33,3 +33,6 @@ __pycache__/
 
 # Playwright sessions of the e2e runs
 apps/*/e2e/.auth/
+
+# files a local or end-to-end run stores
+apps/api/data/

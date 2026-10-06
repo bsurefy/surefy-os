@@ -54,6 +54,17 @@ describe('PersonalKeys', () => {
     expect(await within(table).findByText('Side project')).toBeVisible()
   })
 
+  it('offers only providers a person can reach at their own address', async () => {
+    const { user } = renderPersonalKeys()
+    await user.click(await screen.findByRole('button', { name: 'Add API key' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Add API key' })
+    await user.click(within(dialog).getByRole('combobox', { name: 'Provider' }))
+    for (const name of ['OpenAI', 'Anthropic', 'Google']) {
+      expect(await screen.findByRole('option', { name })).toBeVisible()
+    }
+    expect(screen.queryByRole('option', { name: 'OpenAI-compatible' })).not.toBeInTheDocument()
+  })
+
   it('revokes a personal key', async () => {
     const { user } = renderPersonalKeys()
     await user.click(await screen.findByRole('button', { name: 'Actions for My OpenAI key' }))

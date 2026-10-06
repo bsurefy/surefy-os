@@ -432,7 +432,7 @@ describe('source preview', () => {
       passage: 'Refunds within 14 days',
       url: 'https://example.test/policy',
     })
-    // knowledge is checked again by the knowledge module; until it exists the source is "removed"
+    // knowledge is checked again by the knowledge module: a base that is not there is "removed"
     const knowledge = (await request(setup.app, 'GET', url(2), { headers: as(setup) })).json<{
       data: Record<string, unknown>
     }>().data

@@ -93,94 +93,99 @@ function applyUpdate(input: UpdateInstallSettingsInput): InstallSettingsDto {
 }
 
 /**
- * Install settings, administrators and the organizations on the install (B2-02's routes) until the
- * integration task (I4-02) switches to the real API. Scenarios: `update-available` and `over-limit`
- * change the settings answer; `smtp-failed` makes the test email fail with the server's refusal.
+ * Install settings, administrators and the organizations on the install (B2-02's routes), live on
+ * the real API (I4-02; the handlers stay for component tests and for `MOCK_DOMAINS=install`, to
+ * look at the states). Scenarios: `update-available` and `over-limit` change the settings answer;
+ * `smtp-failed` makes the test email fail with the server's refusal.
  */
-export const installDomain = defineMockDomain('install', [
-  defineMockHandler({
-    method: 'get',
-    path: '/install/settings',
-    response: okResponse(installSettingsDtoSchema),
-    scenarios: {
-      default: () => mockOk(settings),
-      'update-available': () =>
-        mockOk({ ...settings, version: { current: '1.0.0', latest: '1.1.0' } }),
-      'over-limit': () => mockOk({ ...settings, organizations: { count: 3, max: 1 } }),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: '/install/settings',
-    response: okResponse(installSettingsDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        settings = applyUpdate(updateInstallSettingsInputSchema.parse(await request.json()))
-        return mockOk(settings)
+export const installDomain = defineMockDomain(
+  'install',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: '/install/settings',
+      response: okResponse(installSettingsDtoSchema),
+      scenarios: {
+        default: () => mockOk(settings),
+        'update-available': () =>
+          mockOk({ ...settings, version: { current: '1.0.0', latest: '1.1.0' } }),
+        'over-limit': () => mockOk({ ...settings, organizations: { count: 3, max: 1 } }),
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: '/install/smtp/test',
-    response: okResponse(z.null()),
-    scenarios: {
-      default: async ({ request }) => {
-        sendTestEmailInputSchema.parse(await request.json())
-        if (!settings.smtp) {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.INSTALL_SMTP_NOT_CONFIGURED, 'No SMTP')
-        }
-        return new Response(null, { status: 204 })
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: '/install/settings',
+      response: okResponse(installSettingsDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          settings = applyUpdate(updateInstallSettingsInputSchema.parse(await request.json()))
+          return mockOk(settings)
+        },
       },
-      'smtp-failed': () =>
-        mockError(HTTP_BAD_GATEWAY, ERROR_CODES.INSTALL_SMTP_TEST_FAILED, 'Refused'),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: '/install/admins',
-    response: pageResponse(installAdminDtoSchema),
-    scenarios: { default: () => mockPage(admins) },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: '/install/admins',
-    response: okResponse(installAdminDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const { userId } = (await request.json()) as { userId: string }
-        if (admins.some((admin) => admin.user.id === userId)) {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.INSTALL_ADMIN_EXISTS, 'Already an admin')
-        }
-        const user = [MAYA, OMAR].find((person) => person.id === userId)
-        if (!user) return mockError(404, ERROR_CODES.NOT_FOUND, 'No such person')
-        const created = { user, grantedByUserId: MAYA.id, createdAt: NOW }
-        admins = [...admins, created]
-        return mockOk(created, { status: 201 })
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: '/install/smtp/test',
+      response: okResponse(z.null()),
+      scenarios: {
+        default: async ({ request }) => {
+          sendTestEmailInputSchema.parse(await request.json())
+          if (!settings.smtp) {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.INSTALL_SMTP_NOT_CONFIGURED, 'No SMTP')
+          }
+          return new Response(null, { status: 204 })
+        },
+        'smtp-failed': () =>
+          mockError(HTTP_BAD_GATEWAY, ERROR_CODES.INSTALL_SMTP_TEST_FAILED, 'Refused'),
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: '/install/admins/:userId',
-    response: okResponse(z.null()),
-    scenarios: {
-      default: ({ params }) => {
-        if (admins.length === 1) {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.INSTALL_LAST_ADMIN, 'Last admin')
-        }
-        admins = admins.filter((admin) => admin.user.id !== params.userId)
-        return new Response(null, { status: 204 })
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: '/install/admins',
+      response: pageResponse(installAdminDtoSchema),
+      scenarios: { default: () => mockPage(admins) },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: '/install/admins',
+      response: okResponse(installAdminDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const { userId } = (await request.json()) as { userId: string }
+          if (admins.some((admin) => admin.user.id === userId)) {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.INSTALL_ADMIN_EXISTS, 'Already an admin')
+          }
+          const user = [MAYA, OMAR].find((person) => person.id === userId)
+          if (!user) return mockError(404, ERROR_CODES.NOT_FOUND, 'No such person')
+          const created = { user, grantedByUserId: MAYA.id, createdAt: NOW }
+          admins = [...admins, created]
+          return mockOk(created, { status: 201 })
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: '/install/organizations',
-    response: pageResponse(installOrganizationDtoSchema),
-    scenarios: {
-      default: () =>
-        mockPage([{ ...ACME_ORG, memberCount: 4, createdAt: '2026-01-02T09:00:00.000Z' }]),
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: '/install/admins/:userId',
+      response: okResponse(z.null()),
+      scenarios: {
+        default: ({ params }) => {
+          if (admins.length === 1) {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.INSTALL_LAST_ADMIN, 'Last admin')
+          }
+          admins = admins.filter((admin) => admin.user.id !== params.userId)
+          return new Response(null, { status: 204 })
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: '/install/organizations',
+      response: pageResponse(installOrganizationDtoSchema),
+      scenarios: {
+        default: () =>
+          mockPage([{ ...ACME_ORG, memberCount: 4, createdAt: '2026-01-02T09:00:00.000Z' }]),
+      },
+    }),
+  ],
+  { isLive: true },
+)

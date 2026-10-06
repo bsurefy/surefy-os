@@ -467,6 +467,7 @@ export class ChatStreamService {
         query: prepared.question,
         scope: prepared.chat.knowledgeScope,
         knowledgeBaseIds: selected,
+        answeringModelIsLocal: prepared.model.source === 'local',
         signal,
       })
       const notes: ChatMessagePart[] = []

@@ -16,6 +16,8 @@ export interface DiscoveredModel {
   providerModelId: string
   displayName: string
   type: ModelType
+  /** An embedding model's vector size when the server itself told it (a probe), not the catalog. */
+  embeddingDimensions?: number | null
 }
 
 export interface AiProviderCapabilities {

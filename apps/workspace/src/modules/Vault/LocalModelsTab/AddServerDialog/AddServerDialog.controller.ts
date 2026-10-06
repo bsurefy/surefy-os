@@ -3,6 +3,7 @@
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { useWatch } from 'react-hook-form'
 
 import { useCreateLocalServerMutation, useTestConnectionMutation } from '@/api/vault'
 import { LOCAL_SERVER_PROVIDER_KEYS } from '@surefy/contracts'
@@ -19,8 +20,9 @@ import { getProviderName } from '../../Vault.utils'
 import type { AddServerFormValues } from './AddServerDialog.schema'
 import type { BaseSyntheticEvent } from 'react'
 
-const fingerprint = (values: Pick<AddServerFormValues, 'providerKey' | 'baseUrl' | 'secret'>) =>
-  JSON.stringify([values.providerKey, values.baseUrl, values.secret])
+const fingerprint = (
+  values: Partial<Pick<AddServerFormValues, 'providerKey' | 'baseUrl' | 'secret'>>,
+) => JSON.stringify([values.providerKey, values.baseUrl, values.secret])
 
 /**
  * Add local server: Save stays off until a connection test passed for the address now in the form;
@@ -46,7 +48,8 @@ export function useAddServerController({ orgId, onClose }: { orgId: string; onCl
     } satisfies AddServerFormValues,
   })
 
-  const values = form.watch()
+  // `useWatch`, not `form.watch()`: the React Compiler would keep the first value of the latter
+  const values = useWatch({ control: form.control })
   const current = tested?.key === fingerprint(values) ? tested.result : null
   const isTestCurrent = current?.ok === true
   const needsTeam = values.scope === KEY_SCOPE.TEAM && !values.teamId

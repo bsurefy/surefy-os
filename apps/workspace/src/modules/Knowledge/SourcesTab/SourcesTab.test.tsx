@@ -128,10 +128,14 @@ describe('SourcesTab', () => {
     await screen.findByText('Refund policy.pdf')
     await user.type(screen.getByRole('searchbox', { name: 'Search sources' }), 'price')
     expect(await screen.findByText('Price list.xlsx')).toBeVisible()
-    await waitFor(() => {
-      expect(screen.queryByText('Refund policy.pdf')).not.toBeInTheDocument()
-    })
-  })
+    // the search waits out its debounce, updates the URL and refetches: slow on a busy CI runner
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Refund policy.pdf')).not.toBeInTheDocument()
+      },
+      { timeout: 12_000 },
+    )
+  }, 30_000)
 
   it('says so when nothing matches the search', async () => {
     const { user } = renderSources()

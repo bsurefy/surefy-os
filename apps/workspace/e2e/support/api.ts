@@ -8,7 +8,7 @@ import type { Page } from '@playwright/test'
  */
 export async function callApi<T>(
   page: Page,
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
 ): Promise<T> {

@@ -325,359 +325,369 @@ function storeCredential(
 }
 
 /**
- * Provider keys, connection tests, local servers and personal keys until the integration task
- * (I4-02) switches to the real API. Scenarios: `degraded` (keys in error, rate limited or expiring
- * and "fallback in use" on the cards); on a test or save `key-invalid`, `quota`, `region`,
- * `test-timeout`, `server-offline`, `duplicate`; `provider-blocked`, `personal-disabled`,
- * `server-in-use`, `no-impact`.
+ * Provider keys, connection tests, local servers and personal keys. Live on the real API (B3-01's
+ * routes, I4-03); the handlers stay for component tests and for `MOCK_DOMAINS=vault`, to look at
+ * the states. Scenarios: `degraded` (keys in error, rate limited or expiring and "fallback in use"
+ * on the cards); on a test or save `key-invalid`, `quota`, `region`, `test-timeout`,
+ * `server-offline`, `duplicate`; `provider-blocked`, `personal-disabled`, `server-in-use`,
+ * `no-impact`.
  */
-export const vaultDomain = defineMockDomain('vault', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/providers`,
-    response: okResponse(z.array(providerCardDtoSchema)),
-    scenarios: {
-      default: () => mockOk(providerCards(credentials)),
-      degraded: () =>
-        mockOk([
-          {
-            providerKey: 'openai',
-            status: 'error',
-            statusReasonCode: ERROR_CODES.VAULT_KEY_INVALID,
-            keyCount: 1,
-            modelCount: 2,
-            expiresAt: null,
-            fallbackInUse: true,
-          },
-          {
-            providerKey: 'anthropic',
-            status: 'expiring',
-            statusReasonCode: null,
-            keyCount: 1,
-            modelCount: 2,
-            expiresAt: new Date(Date.now() + EXPIRING_IN_DAYS * DAY_MS - HOUR_MS).toISOString(),
-            fallbackInUse: false,
-          },
-          {
-            providerKey: 'google',
-            status: 'rate_limited',
-            statusReasonCode: ERROR_CODES.VAULT_QUOTA_EXCEEDED,
-            keyCount: 1,
-            modelCount: 2,
-            expiresAt: null,
-            fallbackInUse: false,
-          },
-          {
-            providerKey: 'openai_compatible',
-            status: 'not_connected',
-            statusReasonCode: null,
-            keyCount: 0,
-            modelCount: 0,
-            expiresAt: null,
-            fallbackInUse: false,
-          },
-        ]),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/credentials`,
-    response: pageResponse(credentialDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        return page(filterCredentials(url, credentials), url)
+export const vaultDomain = defineMockDomain(
+  'vault',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/providers`,
+      response: okResponse(z.array(providerCardDtoSchema)),
+      scenarios: {
+        default: () => mockOk(providerCards(credentials)),
+        degraded: () =>
+          mockOk([
+            {
+              providerKey: 'openai',
+              status: 'error',
+              statusReasonCode: ERROR_CODES.VAULT_KEY_INVALID,
+              keyCount: 1,
+              modelCount: 2,
+              expiresAt: null,
+              fallbackInUse: true,
+            },
+            {
+              providerKey: 'anthropic',
+              status: 'expiring',
+              statusReasonCode: null,
+              keyCount: 1,
+              modelCount: 2,
+              expiresAt: new Date(Date.now() + EXPIRING_IN_DAYS * DAY_MS - HOUR_MS).toISOString(),
+              fallbackInUse: false,
+            },
+            {
+              providerKey: 'google',
+              status: 'rate_limited',
+              statusReasonCode: ERROR_CODES.VAULT_QUOTA_EXCEEDED,
+              keyCount: 1,
+              modelCount: 2,
+              expiresAt: null,
+              fallbackInUse: false,
+            },
+            {
+              providerKey: 'openai_compatible',
+              status: 'not_connected',
+              statusReasonCode: null,
+              keyCount: 0,
+              modelCount: 0,
+              expiresAt: null,
+              fallbackInUse: false,
+            },
+          ]),
       },
-      degraded: ({ request }) => {
-        const url = new URL(request.url)
-        const expiresAt = new Date(Date.now() + EXPIRING_IN_DAYS * DAY_MS - HOUR_MS).toISOString()
-        const items = [
-          credentialFactory({
-            name: 'OpenAI production',
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/credentials`,
+      response: pageResponse(credentialDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          return page(filterCredentials(url, credentials), url)
+        },
+        degraded: ({ request }) => {
+          const url = new URL(request.url)
+          const expiresAt = new Date(Date.now() + EXPIRING_IN_DAYS * DAY_MS - HOUR_MS).toISOString()
+          const items = [
+            credentialFactory({
+              name: 'OpenAI production',
+              status: 'error',
+              statusReasonCode: ERROR_CODES.VAULT_KEY_INVALID,
+            }),
+            credentialFactory({
+              name: 'Anthropic for Support',
+              providerKey: 'anthropic',
+              expiresAt,
+            }),
+            credentialFactory({
+              name: 'Gemini key',
+              providerKey: 'google',
+              status: 'rate_limited',
+              statusReasonCode: ERROR_CODES.VAULT_QUOTA_EXCEEDED,
+            }),
+            credentialFactory({
+              name: 'Old Anthropic key',
+              providerKey: 'anthropic',
+              isPrimary: false,
+              status: 'expired',
+              expiresAt: '2026-09-01T00:00:00.000Z',
+            }),
+            credentialFactory({
+              name: 'GPU box',
+              kind: 'local_server',
+              providerKey: 'ollama',
+              baseUrl: 'https://gpu.internal:11434',
+              secretLast4: null,
+              status: 'error',
+              statusReasonCode: ERROR_CODES.LOCAL_SERVER_UNREACHABLE,
+              lastSuccessAt: '2026-10-04T18:20:00.000Z',
+              modelCount: 2,
+            }),
+          ]
+          return page(filterCredentials(url, items), url)
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/connection-tests`,
+      response: okResponse(connectionTestDtoSchema),
+      scenarios: {
+        default: async ({ request }) =>
+          mockOk(nextTestResult(connectionTestInputSchema.parse(await request.json()))),
+        'key-invalid': () => mockOk(failedTest(ERROR_CODES.VAULT_KEY_INVALID)),
+        quota: () => mockOk(failedTest(ERROR_CODES.VAULT_QUOTA_EXCEEDED)),
+        region: () => mockOk(failedTest(ERROR_CODES.VAULT_REGION_BLOCKED)),
+        'test-timeout': () => mockOk(failedTest(ERROR_CODES.VAULT_TEST_TIMEOUT)),
+        'server-offline': async ({ request }) => {
+          const input = connectionTestInputSchema.parse(await request.json())
+          return mockOk(
+            failedTest(
+              ERROR_CODES.LOCAL_SERVER_UNREACHABLE,
+              input.kind === 'local_server' ? input.baseUrl : null,
+            ),
+          )
+        },
+        duplicate: () =>
+          mockOk(testResult({ duplicateOf: { id: OPENAI_KEY_ID, name: 'OpenAI production' } })),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/credentials`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createCredentialInputSchema.parse(await request.json())
+          return mockOk(storeCredential(input, input.scope, null), { status: 201 })
+        },
+        'key-invalid': () => failureStatus(ERROR_CODES.VAULT_KEY_INVALID),
+        quota: () => failureStatus(ERROR_CODES.VAULT_QUOTA_EXCEEDED),
+        region: () => failureStatus(ERROR_CODES.VAULT_REGION_BLOCKED),
+        'test-timeout': () => failureStatus(ERROR_CODES.VAULT_TEST_TIMEOUT),
+        'provider-blocked': () =>
+          mockError(
+            HTTP_FORBIDDEN,
+            ERROR_CODES.VAULT_PROVIDER_NOT_ALLOWED,
+            "The access policy doesn't allow this provider",
+          ),
+      },
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/credentials/:credentialId`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findCredential(params.credentialId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revoked()
+          const input = updateCredentialInputSchema.parse(await request.json())
+          const updated = { ...found, ...input, updatedAt: '2026-10-05T09:00:00.000Z' }
+          replaceCredential(updated)
+          return mockOk(updated)
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/credentials/:credentialId/test`,
+      response: okResponse(connectionTestDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findCredential(params.credentialId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revoked()
+          replaceCredential({
+            ...found,
+            status: 'active',
+            statusReasonCode: null,
+            lastSuccessAt: '2026-10-05T09:00:00.000Z',
+            statusCheckedAt: '2026-10-05T09:00:00.000Z',
+          })
+          return mockOk(
+            testResult({ models: found.kind === 'local_server' ? LOCAL_MODELS : AI_MODELS }),
+          )
+        },
+        'key-invalid': ({ params }) => {
+          const found = findCredential(params.credentialId)
+          if (!found) return notFound()
+          replaceCredential({
+            ...found,
             status: 'error',
             statusReasonCode: ERROR_CODES.VAULT_KEY_INVALID,
-          }),
-          credentialFactory({ name: 'Anthropic for Support', providerKey: 'anthropic', expiresAt }),
-          credentialFactory({
-            name: 'Gemini key',
-            providerKey: 'google',
-            status: 'rate_limited',
-            statusReasonCode: ERROR_CODES.VAULT_QUOTA_EXCEEDED,
-          }),
-          credentialFactory({
-            name: 'Old Anthropic key',
-            providerKey: 'anthropic',
+            statusCheckedAt: '2026-10-05T09:00:00.000Z',
+          })
+          return mockOk(failedTest(ERROR_CODES.VAULT_KEY_INVALID))
+        },
+        'server-offline': () => mockOk(failedTest(ERROR_CODES.LOCAL_SERVER_UNREACHABLE)),
+        'test-timeout': () => mockOk(failedTest(ERROR_CODES.VAULT_TEST_TIMEOUT)),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/credentials/:credentialId/make-primary`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findCredential(params.credentialId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revoked()
+          credentials = credentials.map((credential) =>
+            credential.providerKey === found.providerKey &&
+            credential.scope === found.scope &&
+            credential.team?.id === found.team?.id &&
+            credential.kind === 'ai_provider'
+              ? { ...credential, isPrimary: credential.id === found.id }
+              : credential,
+          )
+          return mockOk({ ...found, isPrimary: true })
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/credentials/:credentialId/revoke`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findCredential(params.credentialId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revoked()
+          const updated: CredentialDto = {
+            ...found,
+            status: 'revoked',
             isPrimary: false,
-            status: 'expired',
-            expiresAt: '2026-09-01T00:00:00.000Z',
-          }),
-          credentialFactory({
-            name: 'GPU box',
+            revokedAt: '2026-10-05T09:00:00.000Z',
+          }
+          replaceCredential(updated)
+          return mockOk(updated)
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/credentials/:credentialId/impact`,
+      response: okResponse(credentialImpactDtoSchema),
+      scenarios: {
+        default: ({ params }) =>
+          findCredential(params.credentialId) ? mockOk(IMPACT) : notFound(),
+        'no-impact': () => mockOk(NO_IMPACT),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/local-servers`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createLocalServerInputSchema.parse(await request.json())
+          const created = credentialFactory({
+            name: input.name,
             kind: 'local_server',
-            providerKey: 'ollama',
-            baseUrl: 'https://gpu.internal:11434',
-            secretLast4: null,
-            status: 'error',
-            statusReasonCode: ERROR_CODES.LOCAL_SERVER_UNREACHABLE,
-            lastSuccessAt: '2026-10-04T18:20:00.000Z',
-            modelCount: 2,
-          }),
-        ]
-        return page(filterCredentials(url, items), url)
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/connection-tests`,
-    response: okResponse(connectionTestDtoSchema),
-    scenarios: {
-      default: async ({ request }) =>
-        mockOk(nextTestResult(connectionTestInputSchema.parse(await request.json()))),
-      'key-invalid': () => mockOk(failedTest(ERROR_CODES.VAULT_KEY_INVALID)),
-      quota: () => mockOk(failedTest(ERROR_CODES.VAULT_QUOTA_EXCEEDED)),
-      region: () => mockOk(failedTest(ERROR_CODES.VAULT_REGION_BLOCKED)),
-      'test-timeout': () => mockOk(failedTest(ERROR_CODES.VAULT_TEST_TIMEOUT)),
-      'server-offline': async ({ request }) => {
-        const input = connectionTestInputSchema.parse(await request.json())
-        return mockOk(
-          failedTest(
-            ERROR_CODES.LOCAL_SERVER_UNREACHABLE,
-            input.kind === 'local_server' ? input.baseUrl : null,
+            providerKey: input.providerKey,
+            scope: input.scope,
+            team: input.scope === 'team' ? SUPPORT_TEAM : null,
+            baseUrl: input.baseUrl,
+            secretLast4: input.secret ? input.secret.slice(-4) : null,
+            modelCount: LOCAL_MODELS.length,
+            lastUsedAt: null,
+          })
+          credentials = [...credentials, created]
+          return mockOk(created, { status: 201 })
+        },
+        'server-offline': () => failureStatus(ERROR_CODES.LOCAL_SERVER_UNREACHABLE),
+        'provider-blocked': () =>
+          mockError(
+            HTTP_FORBIDDEN,
+            ERROR_CODES.VAULT_PROVIDER_NOT_ALLOWED,
+            'Local models are turned off for this organization',
           ),
-        )
       },
-      duplicate: () =>
-        mockOk(testResult({ duplicateOf: { id: OPENAI_KEY_ID, name: 'OpenAI production' } })),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/credentials`,
-    response: okResponse(credentialDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createCredentialInputSchema.parse(await request.json())
-        return mockOk(storeCredential(input, input.scope, null), { status: 201 })
-      },
-      'key-invalid': () => failureStatus(ERROR_CODES.VAULT_KEY_INVALID),
-      quota: () => failureStatus(ERROR_CODES.VAULT_QUOTA_EXCEEDED),
-      region: () => failureStatus(ERROR_CODES.VAULT_REGION_BLOCKED),
-      'test-timeout': () => failureStatus(ERROR_CODES.VAULT_TEST_TIMEOUT),
-      'provider-blocked': () =>
-        mockError(
-          HTTP_FORBIDDEN,
-          ERROR_CODES.VAULT_PROVIDER_NOT_ALLOWED,
-          "The access policy doesn't allow this provider",
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/credentials/:credentialId`,
-    response: okResponse(credentialDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findCredential(params.credentialId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revoked()
-        const input = updateCredentialInputSchema.parse(await request.json())
-        const updated = { ...found, ...input, updatedAt: '2026-10-05T09:00:00.000Z' }
-        replaceCredential(updated)
-        return mockOk(updated)
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/credentials/:credentialId/test`,
-    response: okResponse(connectionTestDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findCredential(params.credentialId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revoked()
-        replaceCredential({
-          ...found,
-          status: 'active',
-          statusReasonCode: null,
-          lastSuccessAt: '2026-10-05T09:00:00.000Z',
-          statusCheckedAt: '2026-10-05T09:00:00.000Z',
-        })
-        return mockOk(
-          testResult({ models: found.kind === 'local_server' ? LOCAL_MODELS : AI_MODELS }),
-        )
-      },
-      'key-invalid': ({ params }) => {
-        const found = findCredential(params.credentialId)
-        if (!found) return notFound()
-        replaceCredential({
-          ...found,
-          status: 'error',
-          statusReasonCode: ERROR_CODES.VAULT_KEY_INVALID,
-          statusCheckedAt: '2026-10-05T09:00:00.000Z',
-        })
-        return mockOk(failedTest(ERROR_CODES.VAULT_KEY_INVALID))
-      },
-      'server-offline': () => mockOk(failedTest(ERROR_CODES.LOCAL_SERVER_UNREACHABLE)),
-      'test-timeout': () => mockOk(failedTest(ERROR_CODES.VAULT_TEST_TIMEOUT)),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/credentials/:credentialId/make-primary`,
-    response: okResponse(credentialDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findCredential(params.credentialId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revoked()
-        credentials = credentials.map((credential) =>
-          credential.providerKey === found.providerKey &&
-          credential.scope === found.scope &&
-          credential.team?.id === found.team?.id &&
-          credential.kind === 'ai_provider'
-            ? { ...credential, isPrimary: credential.id === found.id }
-            : credential,
-        )
-        return mockOk({ ...found, isPrimary: true })
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/credentials/:credentialId/revoke`,
-    response: okResponse(credentialDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findCredential(params.credentialId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revoked()
-        const updated: CredentialDto = {
-          ...found,
-          status: 'revoked',
-          isPrimary: false,
-          revokedAt: '2026-10-05T09:00:00.000Z',
-        }
-        replaceCredential(updated)
-        return mockOk(updated)
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/credentials/:credentialId/impact`,
-    response: okResponse(credentialImpactDtoSchema),
-    scenarios: {
-      default: ({ params }) => (findCredential(params.credentialId) ? mockOk(IMPACT) : notFound()),
-      'no-impact': () => mockOk(NO_IMPACT),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/local-servers`,
-    response: okResponse(credentialDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createLocalServerInputSchema.parse(await request.json())
-        const created = credentialFactory({
-          name: input.name,
-          kind: 'local_server',
-          providerKey: input.providerKey,
-          scope: input.scope,
-          team: input.scope === 'team' ? SUPPORT_TEAM : null,
-          baseUrl: input.baseUrl,
-          secretLast4: input.secret ? input.secret.slice(-4) : null,
-          modelCount: LOCAL_MODELS.length,
-          lastUsedAt: null,
-        })
-        credentials = [...credentials, created]
-        return mockOk(created, { status: 201 })
-      },
-      'server-offline': () => failureStatus(ERROR_CODES.LOCAL_SERVER_UNREACHABLE),
-      'provider-blocked': () =>
-        mockError(
-          HTTP_FORBIDDEN,
-          ERROR_CODES.VAULT_PROVIDER_NOT_ALLOWED,
-          'Local models are turned off for this organization',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: `${path}/local-servers/:serverId`,
-    response: okResponse(z.null()),
-    scenarios: {
-      default: ({ params }) => {
-        if (!findCredential(params.serverId)) return notFound()
-        credentials = credentials.filter((credential) => credential.id !== params.serverId)
-        return noContent()
-      },
-      'server-in-use': () =>
-        mockError(
-          HTTP_CONFLICT,
-          ERROR_CODES.VAULT_SERVER_IN_USE,
-          'A model on this server is still in use',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/local-servers/:serverId/impact`,
-    response: okResponse(credentialImpactDtoSchema),
-    scenarios: {
-      default: ({ params }) => (findCredential(params.serverId) ? mockOk(IMPACT) : notFound()),
-      'no-impact': () => mockOk(NO_IMPACT),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/local-servers/:serverId/sync`,
-    response: okResponse(localServerSyncDtoSchema),
-    scenarios: {
-      default: ({ params }) =>
-        findCredential(params.serverId)
-          ? mockOk({ models: LOCAL_MODELS, added: 1, removed: 0 })
-          : notFound(),
-      'server-offline': () => failureStatus(ERROR_CODES.LOCAL_SERVER_UNREACHABLE),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/my-credentials`,
-    response: pageResponse(credentialDtoSchema),
-    scenarios: {
-      default: ({ request }) =>
-        page(
-          credentials.filter(
-            (credential) => credential.owner?.id === MAYA.id && credential.status !== 'revoked',
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: `${path}/local-servers/:serverId`,
+      response: okResponse(z.null()),
+      scenarios: {
+        default: ({ params }) => {
+          if (!findCredential(params.serverId)) return notFound()
+          credentials = credentials.filter((credential) => credential.id !== params.serverId)
+          return noContent()
+        },
+        'server-in-use': () =>
+          mockError(
+            HTTP_CONFLICT,
+            ERROR_CODES.VAULT_SERVER_IN_USE,
+            'A model on this server is still in use',
           ),
-          new URL(request.url),
-        ),
-      'personal-disabled': () =>
-        mockError(
-          HTTP_FORBIDDEN,
-          ERROR_CODES.VAULT_PERSONAL_KEYS_DISABLED,
-          'Personal keys are turned off',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/my-credentials`,
-    response: okResponse(credentialDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createPersonalCredentialInputSchema.parse(await request.json())
-        return mockOk(storeCredential(input, 'personal', MAYA), { status: 201 })
       },
-      'personal-disabled': () =>
-        mockError(
-          HTTP_FORBIDDEN,
-          ERROR_CODES.VAULT_PERSONAL_KEYS_DISABLED,
-          'Personal keys are turned off',
-        ),
-      'key-invalid': () => failureStatus(ERROR_CODES.VAULT_KEY_INVALID),
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/local-servers/:serverId/impact`,
+      response: okResponse(credentialImpactDtoSchema),
+      scenarios: {
+        default: ({ params }) => (findCredential(params.serverId) ? mockOk(IMPACT) : notFound()),
+        'no-impact': () => mockOk(NO_IMPACT),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/local-servers/:serverId/sync`,
+      response: okResponse(localServerSyncDtoSchema),
+      scenarios: {
+        default: ({ params }) =>
+          findCredential(params.serverId)
+            ? mockOk({ models: LOCAL_MODELS, added: 1, removed: 0 })
+            : notFound(),
+        'server-offline': () => failureStatus(ERROR_CODES.LOCAL_SERVER_UNREACHABLE),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/my-credentials`,
+      response: pageResponse(credentialDtoSchema),
+      scenarios: {
+        default: ({ request }) =>
+          page(
+            credentials.filter(
+              (credential) => credential.owner?.id === MAYA.id && credential.status !== 'revoked',
+            ),
+            new URL(request.url),
+          ),
+        'personal-disabled': () =>
+          mockError(
+            HTTP_FORBIDDEN,
+            ERROR_CODES.VAULT_PERSONAL_KEYS_DISABLED,
+            'Personal keys are turned off',
+          ),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/my-credentials`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createPersonalCredentialInputSchema.parse(await request.json())
+          return mockOk(storeCredential(input, 'personal', MAYA), { status: 201 })
+        },
+        'personal-disabled': () =>
+          mockError(
+            HTTP_FORBIDDEN,
+            ERROR_CODES.VAULT_PERSONAL_KEYS_DISABLED,
+            'Personal keys are turned off',
+          ),
+        'key-invalid': () => failureStatus(ERROR_CODES.VAULT_KEY_INVALID),
+      },
+    }),
+  ],
+  { isLive: true },
+)

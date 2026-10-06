@@ -116,51 +116,57 @@ function listPage(url: URL) {
 const path = '/orgs/:orgId/notifications'
 
 /**
- * In-app notifications (B2-01's routes) until the integration task (I4-08) switches to the real
- * API. Every built-in scenario applies; `empty` also zeroes the bell.
+ * In-app notifications (B2-01's routes), live on the real API (I4-08; the handlers stay for
+ * component tests and for `MOCK_DOMAINS=notifications`, to look at the states). Every built-in
+ * scenario applies; `empty` also zeroes the bell.
  */
-export const notificationsDomain = defineMockDomain('notifications', [
-  defineMockHandler({
-    method: 'get',
-    path,
-    response: pageResponse(notificationDtoSchema),
-    scenarios: { default: ({ request }) => listPage(new URL(request.url)) },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/unread-count`,
-    response: okResponse(unreadCountDtoSchema),
-    scenarios: {
-      default: () => mockOk({ count: notifications.filter((item) => item.readAt === null).length }),
-      empty: () => mockOk({ count: 0 }),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:notificationId/read`,
-    response: okResponse(notificationDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = notifications.find((item) => item.id === params.notificationId)
-        if (!found) {
-          return mockError(HTTP_NOT_FOUND, ERROR_CODES.NOTIFICATION_NOT_FOUND, 'Not found')
-        }
-        const read = markRead(found)
-        notifications = notifications.map((item) => (item.id === read.id ? read : item))
-        return mockOk(read)
+export const notificationsDomain = defineMockDomain(
+  'notifications',
+  [
+    defineMockHandler({
+      method: 'get',
+      path,
+      response: pageResponse(notificationDtoSchema),
+      scenarios: { default: ({ request }) => listPage(new URL(request.url)) },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/unread-count`,
+      response: okResponse(unreadCountDtoSchema),
+      scenarios: {
+        default: () =>
+          mockOk({ count: notifications.filter((item) => item.readAt === null).length }),
+        empty: () => mockOk({ count: 0 }),
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/read-all`,
-    response: okResponse(markAllReadResultDtoSchema),
-    scenarios: {
-      default: () => {
-        const affected = notifications.filter((item) => item.readAt === null).length
-        notifications = notifications.map(markRead)
-        return mockOk({ affected })
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:notificationId/read`,
+      response: okResponse(notificationDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = notifications.find((item) => item.id === params.notificationId)
+          if (!found) {
+            return mockError(HTTP_NOT_FOUND, ERROR_CODES.NOTIFICATION_NOT_FOUND, 'Not found')
+          }
+          const read = markRead(found)
+          notifications = notifications.map((item) => (item.id === read.id ? read : item))
+          return mockOk(read)
+        },
       },
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/read-all`,
+      response: okResponse(markAllReadResultDtoSchema),
+      scenarios: {
+        default: () => {
+          const affected = notifications.filter((item) => item.readAt === null).length
+          notifications = notifications.map(markRead)
+          return mockOk({ affected })
+        },
+      },
+    }),
+  ],
+  { isLive: true },
+)

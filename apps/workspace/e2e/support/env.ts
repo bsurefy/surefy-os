@@ -43,10 +43,43 @@ export const e2e = {
   redisDatabase: 1 + (slot % (REDIS_DATABASES - 1)),
   postgresPort,
   redisPort,
+  /** The stub OpenAI-compatible model server (`modelServer.ts`), next to the worktree's ports. */
+  modelPort: Number(read('MODEL_STUB_PORT', String(Number(read('API_PORT', '4000')) + 9))),
+  /** The stub document parser (`mlServer.ts`), which the real one, `apps/ml`, stands in for. */
+  mlPort: Number(read('ML_STUB_PORT', String(Number(read('API_PORT', '4000')) + 8))),
+  /** The health port of the worker that the knowledge spec starts for itself. */
+  workerPort: Number(read('API_PORT', '4000')) + 7,
 }
 
 export const webUrl = `http://localhost:${String(e2e.webPort)}`
 export const apiUrl = `http://localhost:${String(e2e.apiPort)}`
+export const modelServerUrl = `http://127.0.0.1:${String(e2e.modelPort)}`
+export const mlServerUrl = `http://127.0.0.1:${String(e2e.mlPort)}`
+/** The stub's embedding model has its own address, so the chat model's listing stays one model. */
+export const embedServerUrl = `${modelServerUrl}/embed`
+
+/** The one model the stub server lists; the chat specs connect it and enable it in the Vault. */
+export const STUB_MODEL_ID = 'e2e-echo'
+/** The stub's embedding model (at `embedServerUrl`): word-hash vectors of this size. */
+export const EMBED_MODEL_ID = 'e2e-embed'
+export const EMBED_DIMENSIONS = 384
+/** The stub answers "Echo: <question>"; a question starting with this gets a long answer. */
+export const LONG_ANSWER_PREFIX = 'Tell me a long story'
+
+const TITLE_WORDS = 6
+
+/**
+ * The title the stub gives a chat: the first words of the first question. The title request's
+ * prompt is "Question:\n<question>\n\nAnswer:\n<answer>".
+ */
+export function stubTitle(prompt: string): string {
+  const question = prompt.replace(/^Question:\n/, '').split('\n')[0] ?? ''
+  return question
+    .split(/\s+/)
+    .slice(0, TITLE_WORDS)
+    .join(' ')
+    .replace(/[?.!]$/, '')
+}
 
 const ownerPassword = read('SUREFY_OWNER_PASSWORD', 'surefy_owner')
 const appPassword = read('SUREFY_APP_PASSWORD', 'surefy_app')
@@ -70,7 +103,7 @@ export function apiEnv(): Record<string, string> {
     REDIS_URL: `redis://127.0.0.1:${redisPort}/${String(e2e.redisDatabase)}`,
     AUTH_SECRET: 'e2e-auth-secret-not-for-real-installs-0001',
     ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
-    ML_SERVICE_URL: 'http://127.0.0.1:18000',
+    ML_SERVICE_URL: mlServerUrl,
     ML_SERVICE_TOKEN: 'e2e-ml-service-token-not-for-real-installs',
     STORAGE_DRIVER: 'local',
     STORAGE_LOCAL_PATH: `${REPO_ROOT}apps/api/data/e2e-storage`,
@@ -87,17 +120,26 @@ export function webEnv(): Record<string, string> {
   }
 }
 
+// New on every run. The config loads this file in the runner first, and the workers it starts
+// inherit the variable, so the setup project and the specs that sign in again share one password.
+process.env.E2E_OWNER_PASSWORD ??= `E2e-${randomBytes(12).toString('base64url')}`
+
 /**
- * The seeded Owner and organization: test credentials only, never a real account. The password is
- * new on every run; only the setup project signs in, and the specs reuse its session.
+ * The Owner and organization the setup wizard creates: test credentials only, never a real
+ * account. The specs reuse the setup project's session; the sign-in specs sign in again.
  */
 export const OWNER = {
   name: 'Maya Okafor',
   email: 'owner@e2e.test',
-  password: `E2e-${randomBytes(12).toString('base64url')}`,
+  password: process.env.E2E_OWNER_PASSWORD,
 }
 
 export const ORGANIZATION = { name: 'Acme Logistics', slug: 'acme' }
 
 /** Where the signed-in Owner's cookies are kept between the setup project and the specs. */
 export const OWNER_STATE = fileURLToPath(new URL('../.auth/owner.json', import.meta.url))
+
+/** The worker's environment: the API's, and a health port of its own. */
+export function workerEnv(): Record<string, string> {
+  return { ...apiEnv(), WORKER_HEALTH_PORT: String(e2e.workerPort) }
+}

@@ -80,7 +80,8 @@ export function useThreadStream({
   const [session] = useState(() => {
     const failure = new FailureBox()
     const transport = new DefaultChatTransport<ThreadUiMessage>({
-      api: `${window.location.origin}${API_PREFIX}${chatStreamPath(orgId, chatId)}`,
+      // relative: same origin through the `/api` rewrite, and nothing to read while rendering on the server
+      api: `${API_PREFIX}${chatStreamPath(orgId, chatId)}`,
       credentials: 'include',
       // the body is built per call, from the trigger (submit, regenerate, edit, continue)
       prepareSendMessagesRequest: ({ body }) => ({ body: body ?? {} }),

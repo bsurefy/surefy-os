@@ -68,57 +68,62 @@ const meResponse = okResponse(meDtoSchema)
 
 /**
  * `GET/PATCH /api/v1/me` and the person's sessions. Scenarios: `multi-org` (Enterprise, two
- * organizations), `cloud` (plans and credits), `support-access` (the access banner).
+ * organizations), `cloud` (plans and credits), `support-access` (the access banner). Live on the
+ * real API (I4-08); the handlers stay for component tests and for `MOCK_DOMAINS=me`.
  */
-export const meDomain = defineMockDomain('me', [
-  defineMockHandler({
-    method: 'get',
-    path: '/me',
-    response: meResponse,
-    scenarios: {
-      default: () => mockOk(shellMe()),
-      ...shellSafe(() => mockOk(shellMe())),
-      'multi-org': () => mockOk(multiOrgMe()),
-      cloud: () => mockOk(cloudMe()),
-      'support-access': () => mockOk(supportAccessMe()),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: '/me',
-    response: meResponse,
-    scenarios: {
-      default: async ({ request }) => {
-        const input = updateMeInputSchema.parse(await request.json())
-        const me = shellMe()
-        const { name, ...preferences } = input
-        return mockOk({
-          ...me,
-          user: { ...me.user, name: name ?? me.user.name },
-          preferences: { ...me.preferences, ...preferences },
-        })
+export const meDomain = defineMockDomain(
+  'me',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: '/me',
+      response: meResponse,
+      scenarios: {
+        default: () => mockOk(shellMe()),
+        ...shellSafe(() => mockOk(shellMe())),
+        'multi-org': () => mockOk(multiOrgMe()),
+        cloud: () => mockOk(cloudMe()),
+        'support-access': () => mockOk(supportAccessMe()),
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: '/me/sessions',
-    response: okResponse(z.array(sessionDtoSchema)),
-    scenarios: {
-      default: () => mockOk(SESSIONS),
-      empty: () => mockOk(SESSIONS.filter((session) => session.isCurrent)),
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: '/me/sessions/:sessionId',
-    response: z.null(),
-    scenarios: { default: () => new HttpResponse(null, { status: 204 }) },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: '/me/sessions/revoke-others',
-    response: z.null(),
-    scenarios: { default: () => new HttpResponse(null, { status: 204 }) },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: '/me',
+      response: meResponse,
+      scenarios: {
+        default: async ({ request }) => {
+          const input = updateMeInputSchema.parse(await request.json())
+          const me = shellMe()
+          const { name, ...preferences } = input
+          return mockOk({
+            ...me,
+            user: { ...me.user, name: name ?? me.user.name },
+            preferences: { ...me.preferences, ...preferences },
+          })
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: '/me/sessions',
+      response: okResponse(z.array(sessionDtoSchema)),
+      scenarios: {
+        default: () => mockOk(SESSIONS),
+        empty: () => mockOk(SESSIONS.filter((session) => session.isCurrent)),
+      },
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: '/me/sessions/:sessionId',
+      response: z.null(),
+      scenarios: { default: () => new HttpResponse(null, { status: 204 }) },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: '/me/sessions/revoke-others',
+      response: z.null(),
+      scenarios: { default: () => new HttpResponse(null, { status: 204 }) },
+    }),
+  ],
+  { isLive: true },
+)
