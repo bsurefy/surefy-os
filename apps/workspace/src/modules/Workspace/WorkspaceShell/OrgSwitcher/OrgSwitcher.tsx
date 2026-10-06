@@ -17,6 +17,18 @@ import { getInitials, toRoute } from '../../Workspace.utils'
 
 import type { OrgSwitcherProps } from './OrgSwitcher.types'
 
+/** The "Create organization" row has the organization row's tile, so names and labels line up. */
+function CreateTile() {
+  return (
+    <span
+      aria-hidden="true"
+      className="border-border text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-md border border-dashed"
+    >
+      <Plus className="size-4" />
+    </span>
+  )
+}
+
 /**
  * The organization section of the user menu: every organization with the person's role, and
  * "Create organization". The switcher is not in the sidebar, since people rarely change organization.
@@ -48,16 +60,16 @@ export default function OrgSwitcher({ orgSlug, onUpgrade }: Readonly<OrgSwitcher
       ))}
       {createMode === 'create' && (
         <DropdownMenuItem asChild>
-          <Link href={toRoute(ROUTES.auth.organizations)}>
-            <Plus aria-hidden="true" />
-            {t('create')}
+          <Link href={toRoute(ROUTES.auth.organizations)} className="h-11">
+            <CreateTile />
+            <span className="text-label flex-1 truncate font-medium">{t('create')}</span>
           </Link>
         </DropdownMenuItem>
       )}
       {createMode === 'upgrade' && (
-        <DropdownMenuItem onSelect={onUpgrade}>
-          <Plus aria-hidden="true" />
-          <span className="flex-1">{t('create')}</span>
+        <DropdownMenuItem onSelect={onUpgrade} className="h-11">
+          <CreateTile />
+          <span className="text-label flex-1 truncate font-medium">{t('create')}</span>
           <EditionBadge label={upgradeEdition} />
         </DropdownMenuItem>
       )}
