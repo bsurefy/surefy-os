@@ -27,6 +27,8 @@ export default defineConfig({
   workers: 1,
   reporter: isCi ? [['github'], ['html', { open: 'never' }]] : 'list',
   // `next dev` compiles each page on its first visit, which can take longer than the default 5 s
+  // (and, on a busy CI runner, longer than the default 30 s for a whole test)
+  timeout: isCi ? 90_000 : 30_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL: webUrl,
