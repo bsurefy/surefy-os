@@ -78,7 +78,7 @@ describe('InsightsOverview', () => {
     await waitFor(() => {
       expect(within(kpis).getByText('Active people').parentElement).toHaveTextContent('3')
     })
-    expect(screen.getByRole('combobox', { name: 'Date range' })).toHaveTextContent('Last 30 days')
+    expect(screen.getByRole('radio', { name: 'Last 30 days' })).toBeChecked()
     expect(await screen.findByText(/Includes usage up to/)).toBeVisible()
   })
 
