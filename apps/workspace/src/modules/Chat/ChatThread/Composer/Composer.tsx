@@ -134,7 +134,7 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
           value={composer.text}
           disabled={c.hasModels === false}
           style={{ maxHeight: TEXT_MAX_HEIGHT }}
-          className="text-body-lg min-h-13 resize-none overflow-y-auto border-0 bg-transparent px-3.5 pt-3 pb-1 shadow-none focus-visible:ring-0 md:text-base dark:bg-transparent"
+          className="text-body-lg min-h-13 resize-none overflow-y-auto border-0 bg-transparent px-3.5 pt-3 pb-1 shadow-none focus-visible:ring-0 focus-visible:outline-none md:text-base dark:bg-transparent"
           onChange={(event) => {
             composer.onTextChange(event.target.value)
           }}
