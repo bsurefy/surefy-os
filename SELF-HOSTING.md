@@ -8,9 +8,9 @@ The stack runs these services: **caddy** (HTTPS and routing), **workspace** (the
 
 - A Linux server with Docker Engine and the Docker Compose plugin (`docker compose version` works), and `openssl`.
 - Memory and disk for your documents and database. The `ml` service (document parsing) needs the most memory and its image carries the document models; watch `docker stats` and size the server for your document volume.
-- A host name (for example `surefy.example.com`) whose DNS record points to the server, with ports **80** and **443** reachable from the internet. Caddy gets and renews the HTTPS certificate on its own.
+- A host name (for example `surefy.example.com`) whose DNS record points to the server. By default SurefyOS serves HTTPS itself: ports **80** and **443** must be free and reachable from the internet, and Caddy gets and renews the certificate on its own. If those ports are taken, or a proxy of yours does the HTTPS, see [Ports, plain HTTP and your own proxy](#ports-plain-http-and-your-own-proxy).
 
-The host name must be a real, publicly resolvable name: the API gives the `ml` service signed file addresses that use it.
+The host name must resolve from inside the server too: the API gives the `ml` service signed file addresses that use it.
 
 ## Install
 
@@ -29,17 +29,37 @@ The installer:
 
 It prints the address and the **setup token** when it is done. Options:
 
-| Option          | Effect                                                            |
-| --------------- | ----------------------------------------------------------------- |
-| `--domain host` | The host name people open. Asked for when omitted.                |
-| `--build`       | Build the images from this checkout instead of pulling them.      |
-| `--no-start`    | Write `.env` and stop, so you can edit it before the first start. |
+| Option             | Effect                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| `--domain host`    | The host name people open; SurefyOS serves HTTPS for it. Asked for when omitted.                    |
+| `--http`           | With `--domain`: plain HTTP, no certificate.                                                        |
+| `--public-url url` | Your own proxy does the HTTPS and forwards to SurefyOS; `url` is the address people open.           |
+| `--http-port n`    | Host port for HTTP (default 80; 8080 with `--public-url`).                                          |
+| `--https-port n`   | Host port for HTTPS (default 443).                                                                  |
+| `--bind address`   | Host address the ports are published on (default every interface; `127.0.0.1` with `--public-url`). |
+| `--build`          | Build the images from this checkout instead of pulling them.                                        |
+| `--no-start`       | Write `.env` and stop, so you can edit it before the first start.                                   |
 
 `SUREFY_IMAGE_REGISTRY` and `SUREFY_VERSION` (in `.env`) choose where the images come from and which release runs. Running the installer again keeps the existing `.env` and repeats the pull, migrate and start steps.
 
+### Ports, plain HTTP and your own proxy
+
+| You have                                     | Install with                                  | People open                  |
+| -------------------------------------------- | --------------------------------------------- | ---------------------------- |
+| A public host name and free ports 80 and 443 | `--domain surefy.example.com`                 | `https://surefy.example.com` |
+| A private network or a trial, no certificate | `--domain surefy.lan --http --http-port 8080` | `http://surefy.lan:8080`     |
+| A proxy of your own that does the HTTPS      | `--public-url https://surefy.example.com`     | the address you gave         |
+
+- **Plain HTTP** sends passwords and sessions unencrypted: use it on a private network only. Only the HTTP port is published, so a program that holds port 443 does not matter.
+- **Your own proxy** forwards to `http://127.0.0.1:8080` (the installer prints the address). It must pass the original `Host`, `X-Forwarded-For` and `X-Forwarded-Proto` headers, must not buffer responses (chat answers stream), and must accept request bodies as large as the files you upload. SurefyOS keeps the forwarded headers of proxies on private networks only. For a proxy on another machine, publish on an address it can reach with `--bind` and close the port to everyone else with a firewall.
+- **The `ml` service downloads uploaded files from the public address**, so the server must be able to open that address from inside Docker. Behind your own proxy that means the proxy's public name must resolve and answer from the server itself.
+- **Other ports.** Certificates from a public authority are issued over ports 80 and 443 only: with another `--https-port`, forward 80 and 443 to it or use a private name. The redirect from HTTP to HTTPS does not keep a custom HTTPS port, so open the HTTPS address, with its port, directly.
+
+The choice is stored in `infra/docker/.env`: `COMPOSE_PROFILES` (`tls` or `http`), `SUREFY_SITE_ADDRESS`, `SUREFY_PUBLIC_HOST`, `SUREFY_HTTP_PORT`, `SUREFY_HTTPS_PORT`, `SUREFY_BIND_ADDRESS`, and with `--public-url` also `SUREFY_INTERNAL_ALIAS` and `SUREFY_TRUSTED_PROXIES`, next to `APP_ORIGIN` and `API_PUBLIC_URL`. To see the values of a mode, run `install.sh --no-start` for it in a copy of the repository and compare the files.
+
 ### First visit
 
-Open `https://surefy.example.com`. The guided setup checks the server, then asks for your organization's details and the **setup token** the installer printed (it is also `SETUP_TOKEN` in `.env`). It creates your organization and its owner account. The token only protects the first start of a server that is open to the internet; setup cannot run again once it is complete.
+Open the address the installer printed (`https://surefy.example.com`). The guided setup checks the server, then asks for your organization's details and the **setup token** the installer printed (it is also `SETUP_TOKEN` in `.env`). It creates your organization and its owner account. The token only protects the first start of a server that is open to the internet; setup cannot run again once it is complete.
 
 A Community install holds one organization.
 
@@ -201,12 +221,13 @@ To replace `ENCRYPTION_KEY`: put the old value in `ENCRYPTION_KEY_PREVIOUS`, set
 
 ## Troubleshooting
 
-| Symptom                                          | Check                                                                                                                                                 |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The site does not load, or the certificate fails | DNS points to this server; ports 80 and 443 are open; `surefy logs caddy`.                                                                            |
-| The installer stops at "waiting"                 | `surefy ps` shows the unhealthy service; `surefy logs <service>`. The first `ml` start takes up to two minutes.                                       |
-| `api` exits at start                             | `surefy logs api` prints the invalid or missing setting from `.env`.                                                                                  |
-| A document stays "processing"                    | `surefy logs worker ml`. The `ml` service must reach `https://<your host name>`; check DNS and that Caddy is running.                                 |
-| A local model test fails                         | The address is probably `localhost`; see [the address must work from inside the api container](#the-address-must-work-from-inside-the-api-container). |
+| Symptom                                            | Check                                                                                                                                                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The stack does not start: `address already in use` | Another program uses a published port. Install with other ports, or in a mode that needs none of 80 and 443 (see [Ports, plain HTTP and your own proxy](#ports-plain-http-and-your-own-proxy)). |
+| The site does not load, or the certificate fails   | DNS points to this server; ports 80 and 443 are open; `surefy logs caddy`.                                                                                                                      |
+| The installer stops at "waiting"                   | `surefy ps` shows the unhealthy service; `surefy logs <service>`. The first `ml` start takes up to two minutes.                                                                                 |
+| `api` exits at start                               | `surefy logs api` prints the invalid or missing setting from `.env`.                                                                                                                            |
+| A document stays "processing"                      | `surefy logs worker ml`. The `ml` service must reach `https://<your host name>`; check DNS and that Caddy is running.                                                                           |
+| A local model test fails                           | The address is probably `localhost`; see [the address must work from inside the api container](#the-address-must-work-from-inside-the-api-container).                                           |
 
 Report security problems privately, as described in [SECURITY.md](./SECURITY.md).
