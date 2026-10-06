@@ -4,5 +4,7 @@ export interface DataLocationBadgeProps {
   location: 'local' | 'provider'
   /** "Stays on your server" or "Sent to OpenAI". Translated text. */
   label: string
+  /** `sm` 22px (answers, rows); `md` 26px (the thread header). */
+  size?: 'sm' | 'md'
   className?: string
 }

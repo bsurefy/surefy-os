@@ -24,7 +24,7 @@ export function ChatListSkeleton() {
   return (
     <div role="status" aria-label={t('loading')} className="flex flex-col gap-1 px-2">
       {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <Skeleton key={index} className="h-8 w-full" />
+        <Skeleton key={index} className="h-7 w-full" />
       ))}
     </div>
   )

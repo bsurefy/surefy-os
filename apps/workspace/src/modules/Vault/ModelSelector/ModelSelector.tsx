@@ -2,7 +2,7 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -12,7 +12,8 @@ import { modelQueries } from '@/api/models'
 import { ROUTES } from '@/constants/routes'
 import { PERMISSIONS } from '@surefy/contracts'
 import type { ModelType, UsableModelDto } from '@surefy/contracts'
-import { DataLocationBadge } from '@surefy/ui/components/DataDisplay'
+import { DataLocationBadge, MonoTile } from '@surefy/ui/components/DataDisplay'
+import { cn } from '@surefy/ui/lib/utils'
 import { Button } from '@surefy/ui/primitives/button'
 import {
   Command,
@@ -72,17 +73,32 @@ export default function ModelSelector({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="secondary"
-          className={className}
+        <button
+          type="button"
+          className={cn(
+            'border-border bg-surface hover:bg-surface-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-ring/30 duration-fast flex h-[2.375rem] max-w-full min-w-0 items-center gap-2.5 rounded-lg border py-0 pr-2.5 pl-1.5 text-left transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:ring-[3px]',
+            className,
+          )}
           disabled={isDisabled}
           aria-label={t('label')}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className="truncate">{selected?.displayName ?? t('placeholder')}</span>
-          <ChevronsUpDown aria-hidden className="size-4 shrink-0" />
-        </Button>
+          <MonoTile size="sm">{(selected?.displayName ?? '?').slice(0, 1).toUpperCase()}</MonoTile>
+          <span className="flex min-w-0 flex-col">
+            <span className="text-label truncate leading-[1.0625rem] font-semibold">
+              {selected?.displayName ?? t('placeholder')}
+            </span>
+            {selected && (
+              <span className="text-overline text-muted-foreground truncate leading-[0.875rem] font-normal tracking-normal normal-case">
+                {selected.dataLocation === 'on_server'
+                  ? t('onServer')
+                  : getProviderName(selected.providerKey)}
+              </span>
+            )}
+          </span>
+          <ChevronDown aria-hidden className="text-muted-foreground size-3.5 shrink-0" />
+        </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">
         {!query.isPending && models.length === 0 ? (

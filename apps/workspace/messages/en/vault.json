@@ -468,7 +468,8 @@
       "admin": "Connect a model to start chatting.",
       "member": "Your admin hasn't enabled any models yet. Ask an admin.",
       "open": "Open Vault"
-    }
+    },
+    "onServer": "Local · on your server"
   },
   "personal": {
     "title": "API keys",

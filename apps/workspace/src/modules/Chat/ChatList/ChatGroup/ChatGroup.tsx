@@ -18,7 +18,7 @@ export default function ChatGroup({
   const headingId = useId()
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-0.5">
-      <h3 id={headingId} className="text-caption text-muted-foreground px-2 pb-1 font-medium">
+      <h3 id={headingId} className="text-overline text-muted-foreground px-2 pt-2 pb-1">
         {heading}
       </h3>
       <ul className="flex flex-col gap-0.5">

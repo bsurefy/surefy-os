@@ -22,8 +22,8 @@ import { isLocalModel } from '../ThreadView/ThreadView.settings'
 import type { ThreadViewController } from '../ThreadView/ThreadView.controller'
 
 /**
- * The thread's header (chat.md §1): the model picker, the knowledge scope, where the data goes and
- * the "⋯" menu with private chat, export and delete.
+ * The thread's 56px header (chat.md §1): the model picker, the knowledge scope, where the data
+ * goes and the "⋯" menu with private chat, export and delete.
  */
 export default function ThreadHeader({ c }: Readonly<{ c: ThreadViewController }>) {
   const t = useTranslations('chat.thread.header')
@@ -32,7 +32,7 @@ export default function ThreadHeader({ c }: Readonly<{ c: ThreadViewController }
   const isLocal = isLocalModel(model)
 
   return (
-    <header className="flex flex-wrap items-center gap-2">
+    <header className="border-border flex min-h-14 shrink-0 flex-wrap items-center gap-2.5 border-b px-4 py-2 md:px-5">
       <ModelSelector
         value={settings.settings.modelKey}
         onValueChange={settings.onModelChange}
@@ -46,6 +46,7 @@ export default function ThreadHeader({ c }: Readonly<{ c: ThreadViewController }
       />
       {model && (
         <DataLocationBadge
+          size="md"
           location={isLocal ? 'local' : 'provider'}
           label={
             isLocal
@@ -55,7 +56,7 @@ export default function ThreadHeader({ c }: Readonly<{ c: ThreadViewController }
         />
       )}
       {settings.settings.isPrivate && (
-        <span className="text-label bg-surface-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5">
+        <span className="text-caption bg-surface-2 text-foreground-secondary inline-flex h-[1.375rem] items-center gap-1 rounded-full px-2 font-medium">
           <Lock aria-hidden className="size-3" />
           {t('private.badge')}
         </span>
@@ -63,7 +64,7 @@ export default function ThreadHeader({ c }: Readonly<{ c: ThreadViewController }
       <div className="ml-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label={t('menu')}>
+            <Button variant="ghost" size="icon-md" aria-label={t('menu')}>
               <MoreHorizontal aria-hidden />
             </Button>
           </DropdownMenuTrigger>

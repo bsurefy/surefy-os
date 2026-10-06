@@ -95,7 +95,7 @@ export default function FolderSection({
           aria-expanded={isExpanded}
           aria-controls={panelId}
           onClick={onToggle}
-          className="text-body hover:bg-surface-2 flex w-full min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5 pr-9 text-left"
+          className="text-label hover:bg-surface-2 flex h-8 w-full min-w-0 items-center gap-1.5 rounded-md px-2 pr-8 text-left"
         >
           <Chevron aria-hidden className="text-muted-foreground size-4 shrink-0" />
           <Folder aria-hidden className="text-muted-foreground size-4 shrink-0" />
@@ -129,7 +129,7 @@ export default function FolderSection({
           </DropdownMenu>
         </div>
       </div>
-      <div id={panelId} hidden={!isExpanded} className="pl-4">
+      <div id={panelId} hidden={!isExpanded} className="pl-3">
         {isExpanded && <FolderChats orgId={orgId} folder={folder} ctx={ctx} />}
       </div>
     </li>

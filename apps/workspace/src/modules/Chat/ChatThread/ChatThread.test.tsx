@@ -75,7 +75,9 @@ afterEach(() => {
 describe('ChatThread: new chat', () => {
   it('greets, offers four starters and the setup checklist', async () => {
     const { user } = openChat(undefined)
-    expect(await screen.findByRole('heading', { name: 'What can I help with?' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: 'What can I help with today?' }),
+    ).toBeVisible()
     const starters = screen.getByRole('list', { name: 'Ways to start' })
     expect(within(starters).getAllByRole('button')).toHaveLength(4)
     expect(await screen.findByRole('region', { name: 'Finish setting up' })).toBeVisible()
@@ -108,7 +110,7 @@ describe('ChatThread: new chat', () => {
       }
     })
     const { user } = openChat(undefined)
-    await screen.findByRole('heading', { name: 'What can I help with?' })
+    await screen.findByRole('heading', { name: 'What can I help with today?' })
     await user.type(screen.getByLabelText('Message'), 'What is the refund policy?{Enter}')
 
     expect(await screen.findByText('What is the refund policy?')).toBeVisible()
@@ -159,7 +161,7 @@ describe('ChatThread: history', () => {
       'open',
     )
     expect(screen.getByText('1 step').closest('details')).not.toHaveAttribute('open')
-    expect(screen.getByText('Copy')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeVisible()
     expect((await screen.findAllByText('Sent to OpenAI')).length).toBeGreaterThan(0)
   })
 
@@ -360,7 +362,7 @@ describe('ChatThread: rating, settings and offline', () => {
 
   it('lets the person pick which knowledge bases to search', async () => {
     const { user } = openChat(undefined)
-    await screen.findByRole('heading', { name: 'What can I help with?' })
+    await screen.findByRole('heading', { name: 'What can I help with today?' })
     await user.click(screen.getByRole('button', { name: 'Knowledge scope' }))
     await user.click(await screen.findByRole('radio', { name: /Selected knowledge/ }))
     const list = await screen.findByRole('list', { name: 'Knowledge bases' })

@@ -6,7 +6,7 @@ import { useMediaQuery } from '@surefy/ui/hooks/useMediaQuery'
 
 import { DESKTOP_MEDIA_QUERY } from '../Workspace.constants'
 import { useVisibleNav } from '../Workspace.hooks'
-import { useSidebarStore } from '../Workspace.store'
+import { useShellLayoutStore, useSidebarStore } from '../Workspace.store'
 import { useShellShortcuts } from './WorkspaceShell.shortcuts'
 
 import type { WorkspaceShellProps } from './WorkspaceShell.types'
@@ -22,6 +22,7 @@ export function useWorkspaceShellController({ orgSlug }: Pick<WorkspaceShellProp
   const preference = useSidebarStore((state) => state.collapsedPreference)
   const toggle = useSidebarStore((state) => state.toggle)
   const navItems = useVisibleNav()
+  const width = useShellLayoutStore((state) => state.width)
 
   // Persisted stores rehydrate after mount, so the server HTML and the first render agree
   useEffect(() => {
@@ -34,5 +35,5 @@ export function useWorkspaceShellController({ orgSlug }: Pick<WorkspaceShellProp
   }
   useShellShortcuts({ orgSlug, navItems: navItems ?? [], onToggleSidebar })
 
-  return { isCollapsed, onToggleSidebar, productName: tCommon('productName'), t }
+  return { isCollapsed, onToggleSidebar, width, productName: tCommon('productName'), t }
 }

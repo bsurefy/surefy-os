@@ -23,7 +23,7 @@ export default function ChatThread() {
 
   if (c.state === 'loading') {
     return (
-      <div aria-busy="true" className="mx-auto flex w-full max-w-[760px] flex-col gap-6 py-8">
+      <div aria-busy="true" className="mx-auto flex w-full max-w-[760px] flex-col gap-6 px-6 py-8">
         <SkeletonText lines={2} />
         <SkeletonCard lines={4} />
         <SkeletonText lines={3} />
@@ -33,7 +33,7 @@ export default function ChatThread() {
 
   if (c.state === 'not-found') {
     return (
-      <div className="mx-auto flex w-full max-w-[760px] flex-col items-start gap-3 py-12">
+      <div className="mx-auto flex w-full max-w-[760px] flex-col items-start gap-3 px-6 py-12">
         <h1 className="text-page-title">{t('notFound.title')}</h1>
         <p className="text-body text-muted-foreground">{t('notFound.description')}</p>
         <Button asChild>
@@ -44,7 +44,11 @@ export default function ChatThread() {
   }
 
   if (c.state === 'error') {
-    return <ErrorState title={t('error.title')} message={t('error.message')} onRetry={c.onRetry} />
+    return (
+      <div className="p-6">
+        <ErrorState title={t('error.title')} message={t('error.message')} onRetry={c.onRetry} />
+      </div>
+    )
   }
 
   return (

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { MessagesSquare, Plus, Search, SquarePen, Trash2 } from 'lucide-react'
+import { MessagesSquare, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 import { ROUTES } from '@/constants/routes'
@@ -54,15 +54,16 @@ export default function ChatListPanel() {
       <>
         <PinnedChats pages={c.pinned} ctx={ctx} />
         <section aria-label={t('folders.title')} className="flex flex-col gap-0.5">
-          <div className="flex items-center justify-between px-2 pb-1">
-            <h3 className="text-caption text-muted-foreground font-medium">{t('folders.title')}</h3>
+          <div className="flex h-7 items-center justify-between pr-1 pl-2">
+            <h3 className="text-overline text-muted-foreground">{t('folders.title')}</h3>
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label={t('folders.new')}
               onClick={c.onNewFolder}
+              className="size-6"
             >
-              <Plus aria-hidden />
+              <Plus aria-hidden className="size-3.5" />
             </Button>
           </div>
           <ul className="flex flex-col gap-0.5">
@@ -92,23 +93,26 @@ export default function ChatListPanel() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <Button asChild>
-        <Link href={toRoute(ROUTES.workspace.chat(ctx.orgSlug))}>
-          <SquarePen aria-hidden />
-          {t('newChat')}
-        </Link>
-      </Button>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex h-14 shrink-0 items-center justify-between pr-3 pl-4">
+        <h2 className="text-section-title">{t('label')}</h2>
+        <Button variant="secondary" size="sm" asChild>
+          <Link href={toRoute(ROUTES.workspace.chat(ctx.orgSlug))}>
+            <Plus aria-hidden className="size-3.5" />
+            {t('newChat')}
+          </Link>
+        </Button>
+      </div>
       <form
         role="search"
         onSubmit={(event) => {
           event.preventDefault()
         }}
-        className="relative"
+        className="relative shrink-0 px-3 pb-2.5"
       >
         <Search
           aria-hidden
-          className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+          className="text-muted-foreground pointer-events-none absolute top-1/2 left-5.5 size-3.5 -translate-y-[calc(50%+0.3125rem)]"
         />
         <Input
           type="search"
@@ -119,15 +123,22 @@ export default function ChatListPanel() {
           placeholder={t('search.placeholder')}
           aria-label={t('search.label')}
           autoComplete="off"
-          className="pl-8"
+          className="bg-surface-2 border-border text-label h-8 pl-7.5"
         />
       </form>
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">{body}</div>
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-2 pb-4">{body}</div>
       {c.view === 'chats' && !c.isSearching && (
-        <Button variant="ghost" className="justify-start" onClick={c.onOpenDeleted}>
-          <Trash2 aria-hidden />
-          {t('deleted.title')}
-        </Button>
+        <div className="border-border shrink-0 border-t p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground w-full justify-start"
+            onClick={c.onOpenDeleted}
+          >
+            <Trash2 aria-hidden />
+            {t('deleted.title')}
+          </Button>
+        </div>
       )}
       {c.dialog?.kind === 'export' ? (
         <ChatExportDialog orgId={c.orgId} chatId={c.dialog.chat.id} onClose={c.onCloseDialog} />

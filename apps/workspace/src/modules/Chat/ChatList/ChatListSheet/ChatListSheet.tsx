@@ -34,7 +34,7 @@ export default function ChatListSheet() {
       }}
     >
       <SheetTrigger asChild>
-        <Button variant="secondary" size="sm" className="self-start lg:hidden">
+        <Button variant="secondary" size="sm" className="mx-4 mt-3 self-start lg:hidden">
           <MessagesSquare aria-hidden />
           {t('open')}
         </Button>

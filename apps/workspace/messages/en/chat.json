@@ -129,7 +129,7 @@
       "copied": "Answer copied"
     },
     "empty": {
-      "title": "What can I help with?",
+      "title": "What can I help with today?",
       "description": "Ask a question, attach a file or choose the knowledge to answer from.",
       "suggestions": "Ways to start",
       "cards": {
@@ -159,7 +159,8 @@
         "admin": "Chat needs an AI model. Add a provider key or a local server in Vault.",
         "member": "Your admin hasn't enabled any models yet. Ask an admin to connect one.",
         "open": "Open Vault"
-      }
+      },
+      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>."
     },
     "header": {
       "menu": "Chat options",
@@ -230,7 +231,11 @@
       "openSource": "Source {index}: {title}",
       "page": "p. {page}",
       "copyCode": "Copy",
-      "copiedCode": "Copied"
+      "copiedCode": "Copied",
+      "copyShort": "Copy",
+      "regenerateShort": "Regenerate",
+      "answeredFrom": "{count, plural, one {Answered from # source} other {Answered from # sources}}",
+      "sourcesFromKnowledge": "Sources from your knowledge"
     },
     "user": {
       "label": "Your message",
@@ -319,7 +324,12 @@
         "CHAT_ATTACHMENT_TOO_LARGE": "is too large. Images up to {image} MB, documents up to {document} MB.",
         "CHAT_ATTACHMENT_UNSUPPORTED": "isn't a supported type. Use PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD or CSV.",
         "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
-      }
+      },
+      "footnote": {
+        "local": "{model} runs on your server. Messages and files never leave your network.",
+        "provider": "{model} is sent to {provider}."
+      },
+      "stopShort": "Stop"
     }
   },
   "commands": {

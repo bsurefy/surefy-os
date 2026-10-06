@@ -22,7 +22,7 @@ import type { WorkspaceShellProps } from './WorkspaceShell.types'
  * palette, shortcut help and the mobile menu. Pages render inside `<main id="main">`.
  */
 export default function WorkspaceShell({ orgSlug, children }: Readonly<WorkspaceShellProps>) {
-  const { isCollapsed, onToggleSidebar, productName, t } = useWorkspaceShellController({
+  const { isCollapsed, onToggleSidebar, width, productName, t } = useWorkspaceShellController({
     orgSlug,
   })
 
@@ -60,6 +60,7 @@ export default function WorkspaceShell({ orgSlug, children }: Readonly<Workspace
           </Sidebar>
         }
         topBar={<ShellTopBar orgSlug={orgSlug} />}
+        width={width}
       >
         {children}
       </AppShell>
