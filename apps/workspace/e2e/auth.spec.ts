@@ -2,6 +2,7 @@
 import { expect, test } from '@playwright/test'
 
 import { ORGANIZATION, OWNER } from './support/env'
+import { waitForHydration } from './support/hydration'
 
 import type { Page } from '@playwright/test'
 
@@ -10,7 +11,7 @@ const PROFILE = `/${ORGANIZATION.slug}/profile`
 
 async function signIn(page: Page, password = OWNER.password) {
   // `next dev` compiles the page on its first visit; typing before it hydrates is lost
-  await page.waitForLoadState('networkidle')
+  await waitForHydration(page, 'input[type="email"], input[name="email"]')
   await page.getByLabel('Email').fill(OWNER.email)
   await page.getByLabel('Password', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
