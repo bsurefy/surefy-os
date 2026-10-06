@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { FEATURES } from '@surefy/contracts'
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -30,7 +31,9 @@ export default function OrgUpgradeDialog({
           <DialogTitle>{t('create')}</DialogTitle>
           <DialogDescription>{t('upgradeHint')}</DialogDescription>
         </DialogHeader>
-        <UpgradeCard feature={FEATURES.MULTI_ORGANIZATION} headingLevel={3} />
+        <DialogBody>
+          <UpgradeCard feature={FEATURES.MULTI_ORGANIZATION} headingLevel={3} />
+        </DialogBody>
       </DialogContent>
     </Dialog>
   )

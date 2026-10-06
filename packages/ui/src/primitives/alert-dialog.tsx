@@ -64,7 +64,10 @@ function AlertDialogHeader({ className, ...props }: React.ComponentProps<'div'>)
   return (
     <div
       data-slot="alert-dialog-header"
-      className={cn('flex flex-col gap-1.5 px-6 pt-6 pb-4', className)}
+      className={cn(
+        'border-border flex flex-col gap-1.5 px-6 pt-6 pb-4 [&:has(+[data-slot=alert-dialog-body])]:border-b',
+        className,
+      )}
       {...props}
     />
   )
@@ -75,7 +78,7 @@ function AlertDialogBody({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="alert-dialog-body"
-      className={cn('text-body flex min-h-0 flex-col gap-4 overflow-y-auto px-6 pb-6', className)}
+      className={cn('text-body flex min-h-0 flex-col gap-4 overflow-y-auto px-6 py-5', className)}
       {...props}
     />
   )
