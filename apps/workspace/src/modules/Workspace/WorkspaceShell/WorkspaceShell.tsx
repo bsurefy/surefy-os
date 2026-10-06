@@ -8,7 +8,6 @@ import { Sidebar } from '@surefy/ui/components/Navigation'
 import CommandMenu from './CommandMenu'
 import MobileNav from './MobileNav'
 import NavList from './NavList'
-import OrgSwitcher from './OrgSwitcher'
 import ShellBanners from './ShellBanners'
 import ShellTopBar from './ShellTopBar'
 import ShortcutsDialog from './ShortcutsDialog'
@@ -47,19 +46,18 @@ export default function WorkspaceShell({ orgSlug, children }: Readonly<Workspace
                 accent={isCollapsed ? undefined : t('brand.accent')}
               />
             }
-            header={<OrgSwitcher orgSlug={orgSlug} isCollapsed={isCollapsed} />}
-            footer={
-              <SidebarFooter
-                orgSlug={orgSlug}
-                isCollapsed={isCollapsed}
-                onToggleCollapsed={onToggleSidebar}
-              />
-            }
+            footer={<SidebarFooter orgSlug={orgSlug} isCollapsed={isCollapsed} />}
           >
             <NavList orgSlug={orgSlug} isCollapsed={isCollapsed} />
           </Sidebar>
         }
-        topBar={<ShellTopBar orgSlug={orgSlug} />}
+        topBar={
+          <ShellTopBar
+            orgSlug={orgSlug}
+            isSidebarCollapsed={isCollapsed}
+            onToggleSidebar={onToggleSidebar}
+          />
+        }
         width={width}
       >
         {children}

@@ -196,6 +196,18 @@
   ::after {
     border-color: var(--border);
   }
+  /* Preflight gives buttons the default cursor: every control that acts on a click shows the pointer */
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  input:is([type='checkbox'], [type='radio'], [type='file'], [type='submit']):not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  :is([role='tab'], [role='switch'], [role='checkbox'], [role='radio'], [role='option']):not(
+    [aria-disabled='true']
+  ),
+  [role^='menuitem']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
   /* Focus ring: 2px solid + 2px offset, visible only for keyboard focus */
   :focus-visible {
     outline: 2px solid var(--ring);

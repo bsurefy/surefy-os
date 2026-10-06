@@ -33,7 +33,7 @@ export default function Sidebar({
       {brand && (
         <div
           className={cn(
-            'border-sidebar-border flex h-15 shrink-0 items-center border-b',
+            'border-sidebar-border flex h-14 shrink-0 items-center border-b',
             isCollapsed ? 'justify-center px-0' : 'px-[1.125rem]',
           )}
         >

@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useTranslations } from 'next-intl'
 
-import { useEffectiveAccess } from '@surefy/web-core/access'
-
 import { useMe } from '../../Workspace.hooks'
 
-export function useSidebarFooterController() {
+export function useSidebarFooterController(orgSlug: string) {
   const t = useTranslations('workspace')
   const { data: me } = useMe()
-  const { data: access } = useEffectiveAccess()
+  const organization = me?.memberships.find(
+    (membership) => membership.organization.slug === orgSlug,
+  )?.organization
 
-  return {
-    user: me?.user,
-    role: access?.role ? t(`roles.${access.role}`) : undefined,
-    t,
-  }
+  return { user: me?.user, organizationName: organization?.name, t }
 }

@@ -13,7 +13,6 @@ import {
 
 import { useShellOverlayStore } from '../../Workspace.store'
 import NavList from '../NavList'
-import OrgSwitcher from '../OrgSwitcher'
 import SidebarFooter from '../SidebarFooter'
 
 /** Below 768px the sidebar opens as a sheet from the top bar's menu button. */
@@ -36,7 +35,6 @@ export default function MobileNav({ orgSlug }: Readonly<{ orgSlug: string }>) {
           <SheetDescription className="sr-only">{t('menuDescription')}</SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-4 px-3 pb-4">
-          <OrgSwitcher orgSlug={orgSlug} />
           <nav
             aria-label={t('navLabel')}
             className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto"

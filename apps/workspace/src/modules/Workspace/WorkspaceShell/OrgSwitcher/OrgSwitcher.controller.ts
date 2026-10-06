@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { usePathname } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
 
 import { FEATURES } from '@surefy/contracts'
 import { useFeatureStatus } from '@surefy/web-core/access'
@@ -18,17 +17,15 @@ import type { CreateOrganizationMode, OrgSwitcherProps } from './OrgSwitcher.typ
  * so "Create organization" opens the multi-organization upgrade card; where the feature is
  * available it is offered only when the install's limit and policy allow it.
  */
-export function useOrgSwitcherController({ orgSlug }: OrgSwitcherProps) {
+export function useOrgSwitcherController({ orgSlug }: Pick<OrgSwitcherProps, 'orgSlug'>) {
   const t = useTranslations('workspace.org')
   const tRoles = useTranslations('workspace.roles')
   const tEditions = useTranslations('editions.edition')
   const pathname = usePathname()
   const { data: me } = useMe()
   const multiOrganization = useFeatureStatus(FEATURES.MULTI_ORGANIZATION)
-  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false)
 
   const memberships = me?.memberships ?? []
-  const current = memberships.find((membership) => membership.organization.slug === orgSlug)
   const options = memberships.map((membership) => ({
     id: membership.organization.id,
     name: membership.organization.name,
@@ -44,13 +41,9 @@ export function useOrgSwitcherController({ orgSlug }: OrgSwitcherProps) {
   }
 
   return {
-    current,
-    currentRole: current ? tRoles(current.role) : undefined,
     options,
     createMode,
     upgradeEdition: tEditions(getFeatureEdition(FEATURES.MULTI_ORGANIZATION)),
-    isUpgradeOpen,
-    setIsUpgradeOpen,
     t,
   }
 }

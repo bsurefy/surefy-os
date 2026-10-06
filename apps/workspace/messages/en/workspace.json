@@ -41,7 +41,7 @@
   },
   "org": {
     "switcherLabel": "Switch organization. Current: {name}",
-    "heading": "Organizations",
+    "heading": "{count, plural, one {Organization} other {Organizations}}",
     "create": "Create organization",
     "upgradeHint": "This install holds one organization. Use teams to separate departments inside it."
   },
