@@ -30,7 +30,7 @@ export default function FilterChips<T extends string>({
           key={option.value}
           value={option.value}
           disabled={option.isDisabled}
-          className="border-border text-foreground-secondary hover:text-foreground hover:bg-surface-2 data-[state=checked]:bg-primary-soft data-[state=checked]:text-primary-soft-foreground data-[state=checked]:border-primary-soft text-label duration-fast focus-visible:outline-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          className="border-border bg-surface text-foreground-secondary hover:text-foreground hover:bg-surface-2 data-[state=checked]:bg-primary-soft data-[state=checked]:text-primary-soft-foreground data-[state=checked]:border-primary-soft text-label duration-fast focus-visible:outline-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-50"
         >
           {option.label}
           {option.count !== undefined && (
