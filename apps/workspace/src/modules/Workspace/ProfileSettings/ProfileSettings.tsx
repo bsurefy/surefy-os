@@ -29,10 +29,12 @@ export default function ProfileSettings({ orgSlug, children }: Readonly<ProfileS
       {me ? (
         <>
           <ProfileDetails user={me.user} />
-          <ProfilePreferences />
-          <ProfileSecurity isTwoFactorOn={me.user.twoFactorEnabled} />
-          <ProfileSessions />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ProfilePreferences />
+            <ProfileSecurity isTwoFactorOn={me.user.twoFactorEnabled} />
+          </div>
           {organization && <ProfileAccess organization={organization} />}
+          <ProfileSessions />
           {children}
         </>
       ) : (

@@ -46,7 +46,10 @@ export default function NotificationCenter(props: Readonly<NotificationCenterPro
   } else {
     content = (
       <>
-        <ul aria-label={t('title')} className="flex flex-col">
+        <ul
+          aria-label={t('title')}
+          className="border-border bg-surface divide-border flex flex-col divide-y overflow-hidden rounded-xl border"
+        >
           {c.items.map((notification) => (
             <NotificationItem
               key={notification.id}

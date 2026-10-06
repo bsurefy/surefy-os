@@ -13,7 +13,7 @@ import {
 import { ErrorState } from '@surefy/ui/components/Feedback'
 import { SelectInput } from '@surefy/ui/components/Forms'
 import { PageHeader } from '@surefy/ui/components/Layout'
-import { LoadMore } from '@surefy/ui/components/Navigation'
+import { FilterChips, LoadMore } from '@surefy/ui/components/Navigation'
 import { Button } from '@surefy/ui/primitives/button'
 
 import MemberDialogs from './MemberDialogs'
@@ -86,7 +86,14 @@ export default function MembersSettings() {
           className="w-40"
         />
         <SelectInput
-          aria-label={t('filters.role')}
+          aria-label={t('filters.team')}
+          options={[{ value: 'any', label: t('filters.anyTeam') }, ...c.teamOptions]}
+          value={c.filters.team ?? 'any'}
+          onValueChange={(team) => void c.onFiltersChange({ team: team === 'any' ? null : team })}
+          className="w-44"
+        />
+        <FilterChips
+          label={t('filters.role')}
           options={[
             { value: 'any', label: t('filters.anyRole') },
             ...ORG_ROLES.map((role) => ({ value: role, label: t(`roles.${role}`) })),
@@ -97,14 +104,6 @@ export default function MembersSettings() {
               role: role === 'any' ? null : role,
             })
           }
-          className="w-40"
-        />
-        <SelectInput
-          aria-label={t('filters.team')}
-          options={[{ value: 'any', label: t('filters.anyTeam') }, ...c.teamOptions]}
-          value={c.filters.team ?? 'any'}
-          onValueChange={(team) => void c.onFiltersChange({ team: team === 'any' ? null : team })}
-          className="w-44"
         />
       </DataTableToolbar>
       {c.selectedMemberIds.length > 0 && (

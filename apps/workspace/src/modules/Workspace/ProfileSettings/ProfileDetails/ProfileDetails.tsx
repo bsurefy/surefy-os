@@ -9,6 +9,7 @@ import { Button } from '@surefy/ui/primitives/button'
 import { Input } from '@surefy/ui/primitives/input'
 
 import { useProfileDetailsController } from './ProfileDetails.controller'
+import UserAvatar from '../../UserAvatar'
 
 /** Name (editable) and email (changed through sign-in settings, shown read-only). */
 export default function ProfileDetails({ user }: Readonly<{ user: UserDto }>) {
@@ -17,23 +18,35 @@ export default function ProfileDetails({ user }: Readonly<{ user: UserDto }>) {
 
   return (
     <Section title={t('title')}>
-      <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
-        <Field label={t('name')} error={nameError}>
-          <Input autoComplete="name" {...register('name')} />
-        </Field>
-        <div className="flex flex-col gap-1">
-          <span className="text-label">{t('email')}</span>
-          <span className="text-body flex flex-wrap items-center gap-2">
-            {email}
-            <StatusPill
-              tone={isEmailVerified ? 'success' : 'warning'}
-              label={isEmailVerified ? t('verified') : t('notVerified')}
-            />
-          </span>
+      <form
+        noValidate
+        onSubmit={onSubmit}
+        className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5"
+      >
+        <UserAvatar user={user} size="lg" />
+        <div className="grid min-w-0 flex-1 gap-4 md:grid-cols-2">
+          <Field label={t('name')} error={nameError}>
+            <Input autoComplete="name" {...register('name')} />
+          </Field>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-label">{t('email')}</span>
+            <span className="border-border bg-surface-2 text-body text-foreground-secondary flex h-9 items-center gap-2 rounded-lg border px-3">
+              <span className="truncate">{email}</span>
+              <StatusPill
+                tone={isEmailVerified ? 'success' : 'warning'}
+                label={isEmailVerified ? t('verified') : t('notVerified')}
+              />
+            </span>
+          </div>
+          <Button
+            type="submit"
+            isLoading={isPending}
+            aria-disabled={!isDirty}
+            className="self-start md:col-span-2 md:justify-self-start"
+          >
+            {t('save')}
+          </Button>
         </div>
-        <Button type="submit" isLoading={isPending} aria-disabled={!isDirty} className="self-start">
-          {t('save')}
-        </Button>
       </form>
     </Section>
   )

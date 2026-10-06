@@ -30,15 +30,10 @@ export default function GeneralSettingsForm({
   return (
     <>
       <Form {...form}>
-        <form
-          id={FORM_ID}
-          noValidate
-          onSubmit={c.onSubmit}
-          className="flex max-w-xl flex-col gap-6"
-        >
+        <form id={FORM_ID} noValidate onSubmit={c.onSubmit} className="flex flex-col gap-6">
           {c.formError && <Banner tone="destructive" title={c.formError} isAnnounced />}
           <Section title={t('organization.title')}>
-            <div className="flex flex-col gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="name"
@@ -73,7 +68,7 @@ export default function GeneralSettingsForm({
             </div>
           </Section>
           <Section title={t('region.title')}>
-            <div className="flex flex-col gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="timezone"

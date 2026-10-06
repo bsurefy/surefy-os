@@ -710,5 +710,10 @@
       "removeConfirm": "Remove administrator",
       "removed": "{name} is no longer an administrator"
     }
+  },
+  "hostingLine": "{product} · {hosting}",
+  "hosting": {
+    "self-hosted": "Self-hosted",
+    "cloud": "Cloud"
   }
 }
