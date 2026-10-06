@@ -65,7 +65,7 @@ export default function FileDropzone({
         htmlFor={inputId}
         data-dragging={isDragging || undefined}
         className={cn(
-          'border-input bg-surface hover:bg-surface-2 data-dragging:border-primary data-dragging:bg-primary-soft peer-focus-visible:outline-ring peer-aria-invalid:border-destructive flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed px-6 py-8 text-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-solid peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+          'border-input bg-surface hover:bg-surface-2 data-dragging:border-primary data-dragging:bg-primary-soft peer-focus-visible:outline-ring peer-aria-invalid:border-destructive flex cursor-pointer flex-col items-center gap-2.5 rounded-xl border-[1.5px] border-dashed px-6 py-6 text-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-solid peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
         )}
         onDragEnter={(event) => {
           handleDrag(event, true)
@@ -81,15 +81,25 @@ export default function FileDropzone({
           handleFiles(event.dataTransfer.files)
         }}
       >
-        <span className="bg-surface-2 text-foreground-secondary flex size-10 items-center justify-center rounded-full">
+        <span className="bg-surface border-border text-primary flex size-11 items-center justify-center rounded-xl border">
           <Upload aria-hidden className="size-5" />
         </span>
-        <span id={titleId} className="text-body text-foreground font-medium">
-          {labels.title}
+        <span className="flex flex-col gap-0.5">
+          <span id={titleId} className="text-section-title text-foreground">
+            {labels.title}
+          </span>
+          <span id={hintId} className="text-label text-foreground-secondary font-normal">
+            {labels.hint}
+          </span>
         </span>
-        <span id={hintId} className="text-caption text-muted-foreground">
-          {labels.hint}
-        </span>
+        {labels.browse && (
+          <span
+            aria-hidden="true"
+            className="bg-primary text-primary-foreground text-label inline-flex h-8 items-center rounded-lg px-3.5"
+          >
+            {labels.browse}
+          </span>
+        )}
       </label>
     </div>
   )

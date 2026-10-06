@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { BookX, Ellipsis, Pencil, RefreshCw, Settings, Trash2 } from 'lucide-react'
+import { BookOpen, BookX, Ellipsis, Pencil, RefreshCw, Settings, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 import { useReindexKnowledgeBaseMutation } from '@/api/knowledge'
 import { ROUTES } from '@/constants/routes'
 import { toRoute } from '@/modules/Workspace'
-import { DataLocationBadge, EmptyState, Tag } from '@surefy/ui/components/DataDisplay'
+import {
+  DataLocationBadge,
+  EmptyState,
+  IconTile,
+  StatusPill,
+} from '@surefy/ui/components/DataDisplay'
 import { Banner, ErrorState } from '@surefy/ui/components/Feedback'
 import { PageHeader } from '@surefy/ui/components/Layout'
 import { Breadcrumbs, Tabs } from '@surefy/ui/components/Navigation'
@@ -79,6 +84,7 @@ export default function KnowledgeBaseDetail() {
       <PageHeader
         level="object"
         title={base.name}
+        icon={<IconTile icon={BookOpen} />}
         breadcrumb={
           <Breadcrumbs
             label={t('breadcrumb')}
@@ -86,7 +92,7 @@ export default function KnowledgeBaseDetail() {
             items={[{ label: t('library'), href: c.libraryHref }, { label: base.name }]}
           />
         }
-        status={base.isLocalOnly ? <Tag>{t('localOnly')}</Tag> : undefined}
+        status={base.isLocalOnly ? <StatusPill tone="success" label={t('localOnly')} /> : undefined}
         facts={
           <>
             <span>

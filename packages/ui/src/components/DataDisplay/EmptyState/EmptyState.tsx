@@ -23,7 +23,7 @@ export default function EmptyState({
   return (
     <div className={cn(emptyStateVariants({ size }), className)}>
       {Icon && (
-        <span className="bg-surface-2 text-foreground-secondary flex size-10 items-center justify-center rounded-lg">
+        <span className="bg-primary-soft text-primary-soft-foreground flex size-11 items-center justify-center rounded-xl">
           <Icon aria-hidden className="size-5" />
         </span>
       )}

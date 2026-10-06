@@ -38,3 +38,30 @@ export function canRetryWithOcr(
     OCR_TYPES.includes(source.contentType ?? '')
   )
 }
+
+const KIND_CODES: Record<string, string> = {
+  pdf: 'PDF',
+  docx: 'DOC',
+  doc: 'DOC',
+  xlsx: 'XLS',
+  xls: 'XLS',
+  csv: 'CSV',
+  pptx: 'PPT',
+  txt: 'TXT',
+  md: 'MD',
+  html: 'HTM',
+  htm: 'HTM',
+  png: 'IMG',
+  jpg: 'IMG',
+  jpeg: 'IMG',
+  webp: 'IMG',
+  gif: 'IMG',
+}
+
+/** The two or three letters on a source's tile: the file kind, "URL" for links, "SYNC" for connectors. */
+export function getSourceKindCode(source: Pick<KnowledgeSourceDto, 'type' | 'name'>): string {
+  if (source.type === 'link') return 'URL'
+  if (source.type === 'connector') return 'SYNC'
+  const extension = source.name.split('.').pop()?.toLowerCase() ?? ''
+  return KIND_CODES[extension] ?? 'FILE'
+}

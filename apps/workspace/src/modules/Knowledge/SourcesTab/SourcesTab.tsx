@@ -1,17 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import {
-  Ellipsis,
-  Eye,
-  FileText,
-  FolderOpen,
-  Link2,
-  Plus,
-  RefreshCw,
-  ScanText,
-  Trash2,
-} from 'lucide-react'
+import { Ellipsis, Eye, FolderOpen, Plus, RefreshCw, ScanText, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useFormatter, useLocale } from 'next-intl'
@@ -26,16 +16,12 @@ import {
   DataTableSearch,
   DataTableToolbar,
   EmptyState,
+  MonoTile,
 } from '@surefy/ui/components/DataDisplay'
 import type { DataTableColumn } from '@surefy/ui/components/DataDisplay'
 import { Banner, ErrorState } from '@surefy/ui/components/Feedback'
-import {
-  FileDropzone,
-  FileUploadList,
-  formatFileSize,
-  SelectInput,
-} from '@surefy/ui/components/Forms'
-import { LoadMore } from '@surefy/ui/components/Navigation'
+import { FileDropzone, FileUploadList, formatFileSize } from '@surefy/ui/components/Forms'
+import { FilterChips, LoadMore } from '@surefy/ui/components/Navigation'
 import { Button } from '@surefy/ui/primitives/button'
 import {
   DropdownMenu,
@@ -51,7 +37,7 @@ import DuplicateFileDialog from './DuplicateFileDialog'
 import RemoveSourcesDialog from './RemoveSourcesDialog'
 import { ACCEPTED_FILES, SOURCE_STATUS_FILTERS } from './SourcesTab.constants'
 import { useSourcesTabController } from './SourcesTab.controller'
-import { canRetryWithOcr, toSourceSort } from './SourcesTab.utils'
+import { canRetryWithOcr, getSourceKindCode, toSourceSort } from './SourcesTab.utils'
 import SourceStatus from './SourceStatus'
 
 import type { SourceStatusFilter } from './SourcesTab.constants'
@@ -76,12 +62,8 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
       isSortable: true,
       isHideable: false,
       cell: (source) => (
-        <div className="flex min-w-0 items-center gap-2">
-          {source.type === 'file' ? (
-            <FileText aria-hidden className="text-muted-foreground size-4 shrink-0" />
-          ) : (
-            <Link2 aria-hidden className="text-muted-foreground size-4 shrink-0" />
-          )}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <MonoTile size="lg">{getSourceKindCode(source)}</MonoTile>
           <div className="flex min-w-0 flex-col">
             <span className="text-body truncate font-medium">{source.name}</span>
             {source.link && (
@@ -224,13 +206,14 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
         />
       )}
       {c.canManage && (
-        <div className="flex flex-col gap-3">
+        <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <FileDropzone
             labels={{
               title: t('dropzone.title'),
               hint: t('dropzone.hint', {
                 limit: formatFileSize(KNOWLEDGE_FILE_LIMITS.maxBytes, locale),
               }),
+              browse: t('dropzone.browse'),
             }}
             accept={ACCEPTED_FILES}
             maxSize={KNOWLEDGE_FILE_LIMITS.maxBytes}
@@ -238,15 +221,23 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
             onFilesAccepted={uploads.onFilesAccepted}
             onFilesRejected={uploads.onFilesRejected}
           />
-          <Button
-            variant="secondary"
-            icon={Plus}
-            className="self-start"
-            disabled={!c.canAdd}
-            onClick={c.onAddLink}
-          >
-            {t('addLink')}
-          </Button>
+          <div className="border-border bg-surface flex flex-col gap-2.5 rounded-xl border p-4">
+            <div className="flex flex-col gap-0.5">
+              <h3 className="text-section-title">{t('links.title')}</h3>
+              <p className="text-caption text-muted-foreground">{t('links.description')}</p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={Plus}
+              className="self-start"
+              disabled={!c.canAdd}
+              onClick={c.onAddLink}
+            >
+              {t('addLink')}
+            </Button>
+            <p className="text-caption text-muted-foreground mt-auto">{t('links.hint')}</p>
+          </div>
         </div>
       )}
       {uploads.isQuotaReached && (
@@ -298,8 +289,8 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
           value={c.params.q}
           onValueChange={c.onSearchChange}
         />
-        <SelectInput<SourceStatusFilter>
-          aria-label={t('filters.label')}
+        <FilterChips<SourceStatusFilter>
+          label={t('filters.label')}
           options={SOURCE_STATUS_FILTERS.map((value) => ({
             value,
             label: t(`filters.${value}`),

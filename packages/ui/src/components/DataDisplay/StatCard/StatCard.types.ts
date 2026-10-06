@@ -14,6 +14,10 @@ export interface StatCardProps {
   label: string
   /** Formatted value ("1,284", "$2,500"). */
   value: string
+  /** One line under the value ("Files, pages and synced docs"). Translated text. */
+  description?: string
+  /** `md` (page-title value, 20px padding) or `sm` (object-title value, 16px padding). */
+  size?: 'md' | 'sm'
   delta?: StatCardDelta
   /** Small trend line under the value. */
   sparkline?: number[]
