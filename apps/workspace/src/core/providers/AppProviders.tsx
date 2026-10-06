@@ -4,6 +4,7 @@
 import { TooltipProvider } from '@surefy/ui/primitives/tooltip'
 import { allAccessQueries } from '@surefy/web-core/api/access'
 import { openSessionExpired } from '@surefy/web-core/auth'
+import { TimeZoneSync } from '@surefy/web-core/i18n'
 import { CoreProviders } from '@surefy/web-core/providers'
 import type { CoreErrorHandlers, CoreProvidersProps } from '@surefy/web-core/providers'
 import { getQueryClient } from '@surefy/web-core/query'
@@ -23,14 +24,15 @@ const handlers: CoreErrorHandlers = {
 
 /**
  * Every provider of the workspace, mounted once by the root layout: the core providers (intl,
- * query client, theme, nuqs, toaster) with the workspace's handlers, the tooltip provider and the
- * session-expired dialog.
+ * query client, theme, nuqs, toaster) with the workspace's handlers, the tooltip provider, the
+ * time zone sync and the session-expired dialog.
  */
 export function AppProviders({ children, ...core }: Readonly<AppProvidersProps>) {
   return (
     <CoreProviders {...core} handlers={handlers}>
       <TooltipProvider>
         {children}
+        <TimeZoneSync />
         <SessionExpiry />
       </TooltipProvider>
     </CoreProviders>

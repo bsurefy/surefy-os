@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
-import { getLocale, getMessages, getTranslations } from 'next-intl/server'
+import { getLocale, getMessages, getTimeZone, getTranslations } from 'next-intl/server'
 
 import { AppProviders } from '@/core/providers/AppProviders'
 import { cn } from '@surefy/ui/lib/utils'
@@ -29,7 +29,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const [locale, messages] = await Promise.all([getLocale(), getMessages()])
+  const [locale, messages, timeZone] = await Promise.all([
+    getLocale(),
+    getMessages(),
+    getTimeZone(),
+  ])
 
   return (
     // next-themes sets the theme class on <html> before hydration
@@ -39,7 +43,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       className={cn(plexSans.variable, plexMono.variable)}
     >
       <body className="bg-background text-foreground font-sans">
-        <AppProviders locale={locale} messages={messages}>
+        <AppProviders locale={locale} messages={messages} timeZone={timeZone}>
           {children}
         </AppProviders>
       </body>
