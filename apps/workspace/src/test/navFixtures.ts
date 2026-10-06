@@ -47,7 +47,7 @@ export const TEST_NAV: NavEntry[] = [
   },
   {
     key: 'settings',
-    group: 'settings',
+    group: 'operate',
     icon: Settings,
     href: (orgSlug) => ROUTES.workspace.settings(orgSlug),
     released: true,

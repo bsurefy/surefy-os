@@ -8,6 +8,7 @@ import { NavItem, SidebarGroup } from '@surefy/ui/components/Navigation'
 import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { useNavListController } from './NavList.controller'
+import SettingsNavItem from './SettingsNavItem'
 import { getFeatureEdition } from '../../Workspace.labels'
 
 import type { NavListProps } from './NavList.types'
@@ -32,29 +33,34 @@ export default function NavList(props: Readonly<NavListProps>) {
   return (
     <>
       {groups.map(({ group, items }) => (
-        <SidebarGroup
-          key={group}
-          // Settings stands alone under Operate, without a label of its own
-          label={group === 'settings' ? undefined : t(`groups.${group}`)}
-          isCollapsed={isCollapsed}
-        >
-          {items.map(({ entry, isLocked }) => (
-            <NavItem
-              key={entry.key}
-              linkComponent={Link}
-              href={entry.href(orgSlug)}
-              label={t(`items.${entry.key}`)}
-              icon={entry.icon}
-              isActive={entry.key === activeKey}
-              isCollapsed={isCollapsed}
-              onClick={onNavigate}
-              trailing={
-                isLocked && entry.feature ? (
-                  <EditionBadge label={tEditions(getFeatureEdition(entry.feature))} />
-                ) : undefined
-              }
-            />
-          ))}
+        <SidebarGroup key={group} label={t(`groups.${group}`)} isCollapsed={isCollapsed}>
+          {items.map(({ entry, isLocked }) =>
+            entry.key === 'settings' ? (
+              <SettingsNavItem
+                key={entry.key}
+                orgSlug={orgSlug}
+                icon={entry.icon}
+                isCollapsed={isCollapsed}
+                onNavigate={onNavigate}
+              />
+            ) : (
+              <NavItem
+                key={entry.key}
+                linkComponent={Link}
+                href={entry.href(orgSlug)}
+                label={t(`items.${entry.key}`)}
+                icon={entry.icon}
+                isActive={entry.key === activeKey}
+                isCollapsed={isCollapsed}
+                onClick={onNavigate}
+                trailing={
+                  isLocked && entry.feature ? (
+                    <EditionBadge label={tEditions(getFeatureEdition(entry.feature))} />
+                  ) : undefined
+                }
+              />
+            ),
+          )}
         </SidebarGroup>
       ))}
     </>

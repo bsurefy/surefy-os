@@ -10,7 +10,7 @@ import { PERMISSIONS } from '@surefy/contracts'
 import type { NavEntry } from './Workspace.types'
 
 /** Sidebar groups in display order (design/workspace/navigation.md §2). */
-export const NAV_GROUPS = ['build', 'operate', 'settings'] as const
+export const NAV_GROUPS = ['build', 'operate'] as const
 
 /** Every sidebar item of the design, in display order; labels live in `workspace.nav.items`. */
 export const NAV_ITEM_KEYS = [
@@ -75,7 +75,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
   },
   {
     key: 'settings',
-    group: 'settings',
+    group: 'operate',
     icon: SlidersHorizontal,
     href: (orgSlug) => ROUTES.workspace.settings(orgSlug),
     released: true,

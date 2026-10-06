@@ -715,5 +715,8 @@
   "hosting": {
     "self-hosted": "Self-hosted",
     "cloud": "Cloud"
+  },
+  "sectionHints": {
+    "vault": "Keys & models"
   }
 }

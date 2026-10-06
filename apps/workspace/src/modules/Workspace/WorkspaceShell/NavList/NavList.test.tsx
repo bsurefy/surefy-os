@@ -46,7 +46,38 @@ describe('NavList', () => {
     const operate = screen.getByRole('group', { name: 'Operate' })
     const guard = within(operate).getByRole('link', { name: /Guard/ })
     expect(guard).toHaveTextContent('Enterprise')
-    expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/acme/settings')
+    expect(within(operate).getByRole('button', { name: 'Settings' })).toBeInTheDocument()
+  })
+
+  it('keeps Settings inside Operate as a dropdown of the sections the person may open', async () => {
+    const { user } = renderNav('owner')
+    const operate = screen.getByRole('group', { name: 'Operate' })
+    const trigger = within(operate).getByRole('button', { name: 'Settings' })
+    expect(screen.getAllByRole('group')).toHaveLength(2)
+    // closed on a page outside Settings
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: 'General' })).toBeNull()
+    await user.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'General' })).toHaveAttribute(
+      'href',
+      '/acme/settings/general',
+    )
+    expect(screen.getByRole('link', { name: /Vault.*Keys & models/ })).toHaveAttribute(
+      'href',
+      '/acme/settings/vault',
+    )
+    await user.click(trigger)
+    expect(screen.queryByRole('link', { name: 'General' })).toBeNull()
+  })
+
+  it('offers the sections from a menu on the icon rail', async () => {
+    const { user } = renderNav('owner', true)
+    await user.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(await screen.findByRole('menuitem', { name: 'General' })).toHaveAttribute(
+      'href',
+      '/acme/settings/general',
+    )
   })
 
   it('marks the module of the current page', () => {
