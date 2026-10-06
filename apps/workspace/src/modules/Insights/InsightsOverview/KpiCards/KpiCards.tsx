@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 
 import type { InsightsCostDto, InsightsOverviewDto } from '@surefy/contracts'
 import { StatCard } from '@surefy/ui/components/DataDisplay'
-import { ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonStat } from '@surefy/ui/components/Feedback'
 
 import { microsToUnits } from '../InsightsOverview.utils'
 
@@ -46,7 +46,7 @@ export default function KpiCards({ data, isLoading, error, onRetry }: Readonly<K
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-busy>
         {[0, 1, 2, 3].map((index) => (
-          <SkeletonCard key={index} />
+          <SkeletonStat key={index} />
         ))}
       </div>
     )

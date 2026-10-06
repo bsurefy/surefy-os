@@ -73,7 +73,7 @@ export default function NotificationsBell({ orgSlug }: Readonly<{ orgSlug: strin
           {unreadCount > 0 && (
             <span
               aria-hidden="true"
-              className="bg-primary text-primary-foreground ring-surface text-caption absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-semibold tabular-nums ring-2"
+              className="bg-primary text-primary-foreground ring-surface text-caption absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-semibold tabular-nums ring-2"
             >
               {unreadCount > MAX_BADGE ? `${MAX_BADGE}+` : unreadCount}
             </span>

@@ -33,14 +33,14 @@ export default function Sidebar({
       {brand && (
         <div
           className={cn(
-            'flex h-15 shrink-0 items-center',
+            'border-sidebar-border flex h-15 shrink-0 items-center border-b',
             isCollapsed ? 'justify-center px-0' : 'px-[1.125rem]',
           )}
         >
           {brand}
         </div>
       )}
-      {header && <div className="shrink-0 px-3 pb-2">{header}</div>}
+      {header && <div className="shrink-0 px-3 pt-2.5 pb-2">{header}</div>}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2">{children}</div>
       {footer && (
         <div className="border-sidebar-border shrink-0 border-t px-3 pt-2 pb-3">{footer}</div>

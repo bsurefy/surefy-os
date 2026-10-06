@@ -24,6 +24,7 @@ import {
   CommandList,
 } from '@surefy/ui/primitives/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@surefy/ui/primitives/popover'
+import { Skeleton } from '@surefy/ui/primitives/skeleton'
 import { useCan, useCurrentOrgId } from '@surefy/web-core/access'
 
 import { getProviderName, groupModels } from '../Vault.utils'
@@ -87,29 +88,43 @@ export default function ModelSelector({
             isCompact ? 'h-8 gap-1.5 pr-2 pl-1' : 'h-[2.375rem] gap-2.5 pr-2.5 pl-1.5',
             className,
           )}
-          disabled={isDisabled}
+          disabled={isDisabled || query.isPending}
+          aria-busy={query.isPending || undefined}
           aria-label={t('label')}
           title={isCompact ? origin : undefined}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <MonoTile size="sm">{(selected?.displayName ?? '?').slice(0, 1).toUpperCase()}</MonoTile>
-          <span className="flex min-w-0 flex-col">
-            <span
-              className={cn(
-                'text-label truncate leading-[1.0625rem]',
-                isCompact ? 'max-w-44 font-medium' : 'font-semibold',
-              )}
-            >
-              {selected?.displayName ?? t('placeholder')}
-            </span>
-            {!isCompact && origin && (
-              <span className="text-overline text-muted-foreground truncate leading-[0.875rem] font-normal tracking-normal normal-case">
-                {origin}
+          {query.isPending ? (
+            <>
+              <Skeleton className="size-6 shrink-0 rounded-md" />
+              <Skeleton className="h-3.5 w-24" />
+            </>
+          ) : (
+            <MonoTile size="sm">
+              {(selected?.displayName ?? '?').slice(0, 1).toUpperCase()}
+            </MonoTile>
+          )}
+          {!query.isPending && (
+            <span className="flex min-w-0 flex-col">
+              <span
+                className={cn(
+                  'text-label truncate leading-[1.0625rem]',
+                  isCompact ? 'max-w-44 font-medium' : 'font-semibold',
+                )}
+              >
+                {selected?.displayName ?? t('placeholder')}
               </span>
-            )}
-          </span>
-          <ChevronDown aria-hidden className="text-muted-foreground size-3.5 shrink-0" />
+              {!isCompact && origin && (
+                <span className="text-overline text-muted-foreground truncate leading-[0.875rem] font-normal tracking-normal normal-case">
+                  {origin}
+                </span>
+              )}
+            </span>
+          )}
+          {!query.isPending && (
+            <ChevronDown aria-hidden className="text-muted-foreground size-3.5 shrink-0" />
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">

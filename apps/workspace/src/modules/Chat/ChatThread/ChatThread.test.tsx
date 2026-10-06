@@ -397,9 +397,17 @@ describe('ChatThread: rating, settings and offline', () => {
     const { user } = openChat(undefined)
     await screen.findByRole('heading', { name: 'What can I help with today?' })
     await user.click(screen.getByRole('button', { name: 'Knowledge scope' }))
-    await user.click(await screen.findByRole('radio', { name: /Selected knowledge/ }))
     const list = await screen.findByRole('list', { name: 'Knowledge bases' })
-    expect(await within(list).findByText('Help center')).toBeVisible()
+    // ticking a base selects it without choosing "Selected knowledge" first
+    await user.click(await within(list).findByRole('checkbox', { name: /Help center/ }))
+    expect(screen.getByRole('radio', { name: /Selected knowledge/ })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
+      '1 knowledge base',
+    )
+    await user.click(screen.getByRole('radio', { name: /No knowledge/ }))
+    expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
+      'No knowledge',
+    )
   })
 
   it('keeps the draft and disables sending while offline', async () => {

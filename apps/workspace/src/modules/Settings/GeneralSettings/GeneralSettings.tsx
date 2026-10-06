@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonForm } from '@surefy/ui/components/Feedback'
 import { PageHeader } from '@surefy/ui/components/Layout'
 
 import { useGeneralSettingsController } from './GeneralSettings.controller'
@@ -13,7 +13,13 @@ export default function GeneralSettings() {
     useGeneralSettingsController()
 
   let content
-  if (isLoading) content = <SkeletonCard lines={4} />
+  if (isLoading)
+    content = (
+      <div className="flex flex-col gap-6">
+        <SkeletonForm fields={2} columns={2} />
+        <SkeletonForm fields={2} columns={2} />
+      </div>
+    )
   else if (errorMessage || !organization) {
     content = (
       <ErrorState

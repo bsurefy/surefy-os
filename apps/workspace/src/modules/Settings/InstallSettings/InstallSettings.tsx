@@ -16,7 +16,13 @@ export default function InstallSettings() {
   const { t, settings } = c
 
   let body
-  if (c.isLoading) body = <SkeletonCard lines={6} />
+  if (c.isLoading)
+    body = (
+      <>
+        <SkeletonCard lines={3} />
+        <SkeletonCard lines={3} />
+      </>
+    )
   else if (c.errorMessage || !settings) {
     body = (
       <ErrorState

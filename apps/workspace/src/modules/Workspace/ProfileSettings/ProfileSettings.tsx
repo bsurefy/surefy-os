@@ -3,8 +3,9 @@
 
 import { useTranslations } from 'next-intl'
 
-import { SkeletonCard } from '@surefy/ui/components/Feedback'
+import { SkeletonCard, SkeletonForm } from '@surefy/ui/components/Feedback'
 import { PageHeader } from '@surefy/ui/components/Layout'
+import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { useMe } from '../Workspace.hooks'
 import ProfileAccess from './ProfileAccess'
@@ -38,7 +39,21 @@ export default function ProfileSettings({ orgSlug, children }: Readonly<ProfileS
           {children}
         </>
       ) : (
-        <SkeletonCard lines={3} />
+        <>
+          <div className="border-border bg-surface flex items-center gap-4 rounded-xl border p-5">
+            <Skeleton className="size-12 rounded-full" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3.5 w-56" />
+            </div>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SkeletonForm fields={3} />
+            <SkeletonForm fields={2} />
+          </div>
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={2} />
+        </>
       )}
     </div>
   )

@@ -7,7 +7,7 @@ import { toRoute } from '@/modules/Workspace'
 import { MODULES } from '@surefy/contracts'
 import type { AccessLimitsDto } from '@surefy/contracts'
 import { StatusPill } from '@surefy/ui/components/DataDisplay'
-import { ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonRows } from '@surefy/ui/components/Feedback'
 import { Combobox, SegmentedControl } from '@surefy/ui/components/Forms'
 import { Section } from '@surefy/ui/components/Layout'
 
@@ -31,7 +31,7 @@ export default function EffectiveAccess() {
 
   let result
   if (c.subjectId === null) result = <p className="text-body text-muted-foreground">{t('pick')}</p>
-  else if (c.isLoading) result = <SkeletonCard lines={5} />
+  else if (c.isLoading) result = <SkeletonRows rows={4} rowClassName="h-10 px-0" />
   else if (c.errorMessage || !access) {
     result = (
       <ErrorState

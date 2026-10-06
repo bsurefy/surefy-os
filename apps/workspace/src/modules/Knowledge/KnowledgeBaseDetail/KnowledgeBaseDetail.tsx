@@ -13,7 +13,7 @@ import {
   IconTile,
   StatusPill,
 } from '@surefy/ui/components/DataDisplay'
-import { Banner, ErrorState } from '@surefy/ui/components/Feedback'
+import { Banner, ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
 import { PageHeader } from '@surefy/ui/components/Layout'
 import { Breadcrumbs, Tabs } from '@surefy/ui/components/Navigation'
 import { Button } from '@surefy/ui/primitives/button'
@@ -46,10 +46,23 @@ export default function KnowledgeBaseDetail() {
 
   if (c.isLoading) {
     return (
-      <div role="status" aria-label={t('loading')} className="flex flex-col gap-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-5 w-96" />
-        <Skeleton className="h-64 w-full" />
+      <div role="status" aria-label={t('loading')} className="flex flex-col gap-6">
+        <Skeleton className="h-3.5 w-40" />
+        <div className="flex items-start gap-3.5">
+          <Skeleton className="size-9 rounded-lg" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-96 max-w-full" />
+          </div>
+          <Skeleton className="h-9 w-28 rounded-lg" />
+          <Skeleton className="h-9 w-9 rounded-lg" />
+        </div>
+        <div className="border-border flex gap-2 border-b pb-2">
+          {[0, 1, 2, 3].map((tab) => (
+            <Skeleton key={tab} className="h-7 w-20" />
+          ))}
+        </div>
+        <SkeletonCard lines={6} />
       </div>
     )
   }

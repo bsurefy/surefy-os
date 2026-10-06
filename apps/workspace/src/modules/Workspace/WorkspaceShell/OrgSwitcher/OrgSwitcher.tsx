@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@surefy/ui/primitives/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@surefy/ui/primitives/tooltip'
 import { UpgradeCard } from '@surefy/web-core/access'
 
 import { useOrgSwitcherController } from './OrgSwitcher.controller'
@@ -30,7 +31,7 @@ import { getInitials, toRoute } from '../../Workspace.utils'
 
 import type { OrgSwitcherProps } from './OrgSwitcher.types'
 
-/** Organization switcher below the brand row: a bordered card with the tile, name and role. */
+/** Organization switcher below the brand row: a bordered card with the tile, name and role; the tile alone when collapsed. */
 export default function OrgSwitcher(props: Readonly<OrgSwitcherProps>) {
   const { isCollapsed = false } = props
   const {
@@ -48,27 +49,36 @@ export default function OrgSwitcher(props: Readonly<OrgSwitcherProps>) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger
-          aria-label={t('switcherLabel', { name })}
-          className={cn(
-            'border-border bg-surface hover:bg-surface-2 focus-visible:ring-ring duration-fast data-[state=open]:bg-surface-2 flex h-12 w-full min-w-0 items-center gap-2.5 rounded-lg border text-left transition-colors outline-none focus-visible:ring-2',
-            isCollapsed ? 'justify-center px-0' : 'px-2.5',
-          )}
-        >
-          <MonoTile>{getInitials(name)}</MonoTile>
-          {!isCollapsed && (
-            <>
-              <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-label truncate font-semibold">{name}</span>
-                <span className="text-caption text-muted-foreground truncate">{currentRole}</span>
-              </span>
-              <ChevronsUpDown
-                aria-hidden="true"
-                className="text-muted-foreground size-3.5 shrink-0"
-              />
-            </>
-          )}
-        </DropdownMenuTrigger>
+        <Tooltip open={isCollapsed ? undefined : false}>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger
+              aria-label={t('switcherLabel', { name })}
+              className={cn(
+                'hover:bg-surface-2 focus-visible:ring-ring duration-fast data-[state=open]:bg-surface-2 flex min-w-0 items-center rounded-lg text-left transition-colors outline-none focus-visible:ring-2',
+                isCollapsed
+                  ? 'mx-auto size-9 justify-center'
+                  : 'border-border bg-surface h-12 w-full gap-2.5 border px-2.5',
+              )}
+            >
+              <MonoTile>{getInitials(name)}</MonoTile>
+              {!isCollapsed && (
+                <>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-label truncate font-semibold">{name}</span>
+                    <span className="text-caption text-muted-foreground truncate">
+                      {currentRole}
+                    </span>
+                  </span>
+                  <ChevronsUpDown
+                    aria-hidden="true"
+                    className="text-muted-foreground size-3.5 shrink-0"
+                  />
+                </>
+              )}
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="right">{name}</TooltipContent>
+        </Tooltip>
         <DropdownMenuContent align="start" className="w-68">
           <DropdownMenuLabel className="text-overline text-muted-foreground">
             {t('heading')}

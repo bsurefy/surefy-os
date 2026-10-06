@@ -7,6 +7,7 @@ import { Field, MultiSelect, SelectInput } from '@surefy/ui/components/Forms'
 import { Section } from '@surefy/ui/components/Layout'
 import { SidePanel } from '@surefy/ui/components/Overlay'
 import { Button } from '@surefy/ui/primitives/button'
+import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { useTeamDetailController } from './TeamDetail.controller'
 
@@ -32,7 +33,13 @@ export default function TeamDetail({
   const { t } = c
 
   let body
-  if (c.isLoading) body = <SkeletonCard lines={5} />
+  if (c.isLoading)
+    body = (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-5 w-48" />
+        <SkeletonCard lines={5} />
+      </div>
+    )
   else if (c.errorMessage || !c.team) {
     body = (
       <ErrorState

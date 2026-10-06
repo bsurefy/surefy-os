@@ -3,12 +3,13 @@
 
 import Link from 'next/link'
 
+import { SkeletonRows } from '@surefy/ui/components/Feedback'
 import { NavItem } from '@surefy/ui/components/Navigation'
-import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { useSettingsNavController } from './SettingsNav.controller'
 
-const SKELETON_ROWS = ['a', 'b', 'c']
+/** One row per settings entry. */
+const SKELETON_ROWS = 8
 
 /** The Settings area's inner navigation: a titled column with the sections the person can open. */
 export default function SettingsNav({ orgSlug }: Readonly<{ orgSlug: string }>) {
@@ -42,10 +43,8 @@ export default function SettingsNav({ orgSlug }: Readonly<{ orgSlug: string }>) 
           ))}
         </ul>
       ) : (
-        <div role="status" aria-label={navLabel} className="flex flex-col gap-2 px-2">
-          {SKELETON_ROWS.map((row) => (
-            <Skeleton key={row} className="h-7 w-full" />
-          ))}
+        <div role="status" aria-label={navLabel}>
+          <SkeletonRows rows={SKELETON_ROWS} hasLeading rowClassName="h-9 px-2.5" />
         </div>
       )}
     </nav>

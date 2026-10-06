@@ -5,7 +5,7 @@ import { ArrowUp, FileText, Paperclip, Plus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
-import { getProviderName, ModelSelector } from '@/modules/Vault'
+import { ModelSelector } from '@/modules/Vault'
 import { Banner } from '@surefy/ui/components/Feedback'
 import { cn } from '@surefy/ui/lib/utils'
 import { Button } from '@surefy/ui/primitives/button'
@@ -20,7 +20,6 @@ import { Textarea } from '@surefy/ui/primitives/textarea'
 
 import { ATTACHMENT_ACCEPT, ATTACHMENT_LIMIT_MB, COMPOSER_MAX_ROWS } from '../ChatThread.constants'
 import KnowledgeScope from '../KnowledgeScope'
-import { isLocalModel } from '../ThreadView/ThreadView.settings'
 
 import type { ThreadViewController } from '../ThreadView/ThreadView.controller'
 
@@ -32,7 +31,7 @@ const TEXT_MAX_HEIGHT = `calc(${String(COMPOSER_MAX_ROWS)} * 1.5rem + 1rem)`
  * for files, knowledge scope, model picker, send or stop); Enter sends, Shift+Enter adds a line,
  * ↑ in an empty box edits the last message. Files are added from the "+" menu or by dropping
  * them; each shows its progress and its own error, and a failed file never blocks sending without
- * it. A note under the frame says where the model runs.
+ * it.
  */
 export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
   const t = useTranslations('chat.thread.composer')
@@ -41,8 +40,6 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
   const { composer, attachments, settings } = c
   const isBusy = c.activity !== 'idle'
   const isBlocked = c.hasModels === false || !c.isOnline
-  const model = c.settings.currentModel
-  const isLocal = isLocalModel(model)
   const limits = t('limits', {
     image: ATTACHMENT_LIMIT_MB.image,
     document: ATTACHMENT_LIMIT_MB.document,
@@ -58,7 +55,7 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
       {composer.isVisionBlocked && <Banner tone="warning" title={t('noVision')} isAnnounced />}
       <div
         className={cn(
-          'border-border bg-surface focus-within:border-primary focus-within:ring-ring/30 duration-fast flex flex-col rounded-[0.875rem] border transition-[border-color,box-shadow] focus-within:ring-[3px]',
+          'border-border bg-surface focus-within:border-primary duration-fast flex flex-col rounded-[0.875rem] border transition-colors',
           isDragging && 'border-primary',
         )}
         onDragOver={(event) => {
@@ -227,23 +224,6 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
           </div>
         </div>
       </div>
-      {model && (
-        <p className="text-caption text-muted-foreground flex items-center justify-center gap-1.5 text-center">
-          <span
-            aria-hidden
-            className={cn(
-              'size-1.5 shrink-0 rounded-full',
-              isLocal ? 'bg-success' : 'bg-foreground-secondary',
-            )}
-          />
-          {isLocal
-            ? t('footnote.local', { model: model.displayName })
-            : t('footnote.provider', {
-                model: model.displayName,
-                provider: getProviderName(model.providerKey),
-              })}
-        </p>
-      )}
     </div>
   )
 }

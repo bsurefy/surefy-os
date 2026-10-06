@@ -10,6 +10,7 @@ import { SetupChecklist } from '@/modules/Setup'
 import { toRoute } from '@/modules/Workspace'
 import { BrandMark, IconTile } from '@surefy/ui/components/DataDisplay'
 import { Button } from '@surefy/ui/primitives/button'
+import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { SUGGESTIONS } from '../ChatThread.constants'
 
@@ -50,14 +51,18 @@ export default function EmptyThread({
       <div className="flex flex-col items-center gap-3 text-center">
         <BrandMark size={44} />
         <h1 className="text-page-title">{t('title')}</h1>
-        <p className="text-body text-foreground-secondary">
-          {modelName
-            ? t.rich('usingModel', {
-                model: modelName,
-                b: (chunks) => <b className="text-foreground font-semibold">{chunks}</b>,
-              })
-            : t('description')}
-        </p>
+        {hasModels === undefined ? (
+          <Skeleton aria-hidden className="h-4 w-80 max-w-full" />
+        ) : (
+          <p className="text-body text-foreground-secondary">
+            {modelName
+              ? t.rich('usingModel', {
+                  model: modelName,
+                  b: (chunks) => <b className="text-foreground font-semibold">{chunks}</b>,
+                })
+              : t('description')}
+          </p>
+        )}
       </div>
       {hasModels === false ? (
         <section className="border-border bg-surface flex flex-col gap-2 rounded-xl border p-5">

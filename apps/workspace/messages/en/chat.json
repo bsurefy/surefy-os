@@ -184,19 +184,21 @@
       "selected": "{count, plural, one {# knowledge base} other {# knowledge bases}}",
       "options": {
         "all": {
-          "name": "All knowledge I can access",
-          "description": "Searches every knowledge base you may read."
+          "name": "All knowledge",
+          "description": "Every knowledge base you can read"
         },
         "selected": {
           "name": "Selected knowledge",
-          "description": "Searches only the bases you tick."
+          "description": "Only the bases you tick below"
         },
         "none": {
           "name": "No knowledge",
-          "description": "The model answers on its own."
+          "description": "The model answers on its own"
         }
       },
       "bases": "Knowledge bases",
+      "sources": "{count, plural, one {# source} other {# sources}}",
+      "clear": "Clear",
       "indexing": "{count, plural, one {# source is still indexing} other {# sources are still indexing}}",
       "noBases": "You can't read any knowledge base yet."
     },
@@ -323,10 +325,6 @@
         "CHAT_ATTACHMENT_TOO_LARGE": "is too large. Images up to {image} MB, documents up to {document} MB.",
         "CHAT_ATTACHMENT_UNSUPPORTED": "isn't a supported type. Use PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD or CSV.",
         "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
-      },
-      "footnote": {
-        "local": "{model} runs on your server. Messages and files never leave your network.",
-        "provider": "{model} is sent to {provider}."
       },
       "stopShort": "Stop"
     }
