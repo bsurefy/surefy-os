@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test'
 
+import { typeMessage } from './support/composer'
 import { ORGANIZATION, OWNER, STUB_MODEL_ID } from './support/env'
 import { connectStubModel } from './support/models'
 
@@ -14,7 +15,7 @@ async function chatOnce(page: Page, question: string) {
   await connectStubModel(page)
   await page.goto(`/${ORGANIZATION.slug}/chat`)
   await page.waitForLoadState('networkidle')
-  await page.getByRole('textbox', { name: 'Message' }).fill(question)
+  await typeMessage(page, question)
   await page.getByRole('button', { name: 'Send message' }).click()
   await expect(page.getByRole('article', { name: 'Answer' }).last()).toContainText(
     `Echo: ${question}`,

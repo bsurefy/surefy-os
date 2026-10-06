@@ -17,18 +17,12 @@ async function openSection(page: Page, section: string, heading: string) {
 // Each section changes what it needs and puts it back, so the other specs find the install as setup left it.
 
 test.describe('Settings › navigation', () => {
-  test('lists every section of the MVP, and the Settings entry opens the first', async ({
+  test('lists every section of the MVP in the Settings dropdown, which opens the first', async ({
     page,
   }) => {
     await page.goto(`/${ORGANIZATION.slug}/profile`)
-    await page
-      .getByRole('navigation', { name: 'Main navigation' })
-      .getByRole('link', { name: /Settings/ })
-      .click()
-    // the first visit of Settings compiles its pages under `next dev`, which can take a while
-    await expect(page).toHaveURL(`${SETTINGS}/general`, { timeout: 60_000 })
-
-    const sections = page.getByRole('navigation', { name: 'Settings sections' })
+    const navigation = page.getByRole('navigation', { name: 'Main navigation' })
+    await navigation.getByRole('button', { name: 'Settings' }).click()
     for (const name of [
       'General',
       'Members',
@@ -39,8 +33,16 @@ test.describe('Settings › navigation', () => {
       'Security',
       'Install',
     ]) {
-      await expect(sections.getByRole('link', { name })).toBeVisible()
+      await expect(navigation.getByRole('link', { name })).toBeVisible()
     }
+    await navigation.getByRole('link', { name: 'General' }).click()
+    // the first visit of Settings compiles its pages under `next dev`, which can take a while
+    await expect(page).toHaveURL(`${SETTINGS}/general`, { timeout: 60_000 })
+    // on a settings page the dropdown stays open with the open section marked
+    await expect(navigation.getByRole('link', { name: 'General' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 })
 
@@ -61,9 +63,10 @@ test.describe('Settings › General', () => {
     await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue(
       `${ORGANIZATION.name} ${stamp}`,
     )
-    await expect(
-      page.getByRole('button', { name: new RegExp(`Switch organization.*${stamp}`) }),
-    ).toBeVisible()
+    // the sidebar's user button shows the organization's name under the person's
+    await expect(page.getByRole('button', { name: /Account menu for/ })).toContainText(
+      `${ORGANIZATION.name} ${stamp}`,
+    )
 
     await page.getByRole('textbox', { name: 'Name' }).fill(ORGANIZATION.name)
     await page.getByRole('button', { name: 'Save changes' }).click()
