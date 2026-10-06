@@ -42,7 +42,8 @@ function DialogOverlay({
 }
 
 // Catalog widths: sm 400, md 520, lg 640; 64px from the top; header and footer set off by lines,
-// only the body scrolls. The close button sits 40% outside the corner from `sm` up.
+// only the body scrolls, also when the body and footer sit inside a `<form>`. The close button sits
+// 40% outside the corner from `sm` up.
 function DialogContent({
   className,
   children,
@@ -61,7 +62,7 @@ function DialogContent({
         data-slot="dialog-content"
         data-size={size}
         className={cn(
-          'bg-surface border-border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 z-overlay motion-reduce:data-[state=open]:zoom-in-100 fixed top-16 left-[50%] flex max-h-[calc(100dvh-8rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col rounded-xl border shadow-lg data-[state=closed]:duration-200 data-[state=open]:duration-300 data-[state=open]:ease-[cubic-bezier(0.34,1.56,0.64,1)] data-[size=lg]:sm:max-w-[640px] data-[size=md]:sm:max-w-[520px] data-[size=sm]:sm:max-w-[400px]',
+          'bg-surface border-border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 z-overlay motion-reduce:data-[state=open]:zoom-in-100 fixed top-16 left-[50%] flex max-h-[calc(100dvh-8rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] flex-col rounded-xl border shadow-lg data-[state=closed]:duration-200 data-[state=open]:duration-300 data-[state=open]:ease-[cubic-bezier(0.34,1.56,0.64,1)] data-[size=lg]:sm:max-w-[640px] data-[size=md]:sm:max-w-[520px] data-[size=sm]:sm:max-w-[400px] [&>form]:flex [&>form]:min-h-0 [&>form]:flex-col',
           className,
         )}
         {...props}
