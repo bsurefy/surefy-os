@@ -90,11 +90,13 @@ export default function KnowledgeScope({
                 key={value}
                 htmlFor={`scope-${value}`}
                 className={cn(
-                  'hover:bg-surface-2 flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 font-normal',
+                  'hover:bg-surface-2 has-focus-visible:ring-ring flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 font-normal has-focus-visible:ring-2',
                   isChecked && 'bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft',
                 )}
               >
-                <RadioGroupItem id={`scope-${value}`} value={value} className="sr-only" />
+                <span className="sr-only">
+                  <RadioGroupItem id={`scope-${value}`} value={value} />
+                </span>
                 <IconTile
                   icon={SCOPE_ICONS[value]}
                   size="sm"
