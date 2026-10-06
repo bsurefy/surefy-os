@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Reverse proxy of the self-hosted stack: TLS for the install's domain, /api to the API, the rest
+# to the workspace. SUREFY_DOMAIN is a host name (surefy.example.com) or an address Caddy can serve
+# without a public certificate (localhost); install.sh writes it to .env.
+{$SUREFY_DOMAIN} {
+	encode zstd gzip
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy workspace:3000
+	}
+}

@@ -34,6 +34,10 @@ packages/          shared libraries: contracts, ui, web-core, ml-client, config
 infra/             Docker and self-host files
 ```
 
+## Self-hosting
+
+Install on your own server with Docker Compose: see the [self-hosting guide](./SELF-HOSTING.md) for installation, upgrades, backups and restores, and connecting a local model server.
+
 ## Development
 
 Requirements: Node.js 24, pnpm 12 (through Corepack), Docker, and uv for the Python service.
