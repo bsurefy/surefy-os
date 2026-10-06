@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# SurefyOS on one server: Caddy (TLS), workspace, api, worker, ml, Postgres (pgvector) and Redis.
+# SurefyOS on one server: Caddy (TLS or plain HTTP), workspace, api, worker, ml, Postgres
+# (pgvector) and Redis.
 # Configuration comes from .env next to this file; infra/scripts/install.sh writes it.
 #
 #   infra/scripts/install.sh                                       # first install
@@ -27,31 +28,50 @@ x-api-service: &api-service
     STORAGE_LOCAL_PATH: /data/storage
   restart: unless-stopped
 
+# The reverse proxy comes in two flavors, chosen by COMPOSE_PROFILES in .env (install.sh writes it):
+#   tls   Caddy gets a certificate for SUREFY_DOMAIN and publishes the HTTP and HTTPS ports
+#   http  plain HTTP on SUREFY_HTTP_PORT only, for a trial or behind a proxy that does the TLS
+# Caddy listens inside the container on the numbers the host publishes, so the address the API
+# signs for file downloads works for ml as well as for browsers.
+x-caddy: &caddy
+  image: caddy:2-alpine
+  restart: unless-stopped
+  environment:
+    SUREFY_SITE_ADDRESS: ${SUREFY_SITE_ADDRESS:-${SUREFY_DOMAIN:?set SUREFY_DOMAIN in .env}}
+    SUREFY_HTTP_PORT: ${SUREFY_HTTP_PORT:-80}
+    SUREFY_HTTPS_PORT: ${SUREFY_HTTPS_PORT:-443}
+    SUREFY_TRUSTED_PROXIES: ${SUREFY_TRUSTED_PROXIES:-127.0.0.1/32}
+  volumes:
+    - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    - caddy-data:/data
+    - caddy-config:/config
+  networks:
+    default:
+      # The API signs file URLs with its public address and ml downloads them: inside the stack
+      # that address resolves to Caddy. Behind a proxy that does the TLS, SUREFY_INTERNAL_ALIAS
+      # names something else, so ml reaches the public address as any client does.
+      aliases:
+        - ${SUREFY_INTERNAL_ALIAS:-${SUREFY_DOMAIN}}
+  depends_on:
+    workspace:
+      condition: service_healthy
+    api:
+      condition: service_healthy
+
 services:
   caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    environment:
-      SUREFY_DOMAIN: ${SUREFY_DOMAIN:?set SUREFY_DOMAIN in .env}
+    <<: *caddy
+    profiles: [tls]
     ports:
-      - 80:80
-      - 443:443
-      - 443:443/udp
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    networks:
-      default:
-        # The API signs file URLs with its public address and ml downloads them: inside the stack
-        # that address resolves to Caddy, which serves the public certificate.
-        aliases:
-          - ${SUREFY_DOMAIN}
-    depends_on:
-      workspace:
-        condition: service_healthy
-      api:
-        condition: service_healthy
+      - ${SUREFY_BIND_ADDRESS:-0.0.0.0}:${SUREFY_HTTP_PORT:-80}:${SUREFY_HTTP_PORT:-80}
+      - ${SUREFY_BIND_ADDRESS:-0.0.0.0}:${SUREFY_HTTPS_PORT:-443}:${SUREFY_HTTPS_PORT:-443}
+      - ${SUREFY_BIND_ADDRESS:-0.0.0.0}:${SUREFY_HTTPS_PORT:-443}:${SUREFY_HTTPS_PORT:-443}/udp
+
+  caddy-http:
+    <<: *caddy
+    profiles: [http]
+    ports:
+      - ${SUREFY_BIND_ADDRESS:-0.0.0.0}:${SUREFY_HTTP_PORT:-80}:${SUREFY_HTTP_PORT:-80}
 
   workspace:
     image: ${SUREFY_IMAGE_REGISTRY:-ghcr.io/bsurefy}/surefy-workspace:${SUREFY_VERSION:-latest}
@@ -159,7 +179,7 @@ services:
     environment:
       ML_ENV: production
       ML_SERVICE_TOKEN: ${ML_SERVICE_TOKEN:?set ML_SERVICE_TOKEN in .env}
-      ML_ALLOWED_DOWNLOAD_HOSTS: '["${SUREFY_DOMAIN}"]'
+      ML_ALLOWED_DOWNLOAD_HOSTS: '["${SUREFY_PUBLIC_HOST:-${SUREFY_DOMAIN}}"]'
       ML_WORKERS: ${ML_WORKERS:-2}
     healthcheck:
       test:
