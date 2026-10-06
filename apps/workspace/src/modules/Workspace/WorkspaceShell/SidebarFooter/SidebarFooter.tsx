@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import Link from 'next/link'
+import { ChevronsUpDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 
-import { ROUTES } from '@/constants/routes'
 import { cn } from '@surefy/ui/lib/utils'
-import { Button } from '@surefy/ui/primitives/button'
+import { Kbd } from '@surefy/ui/primitives/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@surefy/ui/primitives/tooltip'
 
 import { useSidebarFooterController } from './SidebarFooter.controller'
 import UserAvatar from '../../UserAvatar'
+import UserMenu from '../UserMenu'
 
 import type { SidebarFooterProps } from './SidebarFooter.types'
 
-/** Bottom of the sidebar: where the data lives, the collapse switch and the person. */
+const rowClassName =
+  'text-body text-foreground-secondary hover:bg-surface-2 hover:text-foreground focus-visible:ring-ring duration-fast flex h-9 w-full items-center gap-2.5 rounded-lg transition-colors outline-none focus-visible:ring-2'
+
+/** Bottom of the sidebar: where the data lives, the collapse row and the person's menu. */
 export default function SidebarFooter({
   orgSlug,
   isCollapsed = false,
@@ -22,48 +24,75 @@ export default function SidebarFooter({
 }: Readonly<SidebarFooterProps>) {
   const { user, role, isSelfHosted, t } = useSidebarFooterController()
   const toggleLabel = isCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')
+  const ToggleIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose
+
+  const toggle = onToggleCollapsed && (
+    <button
+      type="button"
+      aria-label={isCollapsed ? toggleLabel : undefined}
+      aria-keyshortcuts="["
+      onClick={onToggleCollapsed}
+      className={cn(rowClassName, isCollapsed ? 'justify-center px-0' : 'px-2.5')}
+    >
+      <ToggleIcon aria-hidden="true" className="size-5 shrink-0" />
+      {!isCollapsed && (
+        <>
+          <span className="flex-1 truncate text-left">{toggleLabel}</span>
+          <Kbd>[</Kbd>
+        </>
+      )}
+    </button>
+  )
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1">
       {isSelfHosted && !isCollapsed && (
-        <p className="text-caption text-muted-foreground flex items-center gap-2 px-1">
-          <span aria-hidden="true" className="bg-success size-2 shrink-0 rounded-full" />
-          {t('context.selfHosted')}
+        <p className="text-caption text-muted-foreground flex h-7 items-center gap-2 px-2.5">
+          <span aria-hidden="true" className="bg-success size-[0.4375rem] shrink-0 rounded-full" />
+          <span className="truncate">{t('context.selfHosted')}</span>
         </p>
       )}
-      {onToggleCollapsed && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              icon={isCollapsed ? PanelLeftOpen : PanelLeftClose}
-              aria-label={toggleLabel}
-              aria-keyshortcuts="["
-              onClick={onToggleCollapsed}
-              className={cn(!isCollapsed && 'self-end')}
-            />
-          </TooltipTrigger>
-          <TooltipContent side="right">{toggleLabel}</TooltipContent>
-        </Tooltip>
-      )}
+      {toggle &&
+        (isCollapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{toggle}</TooltipTrigger>
+            <TooltipContent side="right">{toggleLabel}</TooltipContent>
+          </Tooltip>
+        ) : (
+          toggle
+        ))}
       {user && (
-        <Link
-          href={ROUTES.workspace.profile(orgSlug)}
-          aria-label={isCollapsed ? t('userMenu.profile') : undefined}
-          className={cn(
-            'hover:bg-surface-2 focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-md p-1 outline-none focus-visible:ring-2',
-            isCollapsed && 'justify-center',
-          )}
-        >
-          <UserAvatar user={user} size="sm" />
-          {!isCollapsed && (
-            <span className="flex min-w-0 flex-col">
-              <span className="text-body truncate font-medium">{user.name}</span>
-              {role && <span className="text-caption text-muted-foreground truncate">{role}</span>}
-            </span>
-          )}
-        </Link>
+        <UserMenu
+          orgSlug={orgSlug}
+          side="top"
+          align="start"
+          trigger={
+            <button
+              type="button"
+              aria-label={t('userMenu.label', { name: user.name })}
+              className={cn(
+                'hover:bg-surface-2 focus-visible:ring-ring data-[state=open]:bg-surface-2 duration-fast flex h-12 w-full min-w-0 items-center gap-2.5 rounded-lg text-left transition-colors outline-none focus-visible:ring-2',
+                isCollapsed ? 'justify-center px-0' : 'px-2.5',
+              )}
+            >
+              <UserAvatar user={user} />
+              {!isCollapsed && (
+                <>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-label truncate">{user.name}</span>
+                    {role && (
+                      <span className="text-caption text-muted-foreground truncate">{role}</span>
+                    )}
+                  </span>
+                  <ChevronsUpDown
+                    aria-hidden="true"
+                    className="text-muted-foreground size-3.5 shrink-0"
+                  />
+                </>
+              )}
+            </button>
+          }
+        />
       )}
     </div>
   )

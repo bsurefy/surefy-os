@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export { default as Breadcrumbs } from './Breadcrumbs'
 export * from './Breadcrumbs'
+export { default as FilterChips } from './FilterChips'
+export * from './FilterChips'
 export { default as NavItem } from './NavItem'
 export * from './NavItem'
 export { default as PaginationFooter } from './PaginationFooter'

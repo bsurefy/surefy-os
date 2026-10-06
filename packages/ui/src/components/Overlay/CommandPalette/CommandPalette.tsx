@@ -96,7 +96,7 @@ export default function CommandPalette({
           ))}
       </CommandList>
       {footer && (
-        <div className="border-border text-caption text-muted-foreground border-t px-3 py-2">
+        <div className="border-border bg-surface-2 text-caption text-muted-foreground flex items-center gap-4 border-t px-4 py-2">
           {footer}
         </div>
       )}

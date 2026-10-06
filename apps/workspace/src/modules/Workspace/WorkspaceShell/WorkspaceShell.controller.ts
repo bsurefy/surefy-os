@@ -17,6 +17,7 @@ import type { WorkspaceShellProps } from './WorkspaceShell.types'
  */
 export function useWorkspaceShellController({ orgSlug }: Pick<WorkspaceShellProps, 'orgSlug'>) {
   const t = useTranslations('workspace.shell')
+  const tCommon = useTranslations('common')
   const isDesktop = useMediaQuery(DESKTOP_MEDIA_QUERY)
   const preference = useSidebarStore((state) => state.collapsedPreference)
   const toggle = useSidebarStore((state) => state.toggle)
@@ -33,5 +34,5 @@ export function useWorkspaceShellController({ orgSlug }: Pick<WorkspaceShellProp
   }
   useShellShortcuts({ orgSlug, navItems: navItems ?? [], onToggleSidebar })
 
-  return { isCollapsed, onToggleSidebar, t }
+  return { isCollapsed, onToggleSidebar, productName: tCommon('productName'), t }
 }

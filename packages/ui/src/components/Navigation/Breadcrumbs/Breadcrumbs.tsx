@@ -28,25 +28,29 @@ export default function Breadcrumbs({
   return (
     <Breadcrumb aria-label={label} className={cn('min-w-0', className)}>
       {/* One line in the 56px top bar: long labels truncate instead of wrapping. */}
-      <BreadcrumbList className="min-w-0 flex-nowrap">
+      <BreadcrumbList className="text-label min-w-0 flex-nowrap gap-2 font-normal sm:gap-2">
         {visible.map((item, index) => {
           if (!item) return null
           const isLast = index === visible.length - 1
           return (
             <Fragment key={`${item.label}-${String(index)}`}>
-              {index > 0 && <BreadcrumbSeparator />}
+              {index > 0 && <BreadcrumbSeparator>/</BreadcrumbSeparator>}
               {isTruncated && index === 1 && (
                 <>
                   <Crumb>
                     <BreadcrumbEllipsis />
                   </Crumb>
-                  <BreadcrumbSeparator />
+                  <BreadcrumbSeparator>/</BreadcrumbSeparator>
                 </>
               )}
               <Crumb className="min-w-0">
                 {isLast || !item.href ? (
                   // The current object is plain text, not a disabled link (design rule).
-                  <BreadcrumbPage role={undefined} aria-disabled={undefined} className="truncate">
+                  <BreadcrumbPage
+                    role={undefined}
+                    aria-disabled={undefined}
+                    className="truncate font-medium"
+                  >
                     {item.label}
                   </BreadcrumbPage>
                 ) : (

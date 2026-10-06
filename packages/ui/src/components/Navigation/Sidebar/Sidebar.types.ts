@@ -4,9 +4,11 @@ import type { ComponentProps, ReactNode } from 'react'
 export interface SidebarProps extends ComponentProps<'nav'> {
   /** 64px icon rail instead of 248px; item labels move into tooltips. */
   isCollapsed?: boolean
-  /** Top of the sidebar: product mark, organization switcher. */
+  /** The 60px brand row at the very top (product mark and wordmark). */
+  brand?: ReactNode
+  /** Below the brand row: the organization switcher. */
   header?: ReactNode
-  /** Bottom of the sidebar: context and user. */
+  /** Bottom of the sidebar: context, collapse and the person. */
   footer?: ReactNode
   /** Accessible name of the navigation landmark. Translated text. */
   label: string

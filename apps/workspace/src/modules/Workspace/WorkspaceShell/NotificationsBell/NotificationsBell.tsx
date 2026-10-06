@@ -64,24 +64,28 @@ export default function NotificationsBell({ orgSlug }: Readonly<{ orgSlug: strin
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="ghost"
+          variant="secondary"
           size="icon-md"
           aria-label={t('bellLabel', { count: unreadCount })}
-          className="relative"
+          className="text-foreground-secondary relative"
         >
           <Bell aria-hidden="true" />
           {unreadCount > 0 && (
             <span
               aria-hidden="true"
-              className="bg-primary text-primary-foreground text-caption absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 tabular-nums"
+              className="bg-primary text-primary-foreground ring-surface text-caption absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-semibold tabular-nums ring-2"
             >
               {unreadCount > MAX_BADGE ? `${MAX_BADGE}+` : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(25rem,calc(100vw-2rem))] p-2">
-        <div className="flex items-center justify-between gap-2 px-2 pb-1">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="w-[min(22.5rem,calc(100vw-2rem))] p-1.5"
+      >
+        <div className="flex h-9 items-center justify-between gap-2 px-2.5">
           <h2 className="text-section-title">{t('title')}</h2>
           {unreadCount > 0 && (
             <Button variant="link" size="sm" isLoading={isMarkingAll} onClick={onMarkAllRead}>
@@ -90,7 +94,7 @@ export default function NotificationsBell({ orgSlug }: Readonly<{ orgSlug: strin
           )}
         </div>
         {body}
-        <div className="border-border mt-1 border-t px-2 pt-2">
+        <div className="border-border mt-1 border-t px-2.5 py-2">
           <Link
             href={ROUTES.workspace.notifications(orgSlug)}
             onClick={onClose}

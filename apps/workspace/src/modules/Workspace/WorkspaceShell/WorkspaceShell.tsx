@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
+import { BrandMark } from '@surefy/ui/components/DataDisplay'
 import { AppShell } from '@surefy/ui/components/Layout'
 import { Sidebar } from '@surefy/ui/components/Navigation'
 
@@ -21,7 +22,9 @@ import type { WorkspaceShellProps } from './WorkspaceShell.types'
  * palette, shortcut help and the mobile menu. Pages render inside `<main id="main">`.
  */
 export default function WorkspaceShell({ orgSlug, children }: Readonly<WorkspaceShellProps>) {
-  const { isCollapsed, onToggleSidebar, t } = useWorkspaceShellController({ orgSlug })
+  const { isCollapsed, onToggleSidebar, productName, t } = useWorkspaceShellController({
+    orgSlug,
+  })
 
   return (
     <>
@@ -37,6 +40,13 @@ export default function WorkspaceShell({ orgSlug, children }: Readonly<Workspace
           <Sidebar
             label={t('navLabel')}
             isCollapsed={isCollapsed}
+            brand={
+              <BrandMark
+                label={productName}
+                wordmark={isCollapsed ? undefined : t('brand.wordmark')}
+                accent={isCollapsed ? undefined : t('brand.accent')}
+              />
+            }
             header={<OrgSwitcher orgSlug={orgSlug} isCollapsed={isCollapsed} />}
             footer={
               <SidebarFooter
