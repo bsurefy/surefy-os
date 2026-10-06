@@ -10,8 +10,8 @@
     "dev:mock": "tsx watch --env-file-if-exists=.env.local mock/main.ts",
     "build": "next build --webpack",
     "start": "next start --port ${WEB_PORT:-3000}",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "next typegen && eslint .",
+    "lint:fix": "next typegen && eslint . --fix",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:e2e": "tsx e2e/support/prepareDatabase.ts && playwright test"
