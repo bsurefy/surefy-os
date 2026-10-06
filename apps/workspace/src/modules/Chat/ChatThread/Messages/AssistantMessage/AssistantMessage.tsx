@@ -4,7 +4,7 @@
 import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { BrandMark, DataLocationBadge } from '@surefy/ui/components/DataDisplay'
+import { BrandMark, DataLocationBadge, Markdown } from '@surefy/ui/components/DataDisplay'
 import { Spinner } from '@surefy/ui/components/Feedback'
 import { Button } from '@surefy/ui/primitives/button'
 
@@ -130,7 +130,13 @@ export default function AssistantMessage({
           className="text-caption text-muted-foreground"
         >
           <summary className="cursor-pointer">{reasoningLabel(part, t)}</summary>
-          <p className="mt-1 whitespace-pre-wrap">{part.text}</p>
+          <Markdown
+            tone="muted"
+            codeLabels={{ copy: t('copyCode'), copied: t('copiedCode') }}
+            className="border-border mt-2 border-l-2 pl-3"
+          >
+            {part.text}
+          </Markdown>
         </details>
       ))}
       {tools.length > 0 && (

@@ -6,5 +6,7 @@ export interface MarkdownProps {
   codeLabels: { copy: string; copied: string }
   /** Level of a `#` heading; deeper headings follow. Default 3, so content never adds a page h1. */
   topHeadingLevel?: 2 | 3 | 4
+  /** `muted` renders paragraphs, lists and quotes in caption size and secondary color, for collapsed reasoning or notes. Default `default`. */
+  tone?: 'default' | 'muted'
   className?: string
 }

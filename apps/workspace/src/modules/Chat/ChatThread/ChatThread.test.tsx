@@ -157,9 +157,12 @@ describe('ChatThread: history', () => {
   it('keeps reasoning and steps collapsed, shows code and the data location', async () => {
     openChat(SEEDED_CHAT_IDS.quarterly)
     expect(await screen.findByText(/Revenue grew in all three regions/)).toBeVisible()
-    expect(screen.getByText(/Reasoned for 3 seconds/).closest('details')).not.toHaveAttribute(
-      'open',
-    )
+    const reasoning = screen.getByText(/Reasoned for 3 seconds/).closest('details')
+    expect(reasoning).not.toHaveAttribute('open')
+    if (!reasoning) throw new Error('No reasoning block')
+    // reasoning is Markdown: the list and the emphasis render as elements, not as raw text
+    expect(within(reasoning).getByText('Compare them with last quarter.').tagName).toBe('LI')
+    expect(within(reasoning).getByText('product').tagName).toBe('STRONG')
     expect(screen.getByText('1 step').closest('details')).not.toHaveAttribute('open')
     expect(screen.getByRole('button', { name: 'Copy' })).toBeVisible()
     expect((await screen.findAllByText('Sent to OpenAI')).length).toBeGreaterThan(0)
@@ -339,6 +342,36 @@ describe('ChatThread: rating, settings and offline', () => {
       )
     })
     expect(screen.queryByRole('dialog', { name: 'What went wrong?' })).not.toBeInTheDocument()
+  })
+
+  it('shows the chat title in the header and renames it from there', async () => {
+    const { user } = openChat(SEEDED_CHAT_IDS.refunds)
+    await screen.findByRole('article', { name: 'Answer' })
+    await user.click(screen.getByRole('button', { name: 'Refund policy for annual plans' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Rename chat' })
+    expect(within(dialog).getByRole('textbox')).toHaveValue('Refund policy for annual plans')
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Chat options' }))
+    expect(await screen.findByRole('menuitem', { name: 'Rename' })).toBeVisible()
+  })
+
+  it('keeps the model, the knowledge scope and the files menu in the composer', async () => {
+    const { user } = openChat(undefined)
+    await screen.findByRole('heading', { name: 'What can I help with today?' })
+    expect(screen.getByText('New chat')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Quarterly report summary' }),
+    ).not.toBeInTheDocument()
+    const message = screen.getByLabelText('Message')
+    expect(message.style.maxHeight).toBe('calc(8 * 1.5rem + 1rem)')
+    await user.click(screen.getByRole('button', { name: 'Add to message' }))
+    const item = await screen.findByRole('menuitem', { name: /Add files or images/ })
+    expect(item).toHaveTextContent(/Images up to \d+ MB/)
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
+      'All knowledge',
+    )
+    expect(screen.getByRole('button', { name: 'Model' })).toBeVisible()
   })
 
   it('makes a chat private and shows the lock badge', async () => {

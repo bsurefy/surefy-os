@@ -13,8 +13,6 @@ export function useSidebarFooterController() {
   return {
     user: me?.user,
     role: access?.role ? t(`roles.${access.role}`) : undefined,
-    // Descriptive copy only (ADR 0020): `hosting` never gates anything
-    isSelfHosted: me?.install.hosting === 'self-hosted',
     t,
   }
 }

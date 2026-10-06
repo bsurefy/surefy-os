@@ -2,7 +2,7 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, ChevronDown } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { knowledgeQueries } from '@/api/knowledge'
@@ -21,6 +21,8 @@ export interface KnowledgeScopeProps {
   scope: ChatKnowledgeScope
   selectedIds: readonly string[]
   isDisabled?: boolean
+  /** `chip`: a small pill for a toolbar. Default `button`. */
+  variant?: 'button' | 'chip'
   onChange: (scope: ChatKnowledgeScope, selectedIds: string[]) => void
 }
 
@@ -33,6 +35,7 @@ export default function KnowledgeScope({
   scope,
   selectedIds,
   isDisabled = false,
+  variant = 'button',
   onChange,
 }: Readonly<KnowledgeScopeProps>) {
   const t = useTranslations('chat.thread.scope')
@@ -52,9 +55,18 @@ export default function KnowledgeScope({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="secondary" disabled={isDisabled} aria-label={t('trigger')}>
-          <BookOpen aria-hidden className="size-4" />
+        <Button
+          variant="secondary"
+          size={variant === 'chip' ? 'sm' : 'md'}
+          disabled={isDisabled}
+          aria-label={t('trigger')}
+          className={variant === 'chip' ? 'text-caption h-7 rounded-full px-2.5' : undefined}
+        >
+          <BookOpen aria-hidden className={variant === 'chip' ? 'size-3.5' : 'size-4'} />
           <span className="truncate">{label}</span>
+          {variant === 'chip' && (
+            <ChevronDown aria-hidden className="text-muted-foreground size-3.5 shrink-0" />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="flex w-80 flex-col gap-3">

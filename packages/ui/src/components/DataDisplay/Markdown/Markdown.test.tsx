@@ -21,6 +21,16 @@ describe('Markdown', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
+  it('renders the muted tone in caption size', () => {
+    render(
+      <Markdown codeLabels={codeLabels} tone="muted">
+        {'A note.\n\n- one\n- two'}
+      </Markdown>,
+    )
+    expect(screen.getByText('A note.')).toHaveClass('text-caption', 'text-foreground-secondary')
+    expect(screen.getByRole('list')).toHaveClass('text-caption')
+  })
+
   it('skips raw HTML and unsafe links, renders tables and code blocks', () => {
     render(
       <Markdown codeLabels={codeLabels}>

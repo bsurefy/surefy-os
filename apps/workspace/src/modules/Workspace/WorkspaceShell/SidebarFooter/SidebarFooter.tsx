@@ -16,13 +16,13 @@ import type { SidebarFooterProps } from './SidebarFooter.types'
 const rowClassName =
   'text-body text-foreground-secondary hover:bg-surface-2 hover:text-foreground focus-visible:ring-ring duration-fast flex h-9 w-full items-center gap-2.5 rounded-lg transition-colors outline-none focus-visible:ring-2'
 
-/** Bottom of the sidebar: where the data lives, the collapse row and the person's menu. */
+/** Bottom of the sidebar: the collapse row and the person's menu. */
 export default function SidebarFooter({
   orgSlug,
   isCollapsed = false,
   onToggleCollapsed,
 }: Readonly<SidebarFooterProps>) {
-  const { user, role, isSelfHosted, t } = useSidebarFooterController()
+  const { user, role, t } = useSidebarFooterController()
   const toggleLabel = isCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')
   const ToggleIcon = isCollapsed ? PanelLeftOpen : PanelLeftClose
 
@@ -46,12 +46,6 @@ export default function SidebarFooter({
 
   return (
     <div className="flex flex-col gap-1">
-      {isSelfHosted && !isCollapsed && (
-        <p className="text-caption text-muted-foreground flex h-7 items-center gap-2 px-2.5">
-          <span aria-hidden="true" className="bg-success size-[0.4375rem] shrink-0 rounded-full" />
-          <span className="truncate">{t('context.selfHosted')}</span>
-        </p>
-      )}
       {toggle &&
         (isCollapsed ? (
           <Tooltip>

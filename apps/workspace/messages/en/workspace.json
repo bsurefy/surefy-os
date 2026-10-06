@@ -33,9 +33,6 @@
       "settings": "Settings"
     }
   },
-  "context": {
-    "selfHosted": "Your data is stored on your server"
-  },
   "roles": {
     "user": "User",
     "builder": "Builder",

@@ -192,7 +192,7 @@ function seedMessages(): Map<string, ChatMessageDto[]> {
           [
             {
               type: 'reasoning',
-              text: 'The report lists three regions. I add each region’s product and services lines, then compare them with last quarter.',
+              text: 'The report lists three regions.\n\n1. Add each region’s **product** and services lines.\n2. Compare them with last quarter.',
               durationMs: 3200,
             },
             {

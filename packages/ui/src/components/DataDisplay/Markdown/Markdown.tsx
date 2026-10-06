@@ -43,8 +43,11 @@ export default function Markdown({
   children,
   codeLabels,
   topHeadingLevel = 3,
+  tone = 'default',
   className,
 }: Readonly<MarkdownProps>) {
+  const text =
+    tone === 'muted' ? 'text-caption text-foreground-secondary' : 'text-body text-foreground'
   const components: Components = {
     h1: ({ children: text }) => (
       <MarkdownHeading depth={1} topLevel={topHeadingLevel}>
@@ -76,7 +79,7 @@ export default function Markdown({
         {text}
       </MarkdownHeading>
     ),
-    p: ({ children: text }) => <p className="text-body text-foreground">{text}</p>,
+    p: ({ children: content }) => <p className={text}>{content}</p>,
     a: ({ children: text, href }) => (
       <a
         href={href}
@@ -88,13 +91,13 @@ export default function Markdown({
       </a>
     ),
     ul: ({ children: items }) => (
-      <ul className="text-body flex list-disc flex-col gap-1 pl-5">{items}</ul>
+      <ul className={cn(text, 'flex list-disc flex-col gap-1 pl-5')}>{items}</ul>
     ),
     ol: ({ children: items }) => (
-      <ol className="text-body flex list-decimal flex-col gap-1 pl-5">{items}</ol>
+      <ol className={cn(text, 'flex list-decimal flex-col gap-1 pl-5')}>{items}</ol>
     ),
     blockquote: ({ children: quote }) => (
-      <blockquote className="border-border text-foreground-secondary border-l-2 pl-3">
+      <blockquote className={cn(text, 'border-border text-foreground-secondary border-l-2 pl-3')}>
         {quote}
       </blockquote>
     ),

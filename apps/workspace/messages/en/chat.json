@@ -164,10 +164,8 @@
     },
     "header": {
       "menu": "Chat options",
-      "location": {
-        "local": "Stays on your server",
-        "provider": "Sent to {provider}"
-      },
+      "rename": "Rename",
+      "titleHint": "Click to rename",
       "private": {
         "badge": "Private",
         "toggle": "Private chat",
@@ -309,7 +307,8 @@
     "composer": {
       "label": "Message",
       "placeholder": "Message the model…",
-      "attach": "Attach files",
+      "add": "Add to message",
+      "addFiles": "Add files or images",
       "files": "Choose files",
       "limits": "Images up to {image} MB, documents up to {document} MB · PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD, CSV",
       "send": "Send message",

@@ -1,36 +1,44 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { ArrowUp, FileText, Paperclip, X } from 'lucide-react'
+import { ArrowUp, FileText, Paperclip, Plus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
-import { getProviderName } from '@/modules/Vault'
+import { getProviderName, ModelSelector } from '@/modules/Vault'
 import { Banner } from '@surefy/ui/components/Feedback'
 import { cn } from '@surefy/ui/lib/utils'
 import { Button } from '@surefy/ui/primitives/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@surefy/ui/primitives/dropdown-menu'
 import { Progress } from '@surefy/ui/primitives/progress'
 import { Textarea } from '@surefy/ui/primitives/textarea'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@surefy/ui/primitives/tooltip'
 
 import { ATTACHMENT_ACCEPT, ATTACHMENT_LIMIT_MB, COMPOSER_MAX_ROWS } from '../ChatThread.constants'
+import KnowledgeScope from '../KnowledgeScope'
 import { isLocalModel } from '../ThreadView/ThreadView.settings'
 
 import type { ThreadViewController } from '../ThreadView/ThreadView.controller'
 
-const rowsOf = (text: string) => Math.min(COMPOSER_MAX_ROWS, Math.max(1, text.split('\n').length))
+/** The text box grows with its content up to this height, then scrolls inside the frame. */
+const TEXT_MAX_HEIGHT = `calc(${String(COMPOSER_MAX_ROWS)} * 1.5rem + 1rem)`
 
 /**
- * The composer (chat.md §3): one frame with the text, the file chips and the toolbar; Enter sends,
- * Shift+Enter adds a line, ↑ in an empty box edits the last message. Files are added by the button
- * or by dropping them; each shows its progress and its own error, and a failed file never blocks
- * sending without it. A note under the frame says where the model runs.
+ * The composer (chat.md §1): one frame with the text, the file chips and the toolbar ("+" menu
+ * for files, knowledge scope, model picker, send or stop); Enter sends, Shift+Enter adds a line,
+ * ↑ in an empty box edits the last message. Files are added from the "+" menu or by dropping
+ * them; each shows its progress and its own error, and a failed file never blocks sending without
+ * it. A note under the frame says where the model runs.
  */
 export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
   const t = useTranslations('chat.thread.composer')
   const fileInput = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const { composer, attachments } = c
+  const { composer, attachments, settings } = c
   const isBusy = c.activity !== 'idle'
   const isBlocked = c.hasModels === false || !c.isOnline
   const model = c.settings.currentModel
@@ -67,7 +75,10 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
         }}
       >
         {attachments.items.length > 0 && (
-          <ul aria-label={t('attachments')} className="flex flex-wrap gap-1.5 px-3 pt-2.5">
+          <ul
+            aria-label={t('attachments')}
+            className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto px-3 pt-2.5"
+          >
             {attachments.items.map((item) => (
               <li
                 key={item.key}
@@ -122,10 +133,11 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
         <Textarea
           aria-label={t('label')}
           placeholder={t('placeholder')}
-          rows={rowsOf(composer.text)}
+          rows={1}
           value={composer.text}
           disabled={c.hasModels === false}
-          className="text-body-lg min-h-13 resize-none border-0 bg-transparent px-3.5 pt-3 pb-1 shadow-none focus-visible:ring-0 md:text-base dark:bg-transparent"
+          style={{ maxHeight: TEXT_MAX_HEIGHT }}
+          className="text-body-lg min-h-13 resize-none overflow-y-auto border-0 bg-transparent px-3.5 pt-3 pb-1 shadow-none focus-visible:ring-0 md:text-base dark:bg-transparent"
           onChange={(event) => {
             composer.onTextChange(event.target.value)
           }}
@@ -152,25 +164,44 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
               event.target.value = ''
             }}
           />
-          <Tooltip>
-            <TooltipTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon-md"
-                aria-label={t('attach')}
-                aria-description={limits}
+                aria-label={t('add')}
                 disabled={isBlocked}
-                className="size-8"
-                onClick={() => fileInput.current?.click()}
+                className="size-8 rounded-full"
               >
-                <Paperclip aria-hidden />
+                <Plus aria-hidden />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-72">
-              {limits}
-            </TooltipContent>
-          </Tooltip>
-          <div className="ml-auto">
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-72">
+              <DropdownMenuItem onSelect={() => fileInput.current?.click()}>
+                <Paperclip aria-hidden />
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span>{t('addFiles')}</span>
+                  <span className="text-caption text-muted-foreground whitespace-normal">
+                    {limits}
+                  </span>
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <KnowledgeScope
+            variant="chip"
+            orgId={c.orgId}
+            scope={settings.settings.knowledgeScope}
+            selectedIds={settings.settings.knowledgeBaseIds}
+            onChange={settings.onScopeChange}
+          />
+          <div className="ml-auto flex min-w-0 items-center gap-1.5">
+            <ModelSelector
+              variant="compact"
+              value={settings.settings.modelKey}
+              onValueChange={settings.onModelChange}
+              requiresVision={attachments.hasImages}
+            />
             {isBusy ? (
               <Button
                 variant="secondary"

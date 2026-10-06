@@ -60,6 +60,7 @@ export function useThreadViewController(props: ThreadViewProps) {
   const [text, setText] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [preview, setPreview] = useState<SourcePreviewTarget | null>(null)
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null)
   const setFeedback = useSetChatFeedbackMutation(orgId, chatId)
@@ -223,6 +224,15 @@ export function useThreadViewController(props: ThreadViewProps) {
     },
     onDeleteChat: () => {
       if (chat) chatActions.onDelete(chat)
+    },
+    renameDialog: {
+      isOpen: isRenameOpen,
+      onOpen: () => {
+        setIsRenameOpen(true)
+      },
+      onClose: () => {
+        setIsRenameOpen(false)
+      },
     },
     exportDialog: {
       isOpen: isExportOpen,

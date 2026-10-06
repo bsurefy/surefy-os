@@ -41,6 +41,8 @@ export interface ModelSelectorProps {
   /** The message has images: models that cannot read them are disabled with the reason. */
   requiresVision?: boolean
   isDisabled?: boolean
+  /** `compact`: a 32px trigger with the tile and the name only, for a toolbar. Default `default`. */
+  variant?: 'default' | 'compact'
   className?: string
 }
 
@@ -55,6 +57,7 @@ export default function ModelSelector({
   type = 'chat',
   requiresVision = false,
   isDisabled = false,
+  variant = 'default',
   className,
 }: Readonly<ModelSelectorProps>) {
   const t = useTranslations('vault.selector')
@@ -69,6 +72,10 @@ export default function ModelSelector({
 
   const itemCaption = (model: UsableModelDto) =>
     requiresVision && !model.supportsVision ? t('noVision') : t(`cost.${model.costTier}`)
+  const originOf = (model: UsableModelDto) =>
+    model.dataLocation === 'on_server' ? t('onServer') : getProviderName(model.providerKey)
+  const origin = selected ? originOf(selected) : undefined
+  const isCompact = variant === 'compact'
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -76,24 +83,29 @@ export default function ModelSelector({
         <button
           type="button"
           className={cn(
-            'border-border bg-surface hover:bg-surface-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-ring/30 duration-fast flex h-[2.375rem] max-w-full min-w-0 items-center gap-2.5 rounded-lg border py-0 pr-2.5 pl-1.5 text-left transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:ring-[3px]',
+            'border-border bg-surface hover:bg-surface-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-ring/30 duration-fast flex max-w-full min-w-0 items-center rounded-lg border py-0 text-left transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:ring-[3px]',
+            isCompact ? 'h-8 gap-1.5 pr-2 pl-1' : 'h-[2.375rem] gap-2.5 pr-2.5 pl-1.5',
             className,
           )}
           disabled={isDisabled}
           aria-label={t('label')}
+          title={isCompact ? origin : undefined}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
           <MonoTile size="sm">{(selected?.displayName ?? '?').slice(0, 1).toUpperCase()}</MonoTile>
           <span className="flex min-w-0 flex-col">
-            <span className="text-label truncate leading-[1.0625rem] font-semibold">
+            <span
+              className={cn(
+                'text-label truncate leading-[1.0625rem]',
+                isCompact ? 'max-w-44 font-medium' : 'font-semibold',
+              )}
+            >
               {selected?.displayName ?? t('placeholder')}
             </span>
-            {selected && (
+            {!isCompact && origin && (
               <span className="text-overline text-muted-foreground truncate leading-[0.875rem] font-normal tracking-normal normal-case">
-                {selected.dataLocation === 'on_server'
-                  ? t('onServer')
-                  : getProviderName(selected.providerKey)}
+                {origin}
               </span>
             )}
           </span>
