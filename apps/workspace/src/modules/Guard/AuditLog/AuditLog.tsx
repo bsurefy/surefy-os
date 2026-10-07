@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { Download, ScrollText, SearchX } from 'lucide-react'
+import { Download, ScrollText, SearchX, Shield } from 'lucide-react'
 
 import {
   AUDIT_ACTIONS,
@@ -9,11 +9,16 @@ import {
   AUDIT_OUTCOMES,
   AUDIT_TARGET_TYPES,
 } from '@surefy/contracts'
-import { DataTableSearch, DataTableToolbar, EmptyState } from '@surefy/ui/components/DataDisplay'
+import {
+  DataTableSearch,
+  DataTableToolbar,
+  EmptyState,
+  IconTile,
+} from '@surefy/ui/components/DataDisplay'
 import { ErrorState } from '@surefy/ui/components/Feedback'
 import { Combobox, Field, SelectInput } from '@surefy/ui/components/Forms'
 import { PageHeader } from '@surefy/ui/components/Layout'
-import { LoadMore } from '@surefy/ui/components/Navigation'
+import { FilterChips, LoadMore } from '@surefy/ui/components/Navigation'
 import { Button } from '@surefy/ui/primitives/button'
 
 import AuditEntryDetail from './AuditEntryDetail'
@@ -62,6 +67,7 @@ export default function AuditLog() {
       <PageHeader
         title={t('title')}
         description={t('description')}
+        icon={<IconTile icon={Shield} />}
         actions={
           <Button
             variant="secondary"
@@ -81,17 +87,6 @@ export default function AuditLog() {
           placeholder={t('search.placeholder')}
           value={c.filters.q}
           onValueChange={c.onSearchChange}
-        />
-        <SelectInput
-          aria-label={t('filters.actorType')}
-          options={anyOr(t('filters.anyActorType'), AUDIT_ACTOR_TYPES, (type) =>
-            t(`actorTypes.${type}`),
-          )}
-          value={c.filters.actor ?? ANY}
-          onValueChange={(value) => {
-            c.onFiltersChange({ actor: fromAny(value) })
-          }}
-          className="w-40"
         />
         <Field label={t('filters.person')} isLabelHidden className="w-44">
           <Combobox
@@ -136,17 +131,6 @@ export default function AuditLog() {
           />
         </Field>
         <SelectInput
-          aria-label={t('filters.result')}
-          options={anyOr(t('filters.anyResult'), AUDIT_OUTCOMES, (outcome) =>
-            t(`outcomes.${outcome}`),
-          )}
-          value={c.filters.result ?? ANY}
-          onValueChange={(value) => {
-            c.onFiltersChange({ result: fromAny(value) })
-          }}
-          className="w-36"
-        />
-        <SelectInput
           aria-label={t('filters.range')}
           options={AUDIT_DATE_RANGES.map((range) => ({
             value: range,
@@ -159,6 +143,28 @@ export default function AuditLog() {
           className="w-40"
         />
       </DataTableToolbar>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <FilterChips
+          label={t('filters.actorType')}
+          options={anyOr(t('filters.anyActorType'), AUDIT_ACTOR_TYPES, (type) =>
+            t(`actorTypes.${type}`),
+          )}
+          value={c.filters.actor ?? ANY}
+          onValueChange={(value) => {
+            c.onFiltersChange({ actor: fromAny(value) })
+          }}
+        />
+        <FilterChips
+          label={t('filters.result')}
+          options={anyOr(t('filters.anyResult'), AUDIT_OUTCOMES, (outcome) =>
+            t(`outcomes.${outcome}`),
+          )}
+          value={c.filters.result ?? ANY}
+          onValueChange={(value) => {
+            c.onFiltersChange({ result: fromAny(value) })
+          }}
+        />
+      </div>
       <section aria-busy={c.isLoading || undefined}>
         {c.errorMessage ? (
           <ErrorState

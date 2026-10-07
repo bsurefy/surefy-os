@@ -24,7 +24,7 @@ export default function NavItem({
       <span className={cn('min-w-0 flex-1 truncate', isCollapsed && 'sr-only')}>{label}</span>
       {!isCollapsed && trailing}
       {count !== undefined && count > 0 && !isCollapsed && (
-        <span className="bg-surface-2 text-caption text-foreground-secondary rounded-full px-1.5 tabular-nums">
+        <span className="bg-warning-soft text-warning-soft-foreground text-caption rounded-full px-1.5 font-semibold tabular-nums">
           {count}
         </span>
       )}
@@ -34,8 +34,9 @@ export default function NavItem({
     <Comp
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        'text-body duration-fast hover:bg-surface-2 hover:text-foreground flex h-9 items-center gap-3 rounded-md px-2 font-medium transition-colors',
-        isActive && 'bg-sidebar-active text-sidebar-active-foreground hover:bg-sidebar-active',
+        'text-body text-foreground-secondary duration-fast hover:bg-surface-2 hover:text-foreground flex h-9 items-center gap-2.5 rounded-lg px-2.5 transition-colors',
+        isActive &&
+          'bg-sidebar-active text-sidebar-active-foreground hover:bg-sidebar-active hover:text-sidebar-active-foreground font-medium',
         isCollapsed && 'justify-center px-0',
         className,
       )}

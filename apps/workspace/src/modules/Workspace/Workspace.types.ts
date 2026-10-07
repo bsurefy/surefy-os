@@ -11,7 +11,7 @@ import type {
 import type { NAV_GROUPS, NAV_ITEM_KEYS } from './Workspace.constants'
 import type { LucideIcon } from 'lucide-react'
 
-/** Sidebar groups, in order: Build, Operate, then Settings on its own. */
+/** Sidebar groups, in order: Build, then Operate (which ends with Settings). */
 export type NavGroup = (typeof NAV_GROUPS)[number]
 
 /** Every sidebar item the design specifies; its label is `workspace.nav.items.<key>`. */

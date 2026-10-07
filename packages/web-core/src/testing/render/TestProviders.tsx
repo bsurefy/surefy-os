@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 import { Toaster } from '@surefy/ui/components/Feedback'
+import { TooltipProvider } from '@surefy/ui/primitives/tooltip'
 
 import { testMessages } from './testMessages'
 import { DEFAULT_LOCALE } from '../../i18n/i18n.constants'
@@ -33,8 +34,8 @@ export interface TestProvidersProps {
 
 /**
  * The core providers as tests need them: intl with the English messages (and the `@surefy/ui`
- * labels and the Zod error map), the given query client, the nuqs testing adapter and the
- * toaster. No theme provider: the toaster is rendered light.
+ * labels and the Zod error map), the given query client, the nuqs testing adapter, the tooltip
+ * provider and the toaster. No theme provider: the toaster is rendered light.
  */
 export function TestProviders({
   messages = testMessages,
@@ -50,7 +51,7 @@ export function TestProviders({
         <ZodErrorMapProvider>
           <QueryClientProvider client={queryClient}>
             <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
-              {children}
+              <TooltipProvider>{children}</TooltipProvider>
               <Toaster theme="light" />
             </NuqsTestingAdapter>
           </QueryClientProvider>

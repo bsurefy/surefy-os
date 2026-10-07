@@ -93,6 +93,12 @@ describe('createRequestConfig', () => {
     })(noRequestLocale)
 
     expect(config.locale).toBe('en')
-    expect(config.timeZone).toBeUndefined()
+    expect(config.timeZone).toBe('UTC')
+  })
+
+  it('ignores a time zone Intl does not know', async () => {
+    const config = await createConfig({ timeZone: 'Mars/Olympus' })(noRequestLocale)
+
+    expect(config.timeZone).toBe('UTC')
   })
 })

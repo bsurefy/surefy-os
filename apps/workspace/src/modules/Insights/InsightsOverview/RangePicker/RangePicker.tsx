@@ -5,7 +5,7 @@ import { CalendarRange } from 'lucide-react'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { SelectInput } from '@surefy/ui/components/Forms'
+import { SegmentedControl } from '@surefy/ui/components/Forms'
 import { Button } from '@surefy/ui/primitives/button'
 import { Calendar } from '@surefy/ui/primitives/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@surefy/ui/primitives/popover'
@@ -55,20 +55,17 @@ export default function RangePicker({
   const dayLabel = (day: string) => format.dateTime(fromDay(day), { dateStyle: 'medium' })
 
   return (
-    <div className="flex items-center gap-2">
-      <SelectInput
-        aria-label={t('range')}
-        options={INSIGHTS_RANGES.map((value) => ({ value, label: t(`ranges.${value}`) }))}
+    <div className="flex flex-wrap items-center gap-2">
+      <SegmentedControl
+        label={t('range')}
+        options={INSIGHTS_RANGES.filter((value) => value !== 'custom').map((value) => ({
+          value,
+          label: t(`ranges.${value}`),
+        }))}
         value={range}
         onValueChange={(value) => {
-          if (value === 'custom') {
-            setDraft({ from: fromDay(first), to: fromDay(last) })
-            setIsOpen(true)
-            return
-          }
           onRangeChange({ range: value, from: null, to: null })
         }}
-        className="w-40"
       />
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>

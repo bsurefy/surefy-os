@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useLocale, useTranslations } from 'next-intl'
+import { useState } from 'react'
 
 import { LOCALES } from '@/constants/locales'
 import { useSignOut } from '@/core/auth/useSignOut'
@@ -19,6 +20,7 @@ export function useUserMenuController() {
   const { theme, changeTheme } = useChangeTheme()
   const { changeLocale } = useChangeLocale()
   const setOverlay = useShellOverlayStore((state) => state.setOpen)
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false)
 
   return {
     user: me?.user,
@@ -36,6 +38,8 @@ export function useUserMenuController() {
     onOpenShortcuts: () => {
       setOverlay('shortcuts', true)
     },
+    isUpgradeOpen,
+    setIsUpgradeOpen,
     onSignOut: () => {
       void signOut()
     },

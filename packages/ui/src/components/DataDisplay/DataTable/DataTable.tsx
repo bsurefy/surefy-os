@@ -121,147 +121,156 @@ export default function DataTable<Row extends RowData>({
   const rowHeight = density === 'compact' ? 'h-9' : 'h-11'
 
   return (
-    <Table aria-busy={isLoading || undefined} className={className}>
-      <TableCaption className="sr-only">{labels.caption}</TableCaption>
-      <TableHeader>
-        <TableRow className="hover:bg-transparent">
-          {headers.map((header) => {
-            const id = header.column.id
-            if (id === SELECT_ID)
-              return (
-                <TableHead key={id} className="w-10">
-                  <Checkbox
-                    aria-label={labels.selectAll}
-                    checked={
-                      table.getIsAllPageRowsSelected() ||
-                      (table.getIsSomePageRowsSelected() && 'indeterminate')
-                    }
-                    onCheckedChange={(checked) => {
-                      table.toggleAllPageRowsSelected(checked === true)
-                    }}
-                  />
-                </TableHead>
-              )
-            if (id === ACTIONS_ID)
-              return (
-                <TableHead key={id} className="w-12">
-                  <span className="sr-only">{labels.actions}</span>
-                </TableHead>
-              )
-            const column = byId.get(id)
-            if (!column) return null
-            const isSorted = sort?.id === id
-            let ariaSort: 'ascending' | 'descending' | undefined
-            if (isSorted) ariaSort = sort.desc ? 'descending' : 'ascending'
-            return (
-              <TableHead
-                key={id}
-                scope="col"
-                aria-sort={ariaSort}
-                style={{ width: column.width }}
-                className={cn(column.align === 'end' && 'text-right')}
-              >
-                {column.isSortable ? (
-                  <button
-                    type="button"
-                    className={cn(
-                      'hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded px-1',
-                      isSorted && 'text-foreground',
-                      column.align === 'end' && 'flex-row-reverse',
-                    )}
-                    onClick={() => {
-                      onSortChange?.({ id, desc: isSorted ? !sort.desc : false })
-                    }}
-                  >
-                    {column.header}
-                    <SortIcon sort={sort} id={id} />
-                  </button>
-                ) : (
-                  column.header
-                )}
-              </TableHead>
-            )
-          })}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {isLoading &&
-          Array.from({ length: loadingRowCount }, (_, index) => (
-            <TableRow key={`loading-${String(index)}`} aria-hidden className="hover:bg-transparent">
-              {headers.map((header) => (
-                <TableCell key={header.id} className={rowHeight}>
-                  <Skeleton className="h-3.5 w-full max-w-40" />
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        {!isLoading && rows.length === 0 && (
+    <div className="border-border bg-surface overflow-hidden rounded-xl border">
+      <Table aria-busy={isLoading || undefined} className={className}>
+        <TableCaption className="sr-only">{labels.caption}</TableCaption>
+        <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={headers.length} className="h-auto whitespace-normal">
-              {emptyState}
-            </TableCell>
+            {headers.map((header) => {
+              const id = header.column.id
+              if (id === SELECT_ID)
+                return (
+                  <TableHead key={id} className="w-10">
+                    <Checkbox
+                      aria-label={labels.selectAll}
+                      checked={
+                        table.getIsAllPageRowsSelected() ||
+                        (table.getIsSomePageRowsSelected() && 'indeterminate')
+                      }
+                      onCheckedChange={(checked) => {
+                        table.toggleAllPageRowsSelected(checked === true)
+                      }}
+                    />
+                  </TableHead>
+                )
+              if (id === ACTIONS_ID)
+                return (
+                  <TableHead key={id} className="w-12">
+                    <span className="sr-only">{labels.actions}</span>
+                  </TableHead>
+                )
+              const column = byId.get(id)
+              if (!column) return null
+              const isSorted = sort?.id === id
+              let ariaSort: 'ascending' | 'descending' | undefined
+              if (isSorted) ariaSort = sort.desc ? 'descending' : 'ascending'
+              return (
+                <TableHead
+                  key={id}
+                  scope="col"
+                  aria-sort={ariaSort}
+                  style={{ width: column.width }}
+                  className={cn(column.align === 'end' && 'text-right')}
+                >
+                  {column.isSortable ? (
+                    <button
+                      type="button"
+                      className={cn(
+                        'hover:text-foreground -mx-1 inline-flex items-center gap-1 rounded px-1',
+                        isSorted && 'text-foreground',
+                        column.align === 'end' && 'flex-row-reverse',
+                      )}
+                      onClick={() => {
+                        onSortChange?.({ id, desc: isSorted ? !sort.desc : false })
+                      }}
+                    >
+                      {column.header}
+                      <SortIcon sort={sort} id={id} />
+                    </button>
+                  ) : (
+                    column.header
+                  )}
+                </TableHead>
+              )
+            })}
           </TableRow>
-        )}
-        {!isLoading &&
-          rows.map((row) => {
-            const isSelected = row.getIsSelected()
-            const href = getRowHref?.(row.original)
-            return (
+        </TableHeader>
+        <TableBody>
+          {isLoading &&
+            Array.from({ length: loadingRowCount }, (_, index) => (
               <TableRow
-                key={row.id}
-                data-state={isSelected ? 'selected' : undefined}
-                className={cn(href && 'relative cursor-pointer')}
+                key={`loading-${String(index)}`}
+                aria-hidden
+                className="hover:bg-transparent"
               >
-                {row.getVisibleCells().map((cell) => {
-                  const id = cell.column.id
-                  if (id === SELECT_ID)
-                    return (
-                      <TableCell key={cell.id} className={rowHeight}>
-                        <Checkbox
-                          aria-label={labels.selectRow?.(row.id)}
-                          checked={isSelected}
-                          className="z-10"
-                          onCheckedChange={(checked) => {
-                            row.toggleSelected(checked === true)
-                          }}
-                        />
-                      </TableCell>
-                    )
-                  if (id === ACTIONS_ID)
+                {headers.map((header) => (
+                  <TableCell key={header.id} className={rowHeight}>
+                    <Skeleton className="h-3.5 w-full max-w-40" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          {!isLoading && rows.length === 0 && (
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={headers.length} className="h-auto whitespace-normal">
+                {emptyState}
+              </TableCell>
+            </TableRow>
+          )}
+          {!isLoading &&
+            rows.map((row) => {
+              const isSelected = row.getIsSelected()
+              const href = getRowHref?.(row.original)
+              return (
+                <TableRow
+                  key={row.id}
+                  data-state={isSelected ? 'selected' : undefined}
+                  className={cn(href && 'relative cursor-pointer')}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const id = cell.column.id
+                    if (id === SELECT_ID)
+                      return (
+                        <TableCell key={cell.id} className={rowHeight}>
+                          <Checkbox
+                            aria-label={labels.selectRow?.(row.id)}
+                            checked={isSelected}
+                            className="z-10"
+                            onCheckedChange={(checked) => {
+                              row.toggleSelected(checked === true)
+                            }}
+                          />
+                        </TableCell>
+                      )
+                    if (id === ACTIONS_ID)
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(rowHeight, 'relative z-10 text-right')}
+                        >
+                          {rowActions?.(row.original)}
+                        </TableCell>
+                      )
+                    const column = byId.get(id)
+                    if (!column) return null
+                    const content = column.cell(row.original)
                     return (
                       <TableCell
                         key={cell.id}
-                        className={cn(rowHeight, 'relative z-10 text-right')}
+                        className={cn(
+                          rowHeight,
+                          column.align === 'end' && 'text-right tabular-nums',
+                        )}
                       >
-                        {rowActions?.(row.original)}
+                        {href && id === linkColumnId ? (
+                          // The link covers the row, so the whole row opens the detail.
+                          <Link
+                            href={href}
+                            className="text-foreground font-medium after:absolute after:inset-0 hover:underline"
+                          >
+                            {content}
+                          </Link>
+                        ) : (
+                          content
+                        )}
                       </TableCell>
                     )
-                  const column = byId.get(id)
-                  if (!column) return null
-                  const content = column.cell(row.original)
-                  return (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(rowHeight, column.align === 'end' && 'text-right tabular-nums')}
-                    >
-                      {href && id === linkColumnId ? (
-                        // The link covers the row, so the whole row opens the detail.
-                        <Link
-                          href={href}
-                          className="text-foreground font-medium after:absolute after:inset-0 hover:underline"
-                        >
-                          {content}
-                        </Link>
-                      ) : (
-                        content
-                      )}
-                    </TableCell>
-                  )
-                })}
-              </TableRow>
-            )
-          })}
-      </TableBody>
-    </Table>
+                  })}
+                </TableRow>
+              )
+            })}
+        </TableBody>
+      </Table>
+    </div>
   )
 }

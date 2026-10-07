@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../primitives/pop
 import type { ComboboxOption, ComboboxProps } from './Combobox.types'
 
 export const comboboxTriggerClassName =
-  'border-input dark:bg-input/30 text-body flex h-9 w-full min-w-0 items-center gap-2 rounded-lg border bg-transparent px-3 text-left pointer-coarse:h-11 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive'
+  'border-input bg-surface text-body flex h-9 w-full min-w-0 items-center gap-2 rounded-lg border px-3 text-left pointer-coarse:h-11 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive outline-none focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring aria-invalid:focus-visible:border-destructive aria-invalid:focus-visible:ring-destructive'
 
 /** Searchable select for long lists (organizations, users, models, teams), with async search. */
 export default function Combobox({

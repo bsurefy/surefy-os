@@ -5,9 +5,13 @@ import { cn } from '../../../lib/utils'
 
 import type { SidebarGroupProps, SidebarProps } from './Sidebar.types'
 
-/** Sidebar frame: 248px open, 64px collapsed (docs/design/shared/components.md, Navigation). */
+/**
+ * Sidebar frame: 248px open, 64px collapsed (docs/design/shared/components.md, Navigation).
+ * From the top: brand row (60px), switcher, scrolling groups, footer with a top border.
+ */
 export default function Sidebar({
   isCollapsed = false,
+  brand,
   header,
   footer,
   label,
@@ -26,9 +30,21 @@ export default function Sidebar({
       )}
       {...rest}
     >
-      {header && <div className="flex h-14 shrink-0 items-center px-3">{header}</div>}
+      {brand && (
+        <div
+          className={cn(
+            'border-sidebar-border flex h-14 shrink-0 items-center border-b',
+            isCollapsed ? 'justify-center px-0' : 'px-[1.125rem]',
+          )}
+        >
+          {brand}
+        </div>
+      )}
+      {header && <div className="shrink-0 px-3 pt-2.5 pb-2">{header}</div>}
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-2">{children}</div>
-      {footer && <div className="border-sidebar-border shrink-0 border-t p-3">{footer}</div>}
+      {footer && (
+        <div className="border-sidebar-border shrink-0 border-t px-3 pt-2 pb-3">{footer}</div>
+      )}
     </nav>
   )
 }
@@ -51,7 +67,10 @@ export function SidebarGroup({
       {label && (
         <div
           id={labelId}
-          className={cn('text-overline text-sidebar-muted px-2 pb-1', isCollapsed && 'sr-only')}
+          className={cn(
+            'text-overline text-sidebar-muted px-2.5 pt-1.5 pb-1',
+            isCollapsed && 'sr-only',
+          )}
         >
           {label}
         </div>

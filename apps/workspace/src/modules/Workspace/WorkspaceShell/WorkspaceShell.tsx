@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
+import { BrandMark } from '@surefy/ui/components/DataDisplay'
 import { AppShell } from '@surefy/ui/components/Layout'
 import { Sidebar } from '@surefy/ui/components/Navigation'
 
 import CommandMenu from './CommandMenu'
 import MobileNav from './MobileNav'
 import NavList from './NavList'
-import OrgSwitcher from './OrgSwitcher'
 import ShellBanners from './ShellBanners'
 import ShellTopBar from './ShellTopBar'
 import ShortcutsDialog from './ShortcutsDialog'
@@ -21,7 +21,9 @@ import type { WorkspaceShellProps } from './WorkspaceShell.types'
  * palette, shortcut help and the mobile menu. Pages render inside `<main id="main">`.
  */
 export default function WorkspaceShell({ orgSlug, children }: Readonly<WorkspaceShellProps>) {
-  const { isCollapsed, onToggleSidebar, t } = useWorkspaceShellController({ orgSlug })
+  const { isCollapsed, onToggleSidebar, width, productName, t } = useWorkspaceShellController({
+    orgSlug,
+  })
 
   return (
     <>
@@ -37,19 +39,26 @@ export default function WorkspaceShell({ orgSlug, children }: Readonly<Workspace
           <Sidebar
             label={t('navLabel')}
             isCollapsed={isCollapsed}
-            header={<OrgSwitcher orgSlug={orgSlug} isCollapsed={isCollapsed} />}
-            footer={
-              <SidebarFooter
-                orgSlug={orgSlug}
-                isCollapsed={isCollapsed}
-                onToggleCollapsed={onToggleSidebar}
+            brand={
+              <BrandMark
+                label={productName}
+                wordmark={isCollapsed ? undefined : t('brand.wordmark')}
+                accent={isCollapsed ? undefined : t('brand.accent')}
               />
             }
+            footer={<SidebarFooter orgSlug={orgSlug} isCollapsed={isCollapsed} />}
           >
             <NavList orgSlug={orgSlug} isCollapsed={isCollapsed} />
           </Sidebar>
         }
-        topBar={<ShellTopBar orgSlug={orgSlug} />}
+        topBar={
+          <ShellTopBar
+            orgSlug={orgSlug}
+            isSidebarCollapsed={isCollapsed}
+            onToggleSidebar={onToggleSidebar}
+          />
+        }
+        width={width}
       >
         {children}
       </AppShell>

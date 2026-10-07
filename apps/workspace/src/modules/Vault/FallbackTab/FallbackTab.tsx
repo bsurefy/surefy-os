@@ -4,7 +4,7 @@
 import { Lock } from 'lucide-react'
 
 import { FALLBACK_TIMEOUT_SECONDS } from '@surefy/contracts'
-import { Banner, ErrorState, Skeleton } from '@surefy/ui/components/Feedback'
+import { Banner, ErrorState, SkeletonForm } from '@surefy/ui/components/Feedback'
 import { Combobox, NumberInput, SaveBar, SwitchField } from '@surefy/ui/components/Forms'
 import { Section } from '@surefy/ui/components/Layout'
 import { Label } from '@surefy/ui/primitives/label'
@@ -31,7 +31,7 @@ export default function FallbackTab() {
       />
     )
   }
-  if (c.isLoading || !c.fallback) return <Skeleton className="h-64 w-full" />
+  if (c.isLoading || !c.fallback) return <SkeletonForm fields={3} />
 
   const chainNames = c.chain.map((entry) => entry.displayName ?? entry.modelKey)
 

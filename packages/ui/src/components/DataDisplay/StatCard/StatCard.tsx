@@ -17,6 +17,8 @@ const deltaTone = {
 export default function StatCard({
   label,
   value,
+  description,
+  size = 'md',
   delta,
   sparkline,
   isRestricted = false,
@@ -38,8 +40,16 @@ export default function StatCard({
           </span>
         </span>
       ) : (
-        <span className="text-page-title text-foreground tabular-nums">{value}</span>
+        <span
+          className={cn(
+            'text-foreground tabular-nums',
+            size === 'sm' ? 'text-object-title' : 'text-page-title',
+          )}
+        >
+          {value}
+        </span>
       )}
+      {description && <span className="text-caption text-muted-foreground">{description}</span>}
       {!isRestricted && delta && DeltaIcon && (
         <span
           className={cn('text-caption flex items-center gap-1', deltaTone[delta.tone ?? 'neutral'])}
@@ -54,7 +64,8 @@ export default function StatCard({
     </>
   )
   const cardClassName = cn(
-    'border-border bg-surface flex min-w-0 flex-col gap-1 rounded-xl border p-5',
+    'border-border bg-surface flex min-w-0 flex-col rounded-xl border',
+    size === 'sm' ? 'gap-0.5 px-4 py-3.5' : 'gap-1 p-5',
     href && 'hover:border-input duration-fast transition-colors',
     className,
   )

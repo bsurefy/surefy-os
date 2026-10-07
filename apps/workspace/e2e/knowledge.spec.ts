@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test'
 
+import { typeMessage } from './support/composer'
 import { EMBED_MODEL_ID, ORGANIZATION } from './support/env'
 import { connectStubEmbedding, connectStubModel } from './support/models'
 import { startWorker, stopWorker } from './support/worker'
@@ -99,7 +100,7 @@ test.describe('Knowledge', () => {
     await connectStubModel(page)
     await page.goto(`/${ORGANIZATION.slug}/chat`)
     await page.waitForLoadState('networkidle')
-    await page.getByRole('textbox', { name: 'Message' }).fill(QUESTION)
+    await typeMessage(page, QUESTION)
     await page.getByRole('button', { name: 'Send message' }).click()
 
     const answer = page.getByRole('article', { name: 'Answer' }).last()

@@ -75,7 +75,9 @@ afterEach(() => {
 describe('ChatThread: new chat', () => {
   it('greets, offers four starters and the setup checklist', async () => {
     const { user } = openChat(undefined)
-    expect(await screen.findByRole('heading', { name: 'What can I help with?' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: 'What can I help with today?' }),
+    ).toBeVisible()
     const starters = screen.getByRole('list', { name: 'Ways to start' })
     expect(within(starters).getAllByRole('button')).toHaveLength(4)
     expect(await screen.findByRole('region', { name: 'Finish setting up' })).toBeVisible()
@@ -108,7 +110,7 @@ describe('ChatThread: new chat', () => {
       }
     })
     const { user } = openChat(undefined)
-    await screen.findByRole('heading', { name: 'What can I help with?' })
+    await screen.findByRole('heading', { name: 'What can I help with today?' })
     await user.type(screen.getByLabelText('Message'), 'What is the refund policy?{Enter}')
 
     expect(await screen.findByText('What is the refund policy?')).toBeVisible()
@@ -155,11 +157,14 @@ describe('ChatThread: history', () => {
   it('keeps reasoning and steps collapsed, shows code and the data location', async () => {
     openChat(SEEDED_CHAT_IDS.quarterly)
     expect(await screen.findByText(/Revenue grew in all three regions/)).toBeVisible()
-    expect(screen.getByText(/Reasoned for 3 seconds/).closest('details')).not.toHaveAttribute(
-      'open',
-    )
+    const reasoning = screen.getByText(/Reasoned for 3 seconds/).closest('details')
+    expect(reasoning).not.toHaveAttribute('open')
+    if (!reasoning) throw new Error('No reasoning block')
+    // reasoning is Markdown: the list and the emphasis render as elements, not as raw text
+    expect(within(reasoning).getByText('Compare them with last quarter.').tagName).toBe('LI')
+    expect(within(reasoning).getByText('product').tagName).toBe('STRONG')
     expect(screen.getByText('1 step').closest('details')).not.toHaveAttribute('open')
-    expect(screen.getByText('Copy')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeVisible()
     expect((await screen.findAllByText('Sent to OpenAI')).length).toBeGreaterThan(0)
   })
 
@@ -339,6 +344,36 @@ describe('ChatThread: rating, settings and offline', () => {
     expect(screen.queryByRole('dialog', { name: 'What went wrong?' })).not.toBeInTheDocument()
   })
 
+  it('shows the chat title in the header and renames it from there', async () => {
+    const { user } = openChat(SEEDED_CHAT_IDS.refunds)
+    await screen.findByRole('article', { name: 'Answer' })
+    await user.click(screen.getByRole('button', { name: 'Refund policy for annual plans' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Rename chat' })
+    expect(within(dialog).getByRole('textbox')).toHaveValue('Refund policy for annual plans')
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Chat options' }))
+    expect(await screen.findByRole('menuitem', { name: 'Rename' })).toBeVisible()
+  })
+
+  it('keeps the model, the knowledge scope and the files menu in the composer', async () => {
+    const { user } = openChat(undefined)
+    await screen.findByRole('heading', { name: 'What can I help with today?' })
+    expect(screen.getByText('New chat')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Quarterly report summary' }),
+    ).not.toBeInTheDocument()
+    const message = screen.getByLabelText('Message')
+    expect(message.style.maxHeight).toBe('calc(8 * 1.5rem + 1rem)')
+    await user.click(screen.getByRole('button', { name: 'Add to message' }))
+    const item = await screen.findByRole('menuitem', { name: /Add files or images/ })
+    expect(item).toHaveTextContent(/Images up to \d+ MB/)
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
+      'All knowledge',
+    )
+    expect(screen.getByRole('button', { name: 'Model' })).toBeVisible()
+  })
+
   it('makes a chat private and shows the lock badge', async () => {
     const { user } = openChat(SEEDED_CHAT_IDS.refunds)
     await screen.findByRole('article', { name: 'Answer' })
@@ -360,11 +395,19 @@ describe('ChatThread: rating, settings and offline', () => {
 
   it('lets the person pick which knowledge bases to search', async () => {
     const { user } = openChat(undefined)
-    await screen.findByRole('heading', { name: 'What can I help with?' })
+    await screen.findByRole('heading', { name: 'What can I help with today?' })
     await user.click(screen.getByRole('button', { name: 'Knowledge scope' }))
-    await user.click(await screen.findByRole('radio', { name: /Selected knowledge/ }))
     const list = await screen.findByRole('list', { name: 'Knowledge bases' })
-    expect(await within(list).findByText('Help center')).toBeVisible()
+    // ticking a base selects it without choosing "Selected knowledge" first
+    await user.click(await within(list).findByRole('checkbox', { name: /Help center/ }))
+    expect(screen.getByRole('radio', { name: /Selected knowledge/ })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
+      '1 knowledge base',
+    )
+    await user.click(screen.getByRole('radio', { name: /No knowledge/ }))
+    expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
+      'No knowledge',
+    )
   })
 
   it('keeps the draft and disables sending while offline', async () => {

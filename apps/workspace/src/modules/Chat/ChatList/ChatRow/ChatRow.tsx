@@ -36,12 +36,15 @@ export default function ChatRow({ chat, ctx }: Readonly<{ chat: ChatDto; ctx: Ch
         href={toRoute(ROUTES.workspace.chat(ctx.orgSlug, chat.id))}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'text-body hover:bg-surface-2 flex min-w-0 flex-col rounded-lg px-2 py-1.5 pr-9',
-          isActive && 'bg-surface-2 font-medium',
+          'text-label hover:bg-surface-2 flex min-w-0 flex-col justify-center rounded-md px-2 py-1.5 pr-8',
+          isActive &&
+            'bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft font-medium',
         )}
       >
         <span className="flex items-center gap-1.5">
-          {chat.isPinned && <Pin aria-label={t('pinned')} className="size-3 shrink-0" />}
+          {chat.isPinned && (
+            <Pin aria-label={t('pinned')} className="text-muted-foreground size-3 shrink-0" />
+          )}
           <span className="truncate">{title}</span>
         </span>
         {chat.matchedText && (

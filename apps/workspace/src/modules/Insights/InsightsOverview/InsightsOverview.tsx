@@ -91,26 +91,28 @@ export default function InsightsOverview() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Button
-            variant="secondary"
-            icon={Download}
-            disabled={isEmpty}
-            onClick={() => {
-              c.onExportOpenChange(true)
-            }}
-          >
-            {t('export.open')}
-          </Button>
+          <>
+            <RangePicker
+              range={filters.range}
+              first={c.rangeDays.first}
+              last={c.rangeDays.last}
+              timeZone={c.timeZone}
+              onRangeChange={c.onFiltersChange}
+            />
+            <Button
+              variant="secondary"
+              icon={Download}
+              disabled={isEmpty}
+              onClick={() => {
+                c.onExportOpenChange(true)
+              }}
+            >
+              {t('export.open')}
+            </Button>
+          </>
         }
       />
       <DataTableToolbar>
-        <RangePicker
-          range={filters.range}
-          first={c.rangeDays.first}
-          last={c.rangeDays.last}
-          timeZone={c.timeZone}
-          onRangeChange={c.onFiltersChange}
-        />
         {filterSelect('team', c.teamOptions, 'w-44')}
         {filterSelect('person', c.personOptions, 'w-44')}
         {filterSelect('model', c.modelOptions, 'w-52')}

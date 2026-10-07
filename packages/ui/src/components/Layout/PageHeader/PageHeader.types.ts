@@ -13,6 +13,8 @@ export interface PageHeaderProps extends Omit<ComponentProps<'header'>, 'title'>
   level?: 'page' | 'object'
   /** Breadcrumb above the title (object pages). */
   breadcrumb?: ReactNode
+  /** Tile before the title (an `IconTile`): module or object kind. */
+  icon?: ReactNode
   /** Status pill next to the object title. */
   status?: ReactNode
   /** Key facts row under the title (object pages). */

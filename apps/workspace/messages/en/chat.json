@@ -129,7 +129,7 @@
       "copied": "Answer copied"
     },
     "empty": {
-      "title": "What can I help with?",
+      "title": "What can I help with today?",
       "description": "Ask a question, attach a file or choose the knowledge to answer from.",
       "suggestions": "Ways to start",
       "cards": {
@@ -159,14 +159,13 @@
         "admin": "Chat needs an AI model. Add a provider key or a local server in Vault.",
         "member": "Your admin hasn't enabled any models yet. Ask an admin to connect one.",
         "open": "Open Vault"
-      }
+      },
+      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>."
     },
     "header": {
       "menu": "Chat options",
-      "location": {
-        "local": "Stays on your server",
-        "provider": "Sent to {provider}"
-      },
+      "rename": "Rename",
+      "titleHint": "Click to rename",
       "private": {
         "badge": "Private",
         "toggle": "Private chat",
@@ -185,19 +184,21 @@
       "selected": "{count, plural, one {# knowledge base} other {# knowledge bases}}",
       "options": {
         "all": {
-          "name": "All knowledge I can access",
-          "description": "Searches every knowledge base you may read."
+          "name": "All knowledge",
+          "description": "Every knowledge base you can read"
         },
         "selected": {
           "name": "Selected knowledge",
-          "description": "Searches only the bases you tick."
+          "description": "Only the bases you tick below"
         },
         "none": {
           "name": "No knowledge",
-          "description": "The model answers on its own."
+          "description": "The model answers on its own"
         }
       },
       "bases": "Knowledge bases",
+      "sources": "{count, plural, one {# source} other {# sources}}",
+      "clear": "Clear",
       "indexing": "{count, plural, one {# source is still indexing} other {# sources are still indexing}}",
       "noBases": "You can't read any knowledge base yet."
     },
@@ -230,7 +231,11 @@
       "openSource": "Source {index}: {title}",
       "page": "p. {page}",
       "copyCode": "Copy",
-      "copiedCode": "Copied"
+      "copiedCode": "Copied",
+      "copyShort": "Copy",
+      "regenerateShort": "Regenerate",
+      "answeredFrom": "{count, plural, one {Answered from # source} other {Answered from # sources}}",
+      "sourcesFromKnowledge": "Sources from your knowledge"
     },
     "user": {
       "label": "Your message",
@@ -304,7 +309,8 @@
     "composer": {
       "label": "Message",
       "placeholder": "Message the model…",
-      "attach": "Attach files",
+      "add": "Add to message",
+      "addFiles": "Add files or images",
       "files": "Choose files",
       "limits": "Images up to {image} MB, documents up to {document} MB · PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD, CSV",
       "send": "Send message",
@@ -319,7 +325,8 @@
         "CHAT_ATTACHMENT_TOO_LARGE": "is too large. Images up to {image} MB, documents up to {document} MB.",
         "CHAT_ATTACHMENT_UNSUPPORTED": "isn't a supported type. Use PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD or CSV.",
         "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
-      }
+      },
+      "stopShort": "Stop"
     }
   },
   "commands": {

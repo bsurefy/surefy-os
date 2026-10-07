@@ -4,7 +4,7 @@
 import { Monitor } from 'lucide-react'
 
 import { StatusPill } from '@surefy/ui/components/DataDisplay'
-import { ErrorState, SkeletonText } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonRows } from '@surefy/ui/components/Feedback'
 import { Section } from '@surefy/ui/components/Layout'
 import { ConfirmDialog } from '@surefy/ui/components/Overlay'
 import { Button } from '@surefy/ui/primitives/button'
@@ -17,7 +17,7 @@ export default function ProfileSessions() {
   const { t } = c
 
   let content
-  if (c.isLoading) content = <SkeletonText lines={3} />
+  if (c.isLoading) content = <SkeletonRows rows={3} lines={2} rowClassName="h-12 px-0" />
   else if (c.errorMessage) {
     content = (
       <ErrorState

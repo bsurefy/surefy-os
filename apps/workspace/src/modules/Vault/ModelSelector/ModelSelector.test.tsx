@@ -70,6 +70,16 @@ describe('ModelSelector', () => {
     })
   })
 
+  it('shows only the tile and the name when compact, with the origin as a hint', async () => {
+    renderSelector({ value: 'openai/gpt-4.1', variant: 'compact' })
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Model' })).toHaveTextContent('GPT-4.1')
+    })
+    const button = screen.getByRole('button', { name: 'Model' })
+    expect(button).not.toHaveTextContent('OpenAI')
+    expect(button).toHaveAttribute('title', 'OpenAI')
+  })
+
   it("disables models that can't read images when the message has images", async () => {
     const { user } = renderSelector({ requiresVision: true })
     await user.click(screen.getByRole('button', { name: 'Model' }))

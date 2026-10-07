@@ -4,7 +4,7 @@
 import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
-import { DataLocationBadge } from '@surefy/ui/components/DataDisplay'
+import { BrandMark, DataLocationBadge, Markdown } from '@surefy/ui/components/DataDisplay'
 import { Spinner } from '@surefy/ui/components/Feedback'
 import { Button } from '@surefy/ui/primitives/button'
 
@@ -101,7 +101,10 @@ export default function AssistantMessage({
     <article aria-label={t('label')} className="flex flex-col gap-3">
       {(modelName ?? row.dataLocation) && (
         <div className="text-caption text-muted-foreground flex flex-wrap items-center gap-2">
-          {modelName && <span className="font-medium">{modelName}</span>}
+          <BrandMark size={22} />
+          {modelName && (
+            <span className="text-label text-foreground font-semibold">{modelName}</span>
+          )}
           {row.dataLocation && (
             <DataLocationBadge
               location={isLocal ? 'local' : 'provider'}
@@ -127,7 +130,13 @@ export default function AssistantMessage({
           className="text-caption text-muted-foreground"
         >
           <summary className="cursor-pointer">{reasoningLabel(part, t)}</summary>
-          <p className="mt-1 whitespace-pre-wrap">{part.text}</p>
+          <Markdown
+            tone="muted"
+            codeLabels={{ copy: t('copyCode'), copied: t('copiedCode') }}
+            className="border-border mt-2 border-l-2 pl-3"
+          >
+            {part.text}
+          </Markdown>
         </details>
       ))}
       {tools.length > 0 && (
@@ -182,18 +191,27 @@ export default function AssistantMessage({
         />
       )}
       {canAct && (
-        <div className="flex items-center gap-1" role="group" aria-label={t('actions')}>
-          <Button variant="ghost" size="icon-sm" aria-label={t('copy')} onClick={onCopy}>
+        <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t('actions')}>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t('copy')}
+            className="text-muted-foreground"
+            onClick={onCopy}
+          >
             <Copy aria-hidden />
+            {t('copyShort')}
           </Button>
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="sm"
             aria-label={t('regenerate')}
+            className="text-muted-foreground"
             disabled={isBusy}
             onClick={onRegenerate}
           >
             <RefreshCw aria-hidden />
+            {t('regenerateShort')}
           </Button>
           <Button
             variant="ghost"
@@ -217,6 +235,11 @@ export default function AssistantMessage({
           >
             <ThumbsDown aria-hidden />
           </Button>
+          {row.sources.length > 0 && (
+            <span className="text-caption text-muted-foreground ml-1">
+              {t('answeredFrom', { count: row.sources.length })}
+            </span>
+          )}
         </div>
       )}
     </article>

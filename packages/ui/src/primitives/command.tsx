@@ -47,7 +47,7 @@ function CommandDialog({
     <Dialog {...props}>
       <DialogContent
         size="lg"
-        className={cn('overflow-hidden p-0', className)}
+        className={cn('top-24 overflow-hidden p-0 data-[size=lg]:sm:max-w-[600px]', className)}
         showCloseButton={showCloseButton}
       >
         {/* Radix needs the title inside the content; it names the dialog for screen readers. */}
@@ -57,7 +57,7 @@ function CommandDialog({
         </DialogHeader>
         <Command
           shouldFilter={shouldFilter}
-          className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          className="**:data-[slot=command-input-wrapper]:h-14 **:data-[slot=command-input-wrapper]:px-4 [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-14 [&_[cmdk-item]]:px-2.5 [&_[cmdk-item]]:py-2 [&_[cmdk-item]_svg]:h-[1.125rem] [&_[cmdk-item]_svg]:w-[1.125rem]"
         >
           {children}
         </Command>
@@ -113,7 +113,7 @@ function CommandGroup({
     <CommandPrimitive.Group
       data-slot="command-group"
       className={cn(
-        'text-foreground [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:text-caption overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-medium',
+        'text-foreground [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:text-overline overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2.5 [&_[cmdk-group-heading]]:pt-2.5 [&_[cmdk-group-heading]]:pb-1',
         className,
       )}
       {...props}
@@ -139,7 +139,7 @@ function CommandItem({ className, ...props }: React.ComponentProps<typeof Comman
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "data-[selected=true]:bg-surface-2 data-[selected=true]:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground text-body relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "data-[selected=true]:bg-surface-2 data-[selected=true]:text-foreground [&_svg:not([class*='text-'])]:text-muted-foreground text-body relative flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}

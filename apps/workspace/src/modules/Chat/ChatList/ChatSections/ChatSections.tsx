@@ -16,15 +16,23 @@ import { groupChatsByDate } from '../ChatList.utils'
 import type { ChatPages } from '../ChatList.hooks'
 import type { ChatRowContext } from '../ChatRow'
 
-const SKELETON_ROWS = 6
+/** Rows per group, like Today and Previous 7 days. */
+const SKELETON_GROUPS = [4, 3] as const
 
 /** The loading state of the list: rows where the chats will be. */
 export function ChatListSkeleton() {
   const t = useTranslations('chat.list')
   return (
-    <div role="status" aria-label={t('loading')} className="flex flex-col gap-1 px-2">
-      {Array.from({ length: SKELETON_ROWS }, (_, index) => (
-        <Skeleton key={index} className="h-8 w-full" />
+    <div role="status" aria-label={t('loading')} className="flex flex-col gap-4 px-2">
+      {SKELETON_GROUPS.map((rows, group) => (
+        <div key={group} className="flex flex-col gap-1">
+          <Skeleton className="mb-1 h-2.5 w-12" />
+          {Array.from({ length: rows }, (_, index) => (
+            <div key={index} className="flex h-8 items-center px-2">
+              <Skeleton className={index % 2 === 0 ? 'h-3.5 w-4/5' : 'h-3.5 w-3/5'} />
+            </div>
+          ))}
+        </div>
       ))}
     </div>
   )

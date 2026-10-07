@@ -8,6 +8,7 @@ import { CodeBlock, StatusPill } from '@surefy/ui/components/DataDisplay'
 import { ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
 import { Section } from '@surefy/ui/components/Layout'
 import { SidePanel } from '@surefy/ui/components/Overlay'
+import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { useAuditEntryDetailController } from './AuditEntryDetail.controller'
 import { AUDIT_TIME_FORMAT, OUTCOME_TONE } from '../AuditLog.constants'
@@ -138,7 +139,13 @@ export default function AuditEntryDetail({
   const labels = useAuditLabels()
 
   let body
-  if (c.isLoading) body = <SkeletonCard lines={8} />
+  if (c.isLoading)
+    body = (
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-5 w-48" />
+        <SkeletonCard lines={8} />
+      </div>
+    )
   else if (c.errorMessage || !entry) {
     body = (
       <ErrorState

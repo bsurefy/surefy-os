@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test'
 
+import { typeMessage } from './support/composer'
 import { LONG_ANSWER_PREFIX, ORGANIZATION, stubTitle } from './support/env'
 import { connectStubModel } from './support/models'
 
@@ -19,7 +20,7 @@ async function openNewChat(page: Page) {
 }
 
 async function ask(page: Page, question: string) {
-  await page.getByRole('textbox', { name: 'Message' }).fill(question)
+  await typeMessage(page, question)
   await page.getByRole('button', { name: 'Send message' }).click()
 }
 

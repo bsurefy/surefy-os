@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 import { ROUTES } from '@/constants/routes'
 import { toRoute } from '@/modules/Workspace'
-import { ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonForm } from '@surefy/ui/components/Feedback'
 import { PageHeader, Section } from '@surefy/ui/components/Layout'
 import { FeatureGate, UpgradeCard } from '@surefy/web-core/access'
 
@@ -19,7 +19,7 @@ export default function SecuritySettings() {
   const { t } = c
 
   let form
-  if (c.isLoading) form = <SkeletonCard lines={4} />
+  if (c.isLoading) form = <SkeletonForm fields={3} />
   else if (c.errorMessage || !c.organization) {
     form = (
       <ErrorState

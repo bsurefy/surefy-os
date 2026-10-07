@@ -17,7 +17,14 @@ export default function AppShell({
   ...rest
 }: Readonly<AppShellProps>) {
   return (
-    <div className={cn('bg-background flex min-h-dvh flex-col', className)} {...rest}>
+    <div
+      className={cn(
+        'bg-background flex flex-col',
+        width === 'flush' ? 'h-dvh overflow-hidden' : 'min-h-dvh',
+        className,
+      )}
+      {...rest}
+    >
       {banner && <div className="z-banner sticky top-0">{banner}</div>}
       <div className="flex min-h-0 flex-1">
         <div className="hidden md:flex">{sidebar}</div>
@@ -26,12 +33,19 @@ export default function AppShell({
           <main
             id="main"
             tabIndex={-1}
-            className="flex-1 px-4 py-6 outline-none md:px-6 xl:px-10 xl:py-8"
+            className={cn(
+              'flex min-w-0 flex-1 flex-col outline-none',
+              width === 'flush' ? 'min-h-0 overflow-hidden' : 'px-4 py-6 md:px-6 xl:px-10 xl:py-8',
+            )}
           >
-            {/* 70rem = 1120px, the widest reading width in the layout rules; the scale has no such step. */}
-            <div className={cn('mx-auto w-full', width === 'reading' && 'max-w-[70rem]')}>
-              {children}
-            </div>
+            {width === 'flush' ? (
+              children
+            ) : (
+              /* 70rem = 1120px, the widest reading width in the layout rules; the scale has no such step. */
+              <div className={cn('mx-auto w-full', width === 'reading' && 'max-w-[70rem]')}>
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>

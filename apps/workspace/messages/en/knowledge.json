@@ -13,7 +13,12 @@
       "bases": "Knowledge bases",
       "sources": "Sources",
       "processing": "Processing",
-      "attention": "Needs attention"
+      "attention": "Needs attention",
+      "hints": {
+        "sources": "Files, pages and synced docs",
+        "processing": "Usually ready in a minute or two",
+        "attention": "Sources that failed to process"
+      }
     },
     "views": {
       "label": "View",
@@ -41,7 +46,13 @@
     "sources": {
       "files": "{count, plural, one {# file} other {# files}}",
       "links": "{count, plural, one {# link} other {# links}}",
-      "connectors": "{count, plural, one {# connector} other {# connectors}}"
+      "connectors": "{count, plural, one {# connector} other {# connectors}}",
+      "count": "{count, plural, one {# source} other {# sources}}",
+      "chips": {
+        "file": "FILES",
+        "link": "LINKS",
+        "connector": "SYNC"
+      }
     },
     "status": {
       "ready": "Ready",
@@ -54,7 +65,21 @@
     },
     "empty": {
       "title": "Create your first knowledge base",
-      "description": "Upload documents or add website links, then get answers from them in chat with sources."
+      "description": "Upload documents or add website links, then get answers from them in chat with sources.",
+      "suggestions": {
+        "pdf": {
+          "title": "Policies and handbooks",
+          "description": "The most common first upload"
+        },
+        "url": {
+          "title": "Your help center",
+          "description": "Paste a link to crawl it"
+        },
+        "csv": {
+          "title": "Price lists and FAQs",
+          "description": "Each row becomes searchable"
+        }
+      }
     },
     "noResults": {
       "title": "No knowledge bases found",
@@ -106,7 +131,9 @@
         "cancel": "Cancel",
         "submit": "Restore"
       }
-    }
+    },
+    "usedByNone": "Not used yet",
+    "usedByCount": "{count, plural, one {# agent or chat} other {# agents and chats}}"
   },
   "detail": {
     "title": "Knowledge base",
@@ -203,7 +230,8 @@
       },
       "dropzone": {
         "title": "Drop files here or browse",
-        "hint": "PDF, DOCX, XLSX, CSV, PPTX, TXT, MD, HTML or images · up to {limit}"
+        "hint": "PDF, DOCX, XLSX, CSV, PPTX, TXT, MD, HTML or images · up to {limit}",
+        "browse": "Choose files"
       },
       "addLink": "Add link",
       "upload": {
@@ -331,6 +359,11 @@
       "toasts": {
         "syncStarted": "Syncing {name}",
         "reindexStarted": "{count, plural, one {# source} other {# sources}} queued for re-indexing"
+      },
+      "links": {
+        "title": "Links",
+        "description": "Add a web page or a whole site; it is crawled and kept in sync.",
+        "hint": "Connectors for Google Drive, Notion and SharePoint come with the Pieces module."
       }
     },
     "testSearch": {

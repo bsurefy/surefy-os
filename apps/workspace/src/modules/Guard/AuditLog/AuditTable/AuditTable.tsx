@@ -5,13 +5,22 @@ import Link from 'next/link'
 import { useFormatter, useTimeZone, useTranslations } from 'next-intl'
 
 import type { AuditEntryDto } from '@surefy/contracts'
-import { DataTable, StatusPill } from '@surefy/ui/components/DataDisplay'
+import { DataTable, MonoTile, StatusPill } from '@surefy/ui/components/DataDisplay'
 import type { DataTableColumn } from '@surefy/ui/components/DataDisplay'
 
-import { AUDIT_TIME_FORMAT, OUTCOME_TONE } from '../AuditLog.constants'
+import { OUTCOME_TONE } from '../AuditLog.constants'
 import { useAuditLabels } from '../AuditLog.hooks'
 
 import type { ReactNode } from 'react'
+
+/** Up to two initials of a name ("Maya Okafor" → "MO"; "SurefyOS" → "S"). */
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
 
 interface AuditTableProps {
   rows: AuditEntryDto[]
@@ -39,8 +48,13 @@ export default function AuditTable({
       isHideable: false,
       width: '12rem',
       cell: (entry) => (
-        <time dateTime={entry.createdAt} className="tabular-nums">
-          {format.dateTime(new Date(entry.createdAt), AUDIT_TIME_FORMAT)}
+        <time dateTime={entry.createdAt} className="flex flex-col tabular-nums">
+          <span className="text-body">
+            {format.dateTime(new Date(entry.createdAt), { timeStyle: 'medium' })}
+          </span>
+          <span className="text-caption text-muted-foreground">
+            {format.dateTime(new Date(entry.createdAt), { dateStyle: 'medium' })}
+          </span>
         </time>
       ),
     },
@@ -49,13 +63,16 @@ export default function AuditTable({
       header: t('columns.who'),
       isHideable: false,
       cell: (entry) => (
-        <div className="flex min-w-0 flex-col">
-          <span className="text-body truncate font-medium">{labels.actor(entry)}</span>
-          {entry.actor.name && entry.actor.type !== 'user' && (
-            <span className="text-caption text-muted-foreground truncate">
-              {labels.actorType(entry)}
-            </span>
-          )}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <MonoTile className="rounded-full">{initialsOf(labels.actor(entry))}</MonoTile>
+          <div className="flex min-w-0 flex-col">
+            <span className="text-body truncate font-medium">{labels.actor(entry)}</span>
+            {entry.actor.name && entry.actor.type !== 'user' && (
+              <span className="text-caption text-muted-foreground truncate">
+                {labels.actorType(entry)}
+              </span>
+            )}
+          </div>
         </div>
       ),
     },

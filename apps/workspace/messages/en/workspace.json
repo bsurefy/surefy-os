@@ -8,8 +8,12 @@
     "menuDescription": "Your organization, its modules and your account",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
-    "search": "Search",
-    "searchLabel": "Search ({shortcut})"
+    "search": "Search or jump to…",
+    "searchLabel": "Search ({shortcut})",
+    "brand": {
+      "wordmark": "Surefy",
+      "accent": "OS"
+    }
   },
   "nav": {
     "loading": "Loading navigation",
@@ -29,9 +33,6 @@
       "settings": "Settings"
     }
   },
-  "context": {
-    "selfHosted": "Your data is stored on your server"
-  },
   "roles": {
     "user": "User",
     "builder": "Builder",
@@ -40,7 +41,7 @@
   },
   "org": {
     "switcherLabel": "Switch organization. Current: {name}",
-    "heading": "Organizations",
+    "heading": "{count, plural, one {Organization} other {Organizations}}",
     "create": "Create organization",
     "upgradeHint": "This install holds one organization. Use teams to separate departments inside it."
   },
@@ -55,11 +56,16 @@
   "commands": {
     "title": "Search and commands",
     "description": "Go to a page or run an action",
-    "placeholder": "Search pages and actions",
+    "placeholder": "Search modules, pages or actions…",
     "empty": "No results for “{query}”. Try the name of a module or an action.",
     "groups": {
       "goTo": "Go to",
       "actions": "Actions"
+    },
+    "hints": {
+      "navigate": "to move",
+      "open": "to open",
+      "close": "to close"
     }
   },
   "shortcuts": {

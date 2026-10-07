@@ -9,13 +9,15 @@ import type { DataLocationBadgeProps } from './DataLocationBadge.types'
 export default function DataLocationBadge({
   location,
   label,
+  size = 'sm',
   className,
 }: Readonly<DataLocationBadgeProps>) {
   const Icon = location === 'local' ? Server : CloudUpload
   return (
     <span
       className={cn(
-        'text-caption inline-flex h-[1.375rem] w-fit items-center gap-1 rounded-full px-2 font-medium whitespace-nowrap',
+        'text-caption inline-flex w-fit items-center gap-1.5 rounded-full font-medium whitespace-nowrap',
+        size === 'md' ? 'h-[1.625rem] px-2.5' : 'h-[1.375rem] px-2',
         location === 'local'
           ? 'bg-success-soft text-success-soft-foreground'
           : 'bg-surface-2 text-foreground-secondary',

@@ -1,6 +1,4 @@
 {
-  "title": "Settings",
-  "navLabel": "Settings sections",
   "sections": {
     "general": "General",
     "members": "Members",
@@ -710,5 +708,8 @@
       "removeConfirm": "Remove administrator",
       "removed": "{name} is no longer an administrator"
     }
+  },
+  "sectionHints": {
+    "vault": "Keys & models"
   }
 }

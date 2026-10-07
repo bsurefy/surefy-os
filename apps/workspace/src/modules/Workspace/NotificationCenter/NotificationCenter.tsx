@@ -4,7 +4,7 @@
 import { BellRing, CheckCheck } from 'lucide-react'
 
 import { EmptyState } from '@surefy/ui/components/DataDisplay'
-import { ErrorState, SkeletonText } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonRows } from '@surefy/ui/components/Feedback'
 import { SegmentedControl } from '@surefy/ui/components/Forms'
 import { PageHeader } from '@surefy/ui/components/Layout'
 import { LoadMore } from '@surefy/ui/components/Navigation'
@@ -21,7 +21,16 @@ export default function NotificationCenter(props: Readonly<NotificationCenterPro
   const { t } = c
 
   let content
-  if (c.isLoading) content = <SkeletonText lines={6} />
+  if (c.isLoading)
+    content = (
+      <SkeletonRows
+        rows={6}
+        hasLeading
+        lines={2}
+        rowClassName="h-[4.25rem]"
+        className="border-border bg-surface divide-border divide-y overflow-hidden rounded-xl border"
+      />
+    )
   else if (c.errorMessage) {
     content = (
       <ErrorState
@@ -46,7 +55,10 @@ export default function NotificationCenter(props: Readonly<NotificationCenterPro
   } else {
     content = (
       <>
-        <ul aria-label={t('title')} className="flex flex-col">
+        <ul
+          aria-label={t('title')}
+          className="border-border bg-surface divide-border flex flex-col divide-y overflow-hidden rounded-xl border"
+        >
           {c.items.map((notification) => (
             <NotificationItem
               key={notification.id}

@@ -4,11 +4,13 @@ export { default as NoAccessState } from './NoAccessState'
 export { default as NotificationCenter } from './NotificationCenter'
 export { loadNotificationFilters } from './NotificationCenter/NotificationCenter.searchParams'
 export { default as PageBreadcrumb } from './PageBreadcrumb'
+export { default as PageLayout } from './PageLayout'
 export { default as ProfileSettings } from './ProfileSettings'
 export { default as WorkspaceShell } from './WorkspaceShell'
 export { NAV_ITEM_KEYS, WORKSPACE_NAV } from './Workspace.constants'
 export { assertNavReleased, isNavReleased } from './Workspace.server'
 export { toRoute } from './Workspace.utils'
+export type { ShellWidth } from './Workspace.store'
 export type {
   NavEntry,
   NavGroup,

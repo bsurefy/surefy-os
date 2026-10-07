@@ -114,6 +114,8 @@ export function useThreadStream({
           }
           return
         }
+        // the server may have given the chat a title while answering
+        void queryClient.invalidateQueries({ queryKey: chatKeys.detail(orgId, chatId) })
         const reconcile = () => {
           void refetchHistory().then((stored) => {
             if (stored) instance.messages = stored.map(toUiMessage)

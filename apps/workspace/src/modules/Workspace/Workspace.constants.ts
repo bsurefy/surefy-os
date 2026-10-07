@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { BookOpen, ChartLine, MessageSquare, Settings, Shield } from 'lucide-react'
+import { BookOpen, ChartNoAxesColumn, MessageSquare, Shield, SlidersHorizontal } from 'lucide-react'
 
 import { ROUTES } from '@/constants/routes'
 // The file itself, not the module entry: that entry carries server guards, and this list is
@@ -10,7 +10,7 @@ import { PERMISSIONS } from '@surefy/contracts'
 import type { NavEntry } from './Workspace.types'
 
 /** Sidebar groups in display order (design/workspace/navigation.md §2). */
-export const NAV_GROUPS = ['build', 'operate', 'settings'] as const
+export const NAV_GROUPS = ['build', 'operate'] as const
 
 /** Every sidebar item of the design, in display order; labels live in `workspace.nav.items`. */
 export const NAV_ITEM_KEYS = [
@@ -56,7 +56,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
   {
     key: 'insights',
     group: 'operate',
-    icon: ChartLine,
+    icon: ChartNoAxesColumn,
     href: (orgSlug) => ROUTES.workspace.insights(orgSlug),
     released: true,
     module: 'insights',
@@ -75,8 +75,8 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
   },
   {
     key: 'settings',
-    group: 'settings',
-    icon: Settings,
+    group: 'operate',
+    icon: SlidersHorizontal,
     href: (orgSlug) => ROUTES.workspace.settings(orgSlug),
     released: true,
     anyPermission: SETTINGS_PERMISSIONS,

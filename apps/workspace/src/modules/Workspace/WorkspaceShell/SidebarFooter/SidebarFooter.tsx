@@ -1,70 +1,60 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
-import Link from 'next/link'
+import { ChevronsUpDown } from 'lucide-react'
 
-import { ROUTES } from '@/constants/routes'
 import { cn } from '@surefy/ui/lib/utils'
-import { Button } from '@surefy/ui/primitives/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@surefy/ui/primitives/tooltip'
 
 import { useSidebarFooterController } from './SidebarFooter.controller'
 import UserAvatar from '../../UserAvatar'
+import UserMenu from '../UserMenu'
 
 import type { SidebarFooterProps } from './SidebarFooter.types'
 
-/** Bottom of the sidebar: where the data lives, the collapse switch and the person. */
+/**
+ * Bottom of the sidebar: the person's button, with the organization's name under theirs. It opens
+ * the user menu, which also holds the organization switcher.
+ */
 export default function SidebarFooter({
   orgSlug,
   isCollapsed = false,
-  onToggleCollapsed,
 }: Readonly<SidebarFooterProps>) {
-  const { user, role, isSelfHosted, t } = useSidebarFooterController()
-  const toggleLabel = isCollapsed ? t('shell.expandSidebar') : t('shell.collapseSidebar')
+  const { user, organizationName, t } = useSidebarFooterController(orgSlug)
+  if (!user) return null
 
   return (
-    <div className="flex flex-col gap-2">
-      {isSelfHosted && !isCollapsed && (
-        <p className="text-caption text-muted-foreground flex items-center gap-2 px-1">
-          <span aria-hidden="true" className="bg-success size-2 shrink-0 rounded-full" />
-          {t('context.selfHosted')}
-        </p>
-      )}
-      {onToggleCollapsed && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              icon={isCollapsed ? PanelLeftOpen : PanelLeftClose}
-              aria-label={toggleLabel}
-              aria-keyshortcuts="["
-              onClick={onToggleCollapsed}
-              className={cn(!isCollapsed && 'self-end')}
-            />
-          </TooltipTrigger>
-          <TooltipContent side="right">{toggleLabel}</TooltipContent>
-        </Tooltip>
-      )}
-      {user && (
-        <Link
-          href={ROUTES.workspace.profile(orgSlug)}
-          aria-label={isCollapsed ? t('userMenu.profile') : undefined}
+    <UserMenu
+      orgSlug={orgSlug}
+      side="top"
+      align="start"
+      trigger={
+        <button
+          type="button"
+          aria-label={t('userMenu.label', { name: user.name })}
           className={cn(
-            'hover:bg-surface-2 focus-visible:ring-ring flex min-w-0 items-center gap-2 rounded-md p-1 outline-none focus-visible:ring-2',
-            isCollapsed && 'justify-center',
+            'hover:bg-surface-2 focus-visible:ring-ring data-[state=open]:bg-surface-2 duration-fast flex h-12 w-full min-w-0 items-center gap-2.5 rounded-lg text-left transition-colors outline-none focus-visible:ring-2',
+            isCollapsed ? 'justify-center px-0' : 'px-2.5',
           )}
         >
-          <UserAvatar user={user} size="sm" />
+          <UserAvatar user={user} />
           {!isCollapsed && (
-            <span className="flex min-w-0 flex-col">
-              <span className="text-body truncate font-medium">{user.name}</span>
-              {role && <span className="text-caption text-muted-foreground truncate">{role}</span>}
-            </span>
+            <>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-label truncate">{user.name}</span>
+                {organizationName && (
+                  <span className="text-caption text-muted-foreground truncate">
+                    {organizationName}
+                  </span>
+                )}
+              </span>
+              <ChevronsUpDown
+                aria-hidden="true"
+                className="text-muted-foreground size-3.5 shrink-0"
+              />
+            </>
           )}
-        </Link>
-      )}
-    </div>
+        </button>
+      }
+    />
   )
 }

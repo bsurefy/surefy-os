@@ -24,8 +24,9 @@ export default function NotificationItem(props: Readonly<NotificationItemProps>)
   return (
     <li
       className={cn(
-        'flex items-start gap-3 rounded-md',
-        density === 'compact' ? 'px-2 py-2' : 'border-border border-b px-1 py-3 last:border-b-0',
+        'flex items-start gap-3',
+        density === 'compact' ? 'rounded-md px-2.5 py-2' : 'px-4 py-3.5',
+        isUnread && 'bg-primary-soft/40',
       )}
     >
       <span

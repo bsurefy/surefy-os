@@ -77,6 +77,11 @@ export function useCommandMenuController({ orgSlug }: { orgSlug: string }) {
       setOpen('commands', next)
     },
     groups,
+    hints: [
+      { keys: ['↑', '↓'], label: t('commands.hints.navigate') },
+      { keys: ['↵'], label: t('commands.hints.open') },
+      { keys: ['Esc'], label: t('commands.hints.close') },
+    ],
     labels: {
       title: t('commands.title'),
       description: t('commands.description'),

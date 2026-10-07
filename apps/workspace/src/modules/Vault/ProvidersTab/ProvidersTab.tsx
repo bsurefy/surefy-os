@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation'
 
 import { ROUTES } from '@/constants/routes'
 import { DataTableSearch, DataTableToolbar, EmptyState } from '@surefy/ui/components/DataDisplay'
-import { ErrorState, Skeleton } from '@surefy/ui/components/Feedback'
+import { ErrorState, SkeletonCard } from '@surefy/ui/components/Feedback'
 import { SelectInput } from '@surefy/ui/components/Forms'
 import { Section } from '@surefy/ui/components/Layout'
 import { LoadMore } from '@surefy/ui/components/Navigation'
@@ -67,7 +67,14 @@ export default function ProvidersTab() {
   )
 
   let cards = <ProviderCards cards={c.cards} now={c.now} />
-  if (c.isLoadingCards) cards = <Skeleton className="h-8 w-full max-w-xl" />
+  if (c.isLoadingCards)
+    cards = (
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((card) => (
+          <SkeletonCard key={card} lines={2} />
+        ))}
+      </div>
+    )
   else if (c.cardsErrorMessage) {
     cards = (
       <ErrorState

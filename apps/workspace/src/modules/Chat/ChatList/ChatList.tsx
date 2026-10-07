@@ -5,13 +5,13 @@ import { useTranslations } from 'next-intl'
 
 import ChatListPanel from './ChatListPanel'
 
-/** The chat list beside the thread from the `lg` breakpoint up; below it `ChatListSheet` opens the same list. */
+/** The 264px chat list beside the thread from the `lg` breakpoint up; below it `ChatListSheet` opens the same list. */
 export default function ChatList() {
   const t = useTranslations('chat.list')
   return (
     <aside
       aria-label={t('label')}
-      className="border-border hidden w-70 shrink-0 flex-col gap-3 border-r pr-3 lg:flex"
+      className="border-border bg-surface hidden w-66 shrink-0 flex-col border-r lg:flex"
     >
       <ChatListPanel />
     </aside>

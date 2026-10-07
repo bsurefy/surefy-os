@@ -2,7 +2,7 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -12,7 +12,8 @@ import { modelQueries } from '@/api/models'
 import { ROUTES } from '@/constants/routes'
 import { PERMISSIONS } from '@surefy/contracts'
 import type { ModelType, UsableModelDto } from '@surefy/contracts'
-import { DataLocationBadge } from '@surefy/ui/components/DataDisplay'
+import { DataLocationBadge, MonoTile } from '@surefy/ui/components/DataDisplay'
+import { cn } from '@surefy/ui/lib/utils'
 import { Button } from '@surefy/ui/primitives/button'
 import {
   Command,
@@ -23,6 +24,7 @@ import {
   CommandList,
 } from '@surefy/ui/primitives/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@surefy/ui/primitives/popover'
+import { Skeleton } from '@surefy/ui/primitives/skeleton'
 import { useCan, useCurrentOrgId } from '@surefy/web-core/access'
 
 import { getProviderName, groupModels } from '../Vault.utils'
@@ -40,6 +42,8 @@ export interface ModelSelectorProps {
   /** The message has images: models that cannot read them are disabled with the reason. */
   requiresVision?: boolean
   isDisabled?: boolean
+  /** `compact`: a 32px trigger with the tile and the name only, for a toolbar. Default `default`. */
+  variant?: 'default' | 'compact'
   className?: string
 }
 
@@ -54,6 +58,7 @@ export default function ModelSelector({
   type = 'chat',
   requiresVision = false,
   isDisabled = false,
+  variant = 'default',
   className,
 }: Readonly<ModelSelectorProps>) {
   const t = useTranslations('vault.selector')
@@ -68,21 +73,59 @@ export default function ModelSelector({
 
   const itemCaption = (model: UsableModelDto) =>
     requiresVision && !model.supportsVision ? t('noVision') : t(`cost.${model.costTier}`)
+  const originOf = (model: UsableModelDto) =>
+    model.dataLocation === 'on_server' ? t('onServer') : getProviderName(model.providerKey)
+  const origin = selected ? originOf(selected) : undefined
+  const isCompact = variant === 'compact'
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="secondary"
-          className={className}
-          disabled={isDisabled}
+        <button
+          type="button"
+          className={cn(
+            'border-border bg-surface hover:bg-surface-2 focus-visible:ring-ring data-[state=open]:border-primary data-[state=open]:ring-ring/30 duration-fast flex max-w-full min-w-0 items-center rounded-lg border py-0 text-left transition-colors outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:ring-[3px]',
+            isCompact ? 'h-8 gap-1.5 pr-2 pl-1' : 'h-[2.375rem] gap-2.5 pr-2.5 pl-1.5',
+            className,
+          )}
+          disabled={isDisabled || query.isPending}
+          aria-busy={query.isPending || undefined}
           aria-label={t('label')}
+          title={isCompact ? origin : undefined}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
         >
-          <span className="truncate">{selected?.displayName ?? t('placeholder')}</span>
-          <ChevronsUpDown aria-hidden className="size-4 shrink-0" />
-        </Button>
+          {query.isPending ? (
+            <>
+              <Skeleton className="size-6 shrink-0 rounded-md" />
+              <Skeleton className="h-3.5 w-24" />
+            </>
+          ) : (
+            <MonoTile size="sm">
+              {(selected?.displayName ?? '?').slice(0, 1).toUpperCase()}
+            </MonoTile>
+          )}
+          {!query.isPending && (
+            <span className="flex min-w-0 flex-col">
+              <span
+                className={cn(
+                  'text-label truncate leading-[1.0625rem]',
+                  isCompact ? 'max-w-44 font-medium' : 'font-semibold',
+                )}
+              >
+                {selected?.displayName ?? t('placeholder')}
+              </span>
+              {!isCompact && origin && (
+                <span className="text-overline text-muted-foreground truncate leading-[0.875rem] font-normal tracking-normal normal-case">
+                  {origin}
+                </span>
+              )}
+            </span>
+          )}
+          {!query.isPending && (
+            <ChevronDown aria-hidden className="text-muted-foreground size-3.5 shrink-0" />
+          )}
+        </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">
         {!query.isPending && models.length === 0 ? (

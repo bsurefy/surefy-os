@@ -7,6 +7,12 @@ export const DEFAULT_LOCALE = 'en'
 /** Holds only the resolved locale code; read by each app's `src/core/i18n/request.ts`. */
 export const LOCALE_COOKIE = 'surefy-locale'
 
+/** The browser's IANA time zone, written by `TimeZoneSync`; read by each app's `src/core/i18n/request.ts`. */
+export const TIME_ZONE_COOKIE = 'surefy-time-zone'
+
+/** The time zone server and client format with until the browser's zone is known. */
+export const DEFAULT_TIME_ZONE = 'UTC'
+
 /** The namespaces `@surefy/web-core/messages` ships; apps cannot define namespaces with these names. */
 export const SHARED_NAMESPACES = ['common', 'validation', 'errors', 'session', 'editions'] as const
 export type SharedNamespace = (typeof SHARED_NAMESPACES)[number]

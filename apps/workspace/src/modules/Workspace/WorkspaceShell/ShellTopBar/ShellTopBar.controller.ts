@@ -39,6 +39,7 @@ export function useShellTopBarController({ orgSlug }: { orgSlug: string }) {
 
   return {
     trail,
+    modifierKey,
     searchShortcut: `${modifierKey} K`,
     onOpenSearch: () => {
       setOverlay('commands', true)

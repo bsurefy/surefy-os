@@ -64,3 +64,22 @@ export const useShellCrumbStore = create<ShellCrumbState>()((set) => ({
     set({ crumbs: [] })
   },
 }))
+
+export type ShellWidth = 'reading' | 'full' | 'flush'
+
+interface ShellLayoutState {
+  width: ShellWidth
+  setWidth: (width: ShellWidth) => void
+  reset: () => void
+}
+
+/** How wide the page content runs, set by the page on screen (`PageLayout`). */
+export const useShellLayoutStore = create<ShellLayoutState>()((set) => ({
+  width: 'reading',
+  setWidth: (width) => {
+    set({ width })
+  },
+  reset: () => {
+    set({ width: 'reading' })
+  },
+}))

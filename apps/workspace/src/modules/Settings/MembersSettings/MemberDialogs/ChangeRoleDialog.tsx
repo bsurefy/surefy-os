@@ -52,7 +52,10 @@ export default function ChangeRoleDialog(props: Readonly<ChangeRoleDialogProps>)
                   value={role}
                   disabled={role === 'owner' && !props.canManageAdmins}
                 />
-                <Label htmlFor={`change-role-${role}`} className="flex flex-col gap-0.5">
+                <Label
+                  htmlFor={`change-role-${role}`}
+                  className="flex flex-col items-start gap-0.5 text-left"
+                >
                   <span className="font-medium">{t(`roles.${role}.name`)}</span>
                   <span className="text-caption text-muted-foreground font-normal">
                     {t(`roles.${role}.description`)}

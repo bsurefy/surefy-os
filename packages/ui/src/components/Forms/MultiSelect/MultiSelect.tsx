@@ -43,7 +43,7 @@ export default function MultiSelect({
       <PopoverAnchor asChild>
         <div
           className={cn(
-            'border-input dark:bg-input/30 flex min-h-9 w-full min-w-0 flex-wrap items-center gap-1 rounded-lg border bg-transparent p-1 pointer-coarse:min-h-11',
+            'border-input bg-surface has-[button[role=combobox]:focus-visible]:border-ring has-[button[role=combobox]:focus-visible]:ring-ring flex min-h-9 w-full min-w-0 flex-wrap items-center gap-1 rounded-lg border p-1 has-[button[role=combobox]:focus-visible]:ring-1 pointer-coarse:min-h-11',
             aria['aria-invalid'] && 'border-destructive',
             isDisabled && 'cursor-not-allowed opacity-50',
             className,
@@ -83,7 +83,7 @@ export default function MultiSelect({
               aria-expanded={isOpen}
               aria-haspopup="listbox"
               disabled={isDisabled}
-              className="text-body flex h-6 min-w-24 flex-1 items-center gap-2 rounded-md px-2 text-left disabled:cursor-not-allowed"
+              className="text-body flex h-6 min-w-24 flex-1 items-center gap-2 rounded-md px-2 text-left outline-none disabled:cursor-not-allowed"
               {...aria}
             >
               <span className="text-muted-foreground flex-1 truncate">

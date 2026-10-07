@@ -17,8 +17,8 @@ import { useThreadViewController } from './ThreadView.controller'
 import type { ThreadViewProps } from './ThreadView.controller'
 
 /**
- * One conversation, or a new one (chat.md §1): the header, the messages or the empty state, the
- * composer, and the dialogs and sheets the thread opens.
+ * One conversation, or a new one (chat.md §1): the header, the scrolling messages or the empty
+ * state, the composer at the bottom, and the dialogs and sheets the thread opens.
  */
 export default function ThreadView(props: Readonly<ThreadViewProps>) {
   const c = useThreadViewController(props)
@@ -26,13 +26,14 @@ export default function ThreadView(props: Readonly<ThreadViewProps>) {
   const pending = c.settings.pendingModel
 
   return (
-    <div className="flex min-h-[calc(100dvh-10rem)] flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col">
       <ThreadHeader c={c} />
-      <div className="flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-6 pb-4 md:px-6">
         {c.isEmpty ? (
           <EmptyThread
             orgSlug={c.orgSlug}
             hasModels={c.hasModels}
+            modelName={c.settings.currentModel?.displayName ?? null}
             canManageVault={c.canManageVault}
             onSuggestion={(key) => {
               c.composer.onSuggestion(t(`empty.cards.${key}.prompt`))
@@ -42,8 +43,10 @@ export default function ThreadView(props: Readonly<ThreadViewProps>) {
           <MessageList c={c} />
         )}
       </div>
-      <div className="bg-background sticky bottom-0 mx-auto w-full max-w-[760px] pb-3">
-        <Composer c={c} />
+      <div className="bg-background shrink-0 px-4 pt-2 pb-4 md:px-6">
+        <div className="mx-auto w-full max-w-[760px]">
+          <Composer c={c} />
+        </div>
       </div>
       <ConfirmDialog
         open={pending !== undefined}

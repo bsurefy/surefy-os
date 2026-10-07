@@ -10,6 +10,8 @@ export interface FileDropzoneLabels {
   title: string
   /** Accepted types and size: "PDF, DOCX or TXT · up to 50 MB". */
   hint: string
+  /** The button-styled call to action inside the zone ("Choose files"). */
+  browse?: string
 }
 
 export interface FileDropzoneProps {

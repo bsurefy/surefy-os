@@ -8,6 +8,9 @@ export interface AppShellProps extends ComponentProps<'div'> {
   topBar: ReactNode
   /** Session banners above the whole frame; they push it down instead of covering it. */
   banner?: ReactNode
-  /** `reading`: 880–1120px content width; `full`: full width (tables, canvases). */
-  width?: 'reading' | 'full'
+  /**
+   * `reading`: 880–1120px content width; `full`: full width (tables, canvases); `flush`: no
+   * gutters at all, the page fills the frame below the top bar (Chat).
+   */
+  width?: 'reading' | 'full' | 'flush'
 }

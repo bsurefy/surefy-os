@@ -62,10 +62,12 @@ describe('KnowledgeLibrary', () => {
     expect(await within(table).findByText('Help center')).toBeVisible()
 
     const help = rowOf('Help center')
-    expect(help).toHaveTextContent('4 files · 1 link')
+    expect(help).toHaveTextContent('5 sources')
+    expect(help).toHaveTextContent('FILES')
+    expect(help).toHaveTextContent('LINKS')
     expect(help).toHaveTextContent('Processing 1 source')
     expect(help).toHaveTextContent('Support')
-    expect(help).toHaveTextContent('2')
+    expect(help).toHaveTextContent('2 agents and chats')
 
     expect(rowOf('HR Policies')).toHaveTextContent('Local models only')
     expect(rowOf('HR Policies')).toHaveTextContent('Ready')
