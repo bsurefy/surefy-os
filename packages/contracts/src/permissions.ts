@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { ACCESS_PERMISSIONS } from './access/permissions.js'
 import { API_KEYS_PERMISSIONS } from './apiKeys/permissions.js'
+import { APPROVALS_PERMISSIONS } from './approvals/permissions.js'
 import { AUDIT_PERMISSIONS } from './audit/permissions.js'
 import { AUTH_PERMISSIONS } from './auth/permissions.js'
 import { CHAT_PERMISSIONS } from './chat/permissions.js'
 import { CONNECTIONS_PERMISSIONS } from './connections/permissions.js'
 import { ORG_ROLES, roleAtLeast, type OrgRole } from './core/roles.js'
 import { DATA_CONTROL_PERMISSIONS } from './dataControl/permissions.js'
+import { GUARD_PERMISSIONS } from './guard/permissions.js'
 import { INSTALL_PERMISSIONS } from './install/permissions.js'
 import { KNOWLEDGE_PERMISSIONS } from './knowledge/permissions.js'
 import { MEMBERS_PERMISSIONS } from './members/permissions.js'
@@ -38,6 +40,8 @@ export const PERMISSION_DEFINITIONS = {
   ...CHAT_PERMISSIONS,
   ...KNOWLEDGE_PERMISSIONS,
   ...USAGE_PERMISSIONS,
+  ...GUARD_PERMISSIONS,
+  ...APPROVALS_PERMISSIONS,
   ...CONNECTIONS_PERMISSIONS,
   ...API_KEYS_PERMISSIONS,
 } as const satisfies Record<string, PermissionDefinition>
