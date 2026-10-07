@@ -50,7 +50,8 @@ export function TestProviders({
       <UiLabelsBridge>
         <ZodErrorMapProvider>
           <QueryClientProvider client={queryClient}>
-            <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
+            {/* hasMemory keeps the URL between updates like a real adapter; frozen, a debounced update resets the state to the initial URL */}
+            <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate} hasMemory>
               <TooltipProvider>{children}</TooltipProvider>
               <Toaster theme="light" />
             </NuqsTestingAdapter>
