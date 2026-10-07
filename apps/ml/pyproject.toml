@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 [project]
 name = "surefy-ml"
-version = "0.0.0"
+version = "0.1.0"
 description = "SurefyOS ML service: document parsing and OCR (internal only)"
 requires-python = ">=3.13,<3.14"
 license = "AGPL-3.0-only"
