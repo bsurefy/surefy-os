@@ -363,7 +363,7 @@
       "links": {
         "title": "Links",
         "description": "Add a web page or a whole site; it is crawled and kept in sync.",
-        "hint": "Connectors for Google Drive, Notion and SharePoint come with the Pieces module."
+        "hint": "Connectors for Google Drive, Notion and SharePoint come with the Bridge module."
       }
     },
     "testSearch": {

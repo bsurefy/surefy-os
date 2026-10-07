@@ -25,7 +25,7 @@
       "chat": "Chat",
       "agents": "Agents",
       "flows": "Flows",
-      "pieces": "Pieces",
+      "bridge": "Bridge",
       "knowledge": "Knowledge",
       "train": "Train",
       "insights": "Insights",
@@ -108,7 +108,7 @@
       "chat": "Chat",
       "agents": "Agents",
       "flows": "Flows",
-      "pieces": "Pieces",
+      "bridge": "Bridge",
       "knowledge": "Knowledge",
       "train": "Train",
       "insights": "Insights",
@@ -180,8 +180,8 @@
       "flow": {
         "paused": "A flow was paused"
       },
-      "piece": {
-        "blocked": "A piece was blocked"
+      "bridge": {
+        "blocked": "A bridge was blocked"
       },
       "evaluation_run": {
         "finished": "An evaluation run finished"

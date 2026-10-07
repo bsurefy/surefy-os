@@ -1,0 +1,6 @@
+ALTER TABLE "notifications" DROP CONSTRAINT "notifications_type_check";--> statement-breakpoint
+ALTER TABLE "notifications" DROP CONSTRAINT "notifications_target_type_check";--> statement-breakpoint
+UPDATE "notifications" SET "type" = 'bridge.blocked' WHERE "type" = 'piece.blocked';--> statement-breakpoint
+UPDATE "notifications" SET "target_type" = 'bridge' WHERE "target_type" = 'piece';--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_type_check" CHECK ("notifications"."type" in ('invitation.reissue_requested', 'model_access.requested', 'vault_key.expiring', 'knowledge_source.ready', 'knowledge_source.failed', 'export.ready', 'export.failed', 'organization.deletion_scheduled', 'budget.threshold_reached', 'approval.requested', 'approval.decided', 'chat.shared', 'connection.expired', 'flow.paused', 'bridge.blocked', 'evaluation_run.finished', 'training_job.finished', 'access_grant.requested'));--> statement-breakpoint
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_target_type_check" CHECK ("notifications"."target_type" in ('approval', 'invitation', 'vault_model', 'vault_credential', 'knowledge_source', 'export', 'data_request', 'organization', 'budget', 'chat', 'connection', 'flow', 'bridge', 'evaluation_run', 'training_job', 'access_grant'));

@@ -6,7 +6,7 @@ export const MODULES = [
   'flows',
   'knowledge',
   'train',
-  'pieces',
+  'bridge',
   'insights',
   'guard',
 ] as const
