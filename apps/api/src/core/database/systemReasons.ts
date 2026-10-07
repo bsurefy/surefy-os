@@ -11,7 +11,7 @@ export type SystemScopeReason =
   | 'data-control'
   | 'key-rotation'
   | 'connection-refresh'
-  | 'piece-catalog-sync'
+  | 'bridge-catalog-sync'
   | 'access-version'
   | 'knowledge-sync'
   | 'partner-portal'

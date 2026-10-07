@@ -22,7 +22,7 @@ import type { EntitlementGrant } from './entitlements.types.js'
 // The access chain (database/access-and-entitlements.md, "Effective access"): entitlement source
 // → organization policy → team policies → role. Pure functions, unit-tested on their own.
 
-const TOOL_KEYS = ['webSearch', 'pieces', 'mcp', 'apiTools'] as const
+const TOOL_KEYS = ['webSearch', 'bridge', 'mcp', 'apiTools'] as const
 const TRAINING_KEYS = ['enabled', 'fineTuning'] as const
 const PROVIDER_FLAGS = ['personalKeys', 'localModels'] as const
 type ToolKey = (typeof TOOL_KEYS)[number]

@@ -55,9 +55,9 @@ export const ROUTES = {
         : (`/${orgSlug}/agents/${agentId}` as const),
     flows: (orgSlug: string) => `/${orgSlug}/flows` as const,
     flow: (orgSlug: string, flowId: string) => `/${orgSlug}/flows/${flowId}` as const,
-    pieces: (orgSlug: string, tab?: string) =>
-      tab ? (`/${orgSlug}/pieces/${tab}` as const) : (`/${orgSlug}/pieces` as const),
-    piece: (orgSlug: string, pieceId: string) => `/${orgSlug}/pieces/${pieceId}` as const,
+    bridge: (orgSlug: string, tab?: string) =>
+      tab ? (`/${orgSlug}/bridge/${tab}` as const) : (`/${orgSlug}/bridge` as const),
+    bridgeDetail: (orgSlug: string, bridgeId: string) => `/${orgSlug}/bridge/${bridgeId}` as const,
     knowledge: (orgSlug: string) => `/${orgSlug}/knowledge` as const,
     knowledgeBase: (orgSlug: string, kbId: string, tab?: string) =>
       tab

@@ -54,7 +54,7 @@ export const accessPolicySchema = z.object({
   tools: z
     .object({
       webSearch: z.boolean().optional(),
-      pieces: z.boolean().optional(),
+      bridge: z.boolean().optional(),
       mcp: z.boolean().optional(),
       apiTools: z.boolean().optional(),
     })

@@ -17,7 +17,7 @@ export const NAV_ITEM_KEYS = [
   'chat',
   'agents',
   'flows',
-  'pieces',
+  'bridge',
   'knowledge',
   'train',
   'insights',
