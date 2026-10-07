@@ -1,0 +1,15 @@
+{
+  "CONNECTION_TOKEN_EXPIRED": "This connection's sign-in expired. Reconnect it to keep using it.",
+  "CONNECTION_REFRESH_FAILED": "The app didn't accept a fresh sign-in. Reconnect the account.",
+  "CONNECTION_PROVIDER_REJECTED": "The app rejected these credentials. Check them and try again.",
+  "CONNECTION_UNREACHABLE": "Nothing answered at this address. Check the URL and that the server is reachable from SurefyOS.",
+  "CONNECTION_NOT_FOUND": "This connection no longer exists.",
+  "CONNECTION_REVOKED": "This connection was disconnected and can't be changed. Add a new connection instead.",
+  "CONNECTION_PROVIDER_UNSUPPORTED": "SurefyOS can't connect to this app yet.",
+  "CONNECTION_AUTH_TYPE_UNSUPPORTED": "This app doesn't support that way of signing in. Choose another one.",
+  "CONNECTION_BASE_URL_NOT_ALLOWED": "This address isn't allowed. Use an https:// address, or ask an owner to allow the host.",
+  "CONNECTION_DUPLICATE": "This account is already connected here. Reconnect the existing connection instead.",
+  "CONNECTION_ACCOUNT_MISMATCH": "You signed in to a different account. Sign in to the account this connection uses.",
+  "CONNECTION_OAUTH_STATE_INVALID": "This sign-in attempt expired or was already used. Start again.",
+  "CONNECTION_OAUTH_DENIED": "The sign-in wasn't completed. Try again and allow access."
+}

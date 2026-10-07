@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { ACCESS_ERROR_CODES } from './access/errors.js'
+import { API_KEYS_ERROR_CODES } from './apiKeys/errors.js'
 import { AUDIT_ERROR_CODES } from './audit/errors.js'
 import { AUTH_ERROR_CODES } from './auth/errors.js'
 import { CHAT_ERROR_CODES } from './chat/errors.js'
+import { CONNECTIONS_ERROR_CODES } from './connections/errors.js'
 import { COMMON_ERROR_CODES } from './core/errors.js'
 import { DATA_CONTROL_ERROR_CODES } from './dataControl/errors.js'
 import { INSTALL_ERROR_CODES } from './install/errors.js'
@@ -34,6 +36,8 @@ export const ERROR_CODES = {
   ...CHAT_ERROR_CODES,
   ...KNOWLEDGE_ERROR_CODES,
   ...USAGE_ERROR_CODES,
+  ...CONNECTIONS_ERROR_CODES,
+  ...API_KEYS_ERROR_CODES,
 } as const
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES]
 
@@ -55,4 +59,6 @@ export const ERROR_CODE_SOURCES = {
   chat: CHAT_ERROR_CODES,
   knowledge: KNOWLEDGE_ERROR_CODES,
   usage: USAGE_ERROR_CODES,
+  connections: CONNECTIONS_ERROR_CODES,
+  apiKeys: API_KEYS_ERROR_CODES,
 } as const

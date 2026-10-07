@@ -1,0 +1,6 @@
+{
+  "API_KEY_NOT_FOUND": "This API key no longer exists.",
+  "API_KEY_REVOKED": "This API key was revoked and can't be changed. Create a new key instead.",
+  "API_KEY_SCOPE_NOT_ALLOWED": "One of the selected permissions can't be given to an API key.",
+  "API_KEY_EXPIRY_INVALID": "Choose an expiry date in the future."
+}
