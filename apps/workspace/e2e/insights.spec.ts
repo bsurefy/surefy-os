@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 
 import { typeMessage } from './support/composer'
 import { ORGANIZATION, OWNER, STUB_MODEL_ID } from './support/env'
+import { waitForHydration } from './support/hydration'
 import { connectStubModel } from './support/models'
 
 import type { Page } from '@playwright/test'
@@ -30,8 +31,11 @@ async function chatOnce(page: Page, question: string) {
  */
 async function showToday(page: Page) {
   await page.goto(INSIGHTS)
-  await page.getByRole('combobox', { name: 'Date range' }).click()
-  await page.getByRole('option', { name: 'Today' }).click()
+  await waitForHydration(page, '[role="radiogroup"][aria-label="Date range"] [role="radio"]')
+  await page
+    .getByRole('radiogroup', { name: 'Date range' })
+    .getByRole('radio', { name: 'Today' })
+    .click()
 }
 
 // The first spec creates the usage that the others read.
