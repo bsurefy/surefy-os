@@ -69,7 +69,7 @@ def create_app(
 
     app = FastAPI(
         title="SurefyOS ML service",
-        version="0.0.0",
+        version="0.1.0",
         docs_url=None,
         redoc_url=None,
         lifespan=lifespan,
