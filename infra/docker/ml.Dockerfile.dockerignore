@@ -1,0 +1,7 @@
+# Build context is apps/ml; only the project files go into the image.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!src/
+**/__pycache__

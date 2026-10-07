@@ -1,0 +1,212 @@
+{
+  "auditLog": {
+    "title": "Audit log",
+    "description": "Sign-ins, changes and actions in this organization, signed and chained.",
+    "tableLabel": "Audit log",
+    "loadError": "Couldn't load the audit log",
+    "loadMore": "Load more",
+    "none": "None",
+    "objectWithLabel": "{type} · {label}",
+    "empty": {
+      "title": "No events yet",
+      "description": "Actions and decisions appear here as people use agents and flows."
+    },
+    "noResults": {
+      "title": "No matching events",
+      "description": "Try another search, or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "search": {
+      "label": "Search the audit log",
+      "placeholder": "Search by event, person or object"
+    },
+    "columns": {
+      "when": "When ({timeZone})",
+      "who": "Who",
+      "what": "What happened",
+      "object": "Object",
+      "model": "Model",
+      "result": "Result"
+    },
+    "filters": {
+      "actorType": "Actor type",
+      "anyActorType": "Any actor",
+      "person": "Person",
+      "anyPerson": "Anyone",
+      "personSearch": "Search people",
+      "personEmpty": "No people match",
+      "action": "Event type",
+      "anyAction": "Any event",
+      "actionSearch": "Search events",
+      "actionEmpty": "No events match",
+      "object": "Object",
+      "anyObject": "Any object",
+      "objectSearch": "Search objects",
+      "objectEmpty": "No objects match",
+      "result": "Result",
+      "anyResult": "Any result",
+      "range": "Date range",
+      "ranges": {
+        "24h": "Last 24 hours",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "all": "All time"
+      }
+    },
+    "actorTypes": {
+      "user": "Person",
+      "api_key": "API key",
+      "agent": "Agent",
+      "flow": "Flow",
+      "system": "SurefyOS",
+      "support": "BSurefy support",
+      "partner": "Partner"
+    },
+    "vias": {
+      "user": "Signed in",
+      "api-key": "API key",
+      "support": "BSurefy support access",
+      "partner": "Partner access",
+      "system": "SurefyOS"
+    },
+    "outcomes": {
+      "success": "Success",
+      "denied": "Denied",
+      "failed": "Failed"
+    },
+    "objectTypes": {
+      "organization": "Organization",
+      "member": "Member",
+      "invitation": "Invitation",
+      "team": "Team",
+      "access_policy": "Access policy",
+      "install": "Install",
+      "user": "User",
+      "session": "Session",
+      "export": "Export",
+      "data_request": "Data request",
+      "audit_log": "Audit log"
+    },
+    "actions": {
+      "organization": {
+        "created": "Organization created",
+        "updated": "Organization updated",
+        "slug_changed": "Organization address changed",
+        "deletion_scheduled": "Organization deletion scheduled",
+        "deletion_canceled": "Organization deletion canceled",
+        "export_requested": "Organization data export requested"
+      },
+      "member": {
+        "invited": "Person invited",
+        "joined": "Person joined",
+        "role_changed": "Role changed",
+        "primary_team_changed": "Primary team changed",
+        "deactivated": "Person deactivated",
+        "reactivated": "Person reactivated",
+        "removed": "Person removed"
+      },
+      "invitation": {
+        "resent": "Invitation resent",
+        "link_copied": "Invitation link copied",
+        "revoked": "Invitation revoked"
+      },
+      "team": {
+        "created": "Team created",
+        "updated": "Team updated",
+        "deleted": "Team deleted",
+        "member_added": "Added to team",
+        "member_removed": "Removed from team"
+      },
+      "access_policy": {
+        "updated": "Access policy updated"
+      },
+      "install": {
+        "settings_updated": "Install settings updated",
+        "admin_added": "Install administrator added",
+        "admin_removed": "Install administrator removed"
+      },
+      "user": {
+        "two_factor_reset": "Two-factor authentication reset"
+      },
+      "session": {
+        "revoked": "Session signed out"
+      },
+      "export": {
+        "requested": "Export requested",
+        "downloaded": "Export downloaded"
+      },
+      "audit": {
+        "verified": "Audit log verified"
+      }
+    },
+    "detail": {
+      "title": "Audit entry",
+      "loadError": "Couldn't load this entry",
+      "none": "—",
+      "summary": "Summary",
+      "who": "Who",
+      "via": "How",
+      "object": "Object",
+      "result": "Result",
+      "reason": "Reason",
+      "model": "Model",
+      "modelWithConfidence": "{model} · {confidence} confidence",
+      "request": "Request",
+      "requestId": "Request ID",
+      "ip": "IP address",
+      "userAgent": "Browser",
+      "integrity": "Signature",
+      "integrityHelp": "Each entry's signature covers it and the entry before it, so changing or removing any entry breaks every later one.",
+      "entryId": "Entry ID",
+      "signature": "Signature",
+      "sealing": "Sealing…",
+      "chain": "Chain",
+      "chained": "Chained to the previous entry · position {position}, sealed {sealedAt}",
+      "notChainedYet": "Joins the chain within about a minute",
+      "payload": "Payload"
+    },
+    "integrity": {
+      "state": {
+        "ok": "Chain verified {time}",
+        "mismatch": "Mismatch found {time}",
+        "unverified": "Not verified yet"
+      },
+      "sealed": "{count, plural, one {# entry sealed} other {# entries sealed}}",
+      "sealing": "{count, plural, one {# entry sealing} other {# entries sealing}}",
+      "checkpoint": "Last signed checkpoint {time}",
+      "verify": "Verify now",
+      "verifyStarted": "Verification started",
+      "mismatch": {
+        "title": "An audit entry doesn't match its chain",
+        "description": "Contact support with the entry ID. The log stays readable.",
+        "viewEntry": "View entry"
+      }
+    },
+    "export": {
+      "open": "Export",
+      "title": "Export audit log",
+      "description": "Download the entries that match the current filters.",
+      "format": "Format",
+      "formats": {
+        "csv": "CSV",
+        "json": "JSON"
+      },
+      "scope": "The export includes every entry that matches the search and filters, with its signature.",
+      "personalData": {
+        "title": "This file contains personal data",
+        "description": "Names, IP addresses and browser details of the people in the log. Store it securely; the download is recorded in the audit log."
+      },
+      "start": "Start export",
+      "cancel": "Cancel",
+      "close": "Close",
+      "preparing": "Preparing your export…",
+      "ready": "Your export is ready",
+      "readyDetails": "{count, plural, one {# entry} other {# entries}} · {size}",
+      "download": "Download",
+      "failed": "The export failed",
+      "expired": "The download link expired",
+      "retry": "Retry"
+    }
+  }
+}

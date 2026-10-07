@@ -1,0 +1,111 @@
+{
+  "overview": {
+    "title": "Insights",
+    "description": "AI usage and cost in your organization, by team, person and model.",
+    "empty": {
+      "title": "Usage appears after the first chat",
+      "description": "Messages, tokens and cost show here once people start chatting.",
+      "action": "Start a chat"
+    },
+    "filters": {
+      "range": "Date range",
+      "ranges": {
+        "today": "Today",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "custom": "Custom"
+      },
+      "customRange": "Pick dates",
+      "customRangeValue": "{from} – {to}",
+      "customRangeHint": "Days in {timeZone}, up to a year.",
+      "customApply": "Apply",
+      "team": "Team",
+      "anyTeam": "All teams",
+      "teamSearch": "Search teams",
+      "teamEmpty": "No teams found",
+      "person": "Person",
+      "anyPerson": "All people",
+      "personSearch": "Search people",
+      "personEmpty": "No people found",
+      "model": "Model",
+      "anyModel": "All models",
+      "modelSearch": "Search models",
+      "modelEmpty": "No models found",
+      "clear": "Clear filters"
+    },
+    "kpis": {
+      "label": "Key numbers",
+      "messages": "Messages",
+      "activePeople": "Active people",
+      "tokens": "Tokens",
+      "costThisMonth": "Cost this month",
+      "restricted": "Restricted",
+      "loadError": "Couldn't load the key numbers"
+    },
+    "dataThrough": "Includes usage up to {time}",
+    "unpriced": {
+      "title": "Some costs are missing",
+      "description": "{count, plural, one {# model has} other {# models have}} no known price, so {count, plural, one {its calls count} other {their calls count}} as $0: {models}."
+    },
+    "chart": {
+      "view": "View as",
+      "chart": "Chart",
+      "table": "Table",
+      "retry": "Try again",
+      "error": "This chart couldn't load"
+    },
+    "cost": {
+      "title": "Cost by {by, select, team {team} person {person} other {model}}",
+      "description": "Total {total} in the selected range.",
+      "groupBy": "Group cost by",
+      "dimensions": {
+        "team": "Team",
+        "person": "Person",
+        "model": "Model"
+      },
+      "label": "Cost per {by, select, team {team} person {person} other {model}}",
+      "empty": "No cost in this range.",
+      "series": "Cost",
+      "tokens": "Tokens",
+      "requests": "Requests",
+      "noTeam": "No team",
+      "noPerson": "API keys and channels",
+      "deletedTeam": "Deleted team",
+      "formerMember": "Former member",
+      "others": "Others ({count})",
+      "local": "$0 · on your hardware",
+      "filterBy": "Show only {label}",
+      "actions": "Actions"
+    },
+    "tokens": {
+      "title": "Tokens over time",
+      "label": "Input and output tokens per {interval, select, hour {hour} day {day} week {week} other {month}}",
+      "input": "Input",
+      "output": "Output",
+      "period": "Period",
+      "empty": "No tokens in this range."
+    },
+    "export": {
+      "open": "Export CSV",
+      "title": "Export usage",
+      "description": "A CSV of usage per day, team, person and model for the selected range and filters.",
+      "scope": "Range: {range}. Filters: {filters}.",
+      "noFilters": "none",
+      "personalData": {
+        "title": "This file contains personal data",
+        "description": "It names people and their email addresses. Store and share it as your policy requires."
+      },
+      "start": "Prepare export",
+      "cancel": "Cancel",
+      "close": "Close",
+      "preparing": "Preparing your export… We'll notify you when it's ready.",
+      "ready": "Your export is ready",
+      "readyDetails": "{count, plural, one {# row} other {# rows}} · {size} · the link works for 24 hours.",
+      "download": "Download",
+      "failed": "The export failed",
+      "expired": "The download link expired",
+      "retry": "Try again"
+    }
+  }
+}

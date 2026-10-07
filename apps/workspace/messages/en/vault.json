@@ -1,0 +1,487 @@
+{
+  "page": {
+    "title": "Vault",
+    "description": "AI providers, API keys, local models and who may use which model."
+  },
+  "commands": {
+    "addKey": "Add API key"
+  },
+  "tabs": {
+    "label": "Vault sections",
+    "providers": "Providers & keys",
+    "local-models": "Local models",
+    "model-access": "Model access",
+    "fallback": "Fallback"
+  },
+  "builder": {
+    "description": "The models you can use, where your data goes and what they cost.",
+    "tableLabel": "Models you can use",
+    "columns": {
+      "model": "Model",
+      "source": "Source",
+      "location": "Data location",
+      "cost": "Cost",
+      "context": "Context window"
+    },
+    "type": {
+      "chat": "Chat",
+      "embedding": "Embedding",
+      "decision": "Decision"
+    },
+    "source": {
+      "provider": "Your API keys",
+      "local": "On your server",
+      "trained": "Trained on your server",
+      "platform": "Included with credits"
+    },
+    "location": {
+      "local": "Stays on your server",
+      "provider": "Sent to {provider}"
+    },
+    "cost": {
+      "free": "No per-token cost",
+      "low": "Low cost",
+      "medium": "Medium cost",
+      "high": "High cost",
+      "unknown": "Price unknown"
+    },
+    "search": {
+      "label": "Search models",
+      "placeholder": "Search models"
+    },
+    "empty": {
+      "title": "No models yet",
+      "description": "Your admin hasn't enabled any models for you yet. Ask an admin."
+    },
+    "noResults": {
+      "title": "No models match",
+      "description": "Try a different search.",
+      "clear": "Clear search"
+    },
+    "loadError": "Couldn't load the models",
+    "loadMore": "Load more models"
+  },
+  "providers": {
+    "addKey": "Add API key",
+    "addServer": "Add local server",
+    "empty": {
+      "title": "Connect an AI model to get started",
+      "description": "Add an API key from a provider, or connect a model running on your own server."
+    },
+    "providersTitle": "Providers",
+    "providersDescription": "Each provider's connection status, from its keys.",
+    "cardsLabel": "Providers",
+    "cardsError": "Couldn't load the providers",
+    "status": {
+      "connected": "Connected",
+      "error": "Error",
+      "rate_limited": "Rate limited",
+      "expiring": "Key expires in {days, plural, one {# day} other {# days}}",
+      "not_connected": "Not connected"
+    },
+    "fallbackInUse": "Fallback in use",
+    "cardCounts": "{keys, plural, one {# key} other {# keys}} · {models, plural, one {# model} other {# models}}",
+    "keysTitle": "API keys",
+    "keysDescription": "Keys for your organization and teams, and your members' personal keys. Values are never shown.",
+    "search": {
+      "label": "Search keys",
+      "placeholder": "Search keys"
+    },
+    "scopeFilter": {
+      "label": "Scope",
+      "all": "All scopes",
+      "organization": "Organization",
+      "team": "Team",
+      "personal": "Personal"
+    },
+    "noResults": {
+      "title": "No keys match",
+      "description": "Try a different search or scope.",
+      "clear": "Clear filters"
+    },
+    "noKeys": {
+      "title": "No keys yet",
+      "description": "Add an API key to connect a provider."
+    },
+    "loadError": "Couldn't load the keys",
+    "loadMore": "Load more keys",
+    "testPassed": "{name} works · {count, plural, one {# model} other {# models}} available",
+    "testFailed": "{name} didn't pass the test"
+  },
+  "keys": {
+    "tableLabel": "API keys",
+    "columns": {
+      "name": "Name",
+      "provider": "Provider",
+      "value": "Value",
+      "scope": "Scope",
+      "createdBy": "Added by",
+      "lastUsed": "Last used",
+      "spend": "Spend this month",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "scope": {
+      "organization": "Organization",
+      "team": "Team",
+      "personal": "Just {name}"
+    },
+    "replacedBy": "Replaced by {name}",
+    "replacementNotInUse": "Replacement · not in use yet",
+    "never": "Never",
+    "status": {
+      "active": "Active",
+      "error": "Error",
+      "rate_limited": "Rate limited",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "expiresIn": "Expires in {days, plural, one {# day} other {# days}}",
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "test": "Test connection",
+      "rotate": "Rotate",
+      "switch": "Switch traffic",
+      "revoke": "Revoke"
+    }
+  },
+  "addKey": {
+    "title": "Add API key",
+    "description": "Connect a provider with your own key. The key is tested before it is saved.",
+    "rotateTitle": "Rotate {name}",
+    "rotateDescription": "Add a replacement key first. Then switch traffic to it and revoke the old key when you're ready.",
+    "rotatedName": "{name} (new)",
+    "provider": "Provider",
+    "name": "Name",
+    "nameHelp": "A label for the keys table, for example \"Production\".",
+    "baseUrl": "Base URL",
+    "baseUrlHelp": "The address of the proxy or compatible service, for example https://llm.example.com/v1.",
+    "secret": "API key",
+    "secretHelp": "Test connection is required before you can save.",
+    "show": "Show key",
+    "hide": "Hide key",
+    "testConnection": "Test connection",
+    "scope": "Who can use it",
+    "scopeOrganization": "Organization",
+    "scopeTeam": "One team",
+    "team": "Team",
+    "teamPlaceholder": "Choose a team",
+    "scopePersonal": "Just me. Only you can use this key.",
+    "expiresAt": "Expires on",
+    "expiresAtHelp": "Shows a warning 14 days before. Leave empty if the key doesn't expire.",
+    "optional": "optional",
+    "neverShownAgain": "You won't be able to see this key again.",
+    "cancel": "Cancel",
+    "save": "Save key",
+    "saveReplacement": "Save replacement",
+    "added": "{name} was added",
+    "rotated": "{name} was added. Switch traffic to it when you're ready."
+  },
+  "test": {
+    "failed": "The connection test failed",
+    "checkedUrl": "Address checked: {url}",
+    "networkHint": "If the server runs in a container or on another machine, use an address SurefyOS can reach, not localhost.",
+    "passed": "Connection works · {latency} ms",
+    "passedNoLatency": "Connection works",
+    "noModels": "No models were listed.",
+    "models": "{count, plural, one {# model} other {# models}} available: {names}",
+    "duplicate": "This key is already saved as {name}",
+    "duplicateHelp": "Saving it again adds a second copy."
+  },
+  "revoke": {
+    "title": "Revoke {name}?",
+    "description": "The key stops working at once and its secret is deleted. This can't be undone; add a new key to connect the provider again.",
+    "confirm": "Revoke key",
+    "revoked": "{name} was revoked"
+  },
+  "switch": {
+    "title": "Switch traffic to {name}?",
+    "description": "New requests use this key. Requests already running finish on the old key, which stays active until you revoke it.",
+    "confirm": "Switch traffic",
+    "switched": "Traffic now uses {name}"
+  },
+  "impact": {
+    "types": {
+      "agent": "{count, plural, one {# agent} other {# agents}}",
+      "flow": "{count, plural, one {# flow} other {# flows}}",
+      "knowledge_base": "{count, plural, one {# knowledge base} other {# knowledge bases}}",
+      "model": "{count, plural, one {# model} other {# models}}",
+      "other": "{count} × {type}"
+    },
+    "people": "{count, plural, one {# person} other {# people}} used it this month",
+    "fallback": "They will fall back to {model}",
+    "noFallback": "With no fallback model set, they will stop working"
+  },
+  "disableModel": {
+    "title": "Disable {name}?",
+    "description": "People can no longer pick this model, and what uses it falls back to another model.",
+    "unused": "Nothing uses this model right now. You can enable it again at any time.",
+    "confirm": "Disable model",
+    "disabled": "{name} was disabled"
+  },
+  "removeAccess": {
+    "title": "Remove {subject} from {model}?",
+    "description": "They can no longer use this model, and what uses it for them falls back to another model.",
+    "unused": "Nothing uses this model for them right now.",
+    "confirm": "Remove access",
+    "removed": "{subject} can no longer use {model}"
+  },
+  "localModels": {
+    "empty": {
+      "title": "Connect a model on your own server",
+      "description": "Add an Ollama, vLLM, llama.cpp, LM Studio or other OpenAI-compatible server. Your data stays on your hardware."
+    },
+    "addServer": "Add local server",
+    "serversTitle": "Local servers",
+    "serversDescription": "Servers on your own hardware. Models they serve show below.",
+    "modelsTitle": "Models",
+    "modelsDescription": "Models found on your servers start disabled. Enable the ones people may use.",
+    "search": {
+      "label": "Search models",
+      "placeholder": "Search models"
+    },
+    "noResults": {
+      "title": "No models match",
+      "description": "Try a different search.",
+      "clear": "Clear search"
+    },
+    "noModels": {
+      "title": "No models yet",
+      "description": "Sync a server to list the models it serves."
+    },
+    "loadError": "Couldn't load the servers",
+    "modelsError": "Couldn't load the models",
+    "loadMore": "Load more models",
+    "testPassed": "{name} is reachable · {count, plural, one {# model} other {# models}}",
+    "testFailed": "{name} didn't answer",
+    "synced": "{name} synced · {added} added, {removed} removed",
+    "enabled": "{name} was enabled"
+  },
+  "servers": {
+    "tableLabel": "Local servers",
+    "columns": {
+      "name": "Server",
+      "type": "Type",
+      "status": "Status",
+      "models": "Models",
+      "scope": "Scope",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Online",
+      "error": "Offline",
+      "rate_limited": "Busy",
+      "expired": "Expired",
+      "revoked": "Removed"
+    },
+    "lastContact": "Last contact {when}. Checked {url}",
+    "neverReached": "Never reached. Checked {url}",
+    "scope": {
+      "organization": "Organization",
+      "team": "Team"
+    },
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "test": "Test connection",
+      "sync": "Sync models",
+      "remove": "Remove server"
+    }
+  },
+  "models": {
+    "tableLabel": "Local models",
+    "columns": {
+      "name": "Model",
+      "type": "Type",
+      "context": "Context window",
+      "status": "Status",
+      "enabled": "Enabled"
+    },
+    "onServer": "On {name}",
+    "type": {
+      "chat": "Chat",
+      "embedding": "Embedding",
+      "decision": "Decision"
+    },
+    "status": {
+      "unavailable": "Unavailable",
+      "removed_upstream": "No longer offered"
+    },
+    "enable": "Enable {name}"
+  },
+  "addServer": {
+    "title": "Add local server",
+    "description": "Connect a model server on your own hardware. The connection is tested before it is saved.",
+    "type": "Server type",
+    "name": "Name",
+    "baseUrl": "Base URL",
+    "baseUrlPlaceholder": "https://gpu.example.com:11434",
+    "baseUrlHelp": "An address SurefyOS can reach from where it runs.",
+    "secret": "API key",
+    "optional": "optional",
+    "show": "Show key",
+    "hide": "Hide key",
+    "testConnection": "Test connection",
+    "scope": "Who can use it",
+    "scopeOrganization": "Organization",
+    "scopeTeam": "One team",
+    "team": "Team",
+    "teamPlaceholder": "Choose a team",
+    "cancel": "Cancel",
+    "save": "Add server",
+    "added": "{name} was added · {count, plural, one {# model found} other {# models found}}. Enable the ones people may use."
+  },
+  "removeServer": {
+    "title": "Remove {name}?",
+    "description": "{count, plural, one {Its # model is} other {Its # models are}} removed too. This can't be undone; add the server again to get them back.",
+    "confirm": "Remove server",
+    "removed": "{name} was removed"
+  },
+  "modelAccess": {
+    "title": "Who can use each model",
+    "description": "A model with no one selected can't be used by anyone.",
+    "everyone": "Everyone in the organization",
+    "everyoneHelp": "All current and future members",
+    "team": "Team",
+    "accessSaved": "Access to {model} was saved",
+    "search": {
+      "label": "Search models",
+      "placeholder": "Search models"
+    },
+    "view": {
+      "label": "View",
+      "list": "List",
+      "matrix": "Matrix"
+    },
+    "tableLabel": "Model access",
+    "columns": {
+      "model": "Model",
+      "access": "Who can use it"
+    },
+    "type": {
+      "chat": "Chat",
+      "embedding": "Embedding",
+      "decision": "Decision"
+    },
+    "disabled": "Disabled",
+    "accessLabel": "Who can use {model}",
+    "nobody": "No one",
+    "searchSubjects": "Search teams and people",
+    "noSubjects": "No teams or people match",
+    "removeSubject": "Remove {name}",
+    "moreSubjects": "+{count}",
+    "matrix": {
+      "tableLabel": "Model access by team",
+      "model": "Model",
+      "everyone": "Everyone",
+      "limited": "The matrix shows the first teams. Use the list to give access to the others.",
+      "toggle": "{subject} can use {model}",
+      "viaEveryone": "{subject} can use {model} because everyone can"
+    },
+    "empty": {
+      "title": "No models yet",
+      "description": "Connect a provider or a local server to see its models here."
+    },
+    "noResults": {
+      "title": "No models match",
+      "description": "Try a different search."
+    },
+    "loadError": "Couldn't load model access",
+    "loadMore": "Load more models",
+    "embedding": {
+      "title": "Embedding model",
+      "description": "The default for knowledge bases created from now on. Existing knowledge bases keep their own.",
+      "missingTitle": "Knowledge uploads need an embedding model",
+      "missingNoModels": "Enable an embedding model first, on a provider or a local server.",
+      "missingChoose": "Choose one below.",
+      "placeholder": "Choose an embedding model",
+      "search": "Search embedding models",
+      "empty": "No embedding models enabled",
+      "dimensions": "{count} dimensions",
+      "help": "Changing it doesn't re-embed existing knowledge bases.",
+      "saved": "The embedding model was saved"
+    }
+  },
+  "fallback": {
+    "orderTitle": "Fallback order",
+    "orderDescription": "When a model fails, requests go to the next one in this list.",
+    "orderLabel": "Fallback order",
+    "preview": "Requests go to {chain}",
+    "previewNone": "No fallback model is ready. Failed requests aren't rerouted.",
+    "empty": "No fallback models yet.",
+    "addModel": "Add a model",
+    "searchModels": "Search models",
+    "noModels": "No more models to add",
+    "state": {
+      "ready": "Ready",
+      "disabled": "Disabled",
+      "unavailable": "Unavailable",
+      "missing": "Missing"
+    },
+    "stateHelp": {
+      "disabled": "Skipped while it is disabled.",
+      "unavailable": "Skipped while its provider or server is unavailable.",
+      "missing": "This model no longer exists and is skipped."
+    },
+    "moveUp": "Move {name} up",
+    "moveDown": "Move {name} down",
+    "remove": "Remove {name} from the order",
+    "whenTitle": "When to fall back",
+    "whenDescription": "What happens when a budget is reached is set in Usage.",
+    "onProviderError": "When the provider returns an error",
+    "onProviderErrorHelp": "Try the next model after a failed request.",
+    "timeout": "When no answer starts in time",
+    "timeoutHelp": "Try the next model if the first words don't arrive in time.",
+    "timeoutSeconds": "Seconds to wait",
+    "seconds": "s",
+    "privateLocalOnly": "Private chats stay on local models",
+    "privateLocalOnlyHelp": "Always on. Private chats never fall back to a cloud model.",
+    "unsaved": "Unsaved changes",
+    "discard": "Discard",
+    "save": "Save fallback",
+    "saved": "The fallback order was saved",
+    "loadError": "Couldn't load the fallback settings"
+  },
+  "selector": {
+    "label": "Model",
+    "placeholder": "Choose a model",
+    "search": "Search models",
+    "empty": "No models match",
+    "noVision": "Can't read images",
+    "cost": {
+      "free": "No per-token cost",
+      "low": "Low cost",
+      "medium": "Medium cost",
+      "high": "High cost",
+      "unknown": "Price unknown"
+    },
+    "groups": {
+      "local": "On your server",
+      "provider": "Your API keys",
+      "platform": "Included with credits"
+    },
+    "location": {
+      "local": "Stays on your server",
+      "provider": "Sent to {provider}"
+    },
+    "none": {
+      "title": "No models available",
+      "admin": "Connect a model to start chatting.",
+      "member": "Your admin hasn't enabled any models yet. Ask an admin.",
+      "open": "Open Vault"
+    },
+    "onServer": "Local · on your server"
+  },
+  "personal": {
+    "title": "API keys",
+    "description": "Your own provider keys. Only you can use them, and only in your own chats.",
+    "add": "Add API key",
+    "loadError": "Couldn't load your keys",
+    "loadMore": "Load more keys",
+    "empty": {
+      "title": "No personal keys",
+      "description": "Add a key to use your own provider account in your chats."
+    },
+    "testPassed": "{name} works",
+    "testFailed": "{name} didn't pass the test"
+  }
+}

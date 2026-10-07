@@ -1,0 +1,9 @@
+{
+  "extends": "@surefy/config/tsconfig/library.json",
+  "include": ["src", "*.config.ts"],
+  "compilerOptions": {
+    "paths": {
+      "@surefy/ui/*": ["./src/*"]
+    }
+  }
+}

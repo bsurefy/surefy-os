@@ -1,0 +1,79 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/*
+ * Layer 1: the raw palette. Components never use these; semantic.css maps them to meanings.
+ * Values come from docs/design/shared/foundations.md (section 2).
+ */
+:root {
+  /* Neutrals, light to dark */
+  --palette-gray-0: #ffffff;
+  --palette-gray-25: #f7f8f8;
+  --palette-gray-50: #eff2f3;
+  --palette-gray-75: #e8eef0;
+  --palette-gray-100: #e1e6e8;
+  --palette-gray-300: #a9b5ba;
+  --palette-gray-400: #8a979d;
+  --palette-gray-450: #7a868d;
+  --palette-gray-500: #6a7980;
+  --palette-gray-550: #5f6b72;
+  --palette-gray-600: #4a565d;
+  --palette-gray-800: #263136;
+  --palette-gray-850: #1b2427;
+  --palette-gray-900: #141b1e;
+  --palette-gray-925: #121a1e;
+  --palette-gray-950: #0d1214;
+  --palette-gray-975: #0a1012;
+
+  /* Teal (brand) */
+  --palette-teal-50: #e2f0f1;
+  --palette-teal-200: #86d3db;
+  --palette-teal-300: #62c3cd;
+  --palette-teal-400: #3fb0bc;
+  --palette-teal-700: #0e6b76;
+  --palette-teal-800: #0a5962;
+  --palette-teal-900: #11323a;
+  --palette-teal-950: #04201f;
+
+  /* Green (success) */
+  --palette-green-50: #e3f2e9;
+  --palette-green-200: #7dd6aa;
+  --palette-green-400: #4cc08a;
+  --palette-green-700: #1d7a4b;
+  --palette-green-800: #17643d;
+  --palette-green-900: #11301f;
+
+  /* Amber (warning) */
+  --palette-amber-50: #fcf0da;
+  --palette-amber-200: #f0c072;
+  --palette-amber-400: #e8a93c;
+  --palette-amber-700: #a35f00;
+  --palette-amber-800: #8a5000;
+  --palette-amber-900: #34270e;
+
+  /* Red (destructive) */
+  --palette-red-50: #fbe7e5;
+  --palette-red-200: #f6a39b;
+  --palette-red-400: #f0756b;
+  --palette-red-700: #b5302b;
+  --palette-red-800: #9a2622;
+  --palette-red-900: #3a1816;
+
+  /* Blue (info) */
+  --palette-blue-50: #e6eef8;
+  --palette-blue-200: #a9c7f2;
+  --palette-blue-400: #7aa7e6;
+  --palette-blue-700: #2f5fa7;
+  --palette-blue-800: #244c87;
+  --palette-blue-900: #162638;
+
+  /* Chart hues (categorical series only) */
+  --palette-violet-400: #a98beb;
+  --palette-violet-700: #6e4bc0;
+  --palette-rose-400: #e58ab8;
+  --palette-rose-700: #b8457e;
+  --palette-brown-400: #d2a06b;
+  --palette-brown-700: #8c5a2b;
+  --palette-indigo-400: #8c9eeb;
+  --palette-indigo-700: #4458b5;
+  --palette-olive-400: #c2be5a;
+  --palette-olive-700: #6b6a12;
+}

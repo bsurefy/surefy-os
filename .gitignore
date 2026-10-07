@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.next/
+out/
+*.tsbuildinfo
+coverage/
+
+# Tooling
+.turbo/
+.eslintcache
+playwright-report/
+test-results/
+
+# Python (apps/ml)
+.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# Environment: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Playwright sessions of the e2e runs
+apps/*/e2e/.auth/
+
+# files a local or end-to-end run stores
+apps/api/data/

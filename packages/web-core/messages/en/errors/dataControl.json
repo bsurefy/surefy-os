@@ -1,0 +1,10 @@
+{
+  "DATA_REQUEST_NOT_FOUND": "This request doesn't exist or isn't visible to you.",
+  "DATA_REQUEST_DELETION_PENDING": "A deletion is already requested or scheduled.",
+  "DATA_REQUEST_NOT_CANCELABLE": "This request is already being processed and can't be canceled.",
+  "DATA_REQUEST_NOT_RETRYABLE": "Only failed requests can be retried.",
+  "DATA_REQUEST_NOT_READY": "The archive isn't ready or has expired.",
+  "EXPORT_NOT_FOUND": "This export doesn't exist or isn't visible to you.",
+  "EXPORT_NOT_READY": "The file isn't ready or has expired.",
+  "EXPORT_NOT_RETRYABLE": "Only failed or expired exports can be prepared again."
+}

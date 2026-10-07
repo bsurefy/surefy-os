@@ -1,0 +1,715 @@
+{
+  "sections": {
+    "general": "General",
+    "members": "Members",
+    "teams": "Teams",
+    "access": "Roles & access",
+    "vault": "Vault",
+    "dataPrivacy": "Data & privacy",
+    "security": "Security",
+    "install": "Install"
+  },
+  "general": {
+    "description": "Your organization's name, address, logo, time zone and language.",
+    "loadError": "Couldn't load the organization",
+    "saved": "Settings saved",
+    "organization": {
+      "title": "Organization"
+    },
+    "name": "Name",
+    "slug": "URL address",
+    "slugHelp": "Letters, numbers and hyphens. Changing it redirects the old address for {days} days.",
+    "slugStatus": {
+      "checking": "Checking the address…",
+      "available": "This address is available.",
+      "taken": "This address is taken.",
+      "reserved": "This address is reserved.",
+      "invalid": "Use 3–48 lowercase letters, numbers and hyphens."
+    },
+    "region": {
+      "title": "Region"
+    },
+    "timezone": "Time zone",
+    "timezonePlaceholder": "Select a time zone",
+    "timezoneSearch": "Search time zones",
+    "timezoneEmpty": "No time zones match",
+    "language": "Default language",
+    "languageHelp": "Used for people who haven't chosen their own.",
+    "languages": {
+      "en": "English"
+    },
+    "unsaved": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+    "discard": "Discard",
+    "save": "Save changes",
+    "slugConfirm": {
+      "title": "Change the address to {slug}?",
+      "description": "Everyone's links to this organization move to the new address. The old address keeps redirecting for {days} days.",
+      "impact": "Bookmarks and shared links to the old address redirect, then stop working.",
+      "confirm": "Change address"
+    }
+  },
+  "members": {
+    "title": "Members",
+    "description": "People in your organization, their roles and teams, and invitations.",
+    "empty": {
+      "title": "Invite your team",
+      "description": "Invite people by email and choose their role and teams.",
+      "note": "Ask an admin to invite people."
+    },
+    "noResults": {
+      "title": "No one matches",
+      "description": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "loadError": "Couldn't load members",
+    "loadMore": "Load more",
+    "tableLabel": "Members",
+    "selectAll": "Select all rows on this page",
+    "selectRow": "Select row {id}",
+    "search": {
+      "label": "Search members",
+      "placeholder": "Search by name or email"
+    },
+    "filters": {
+      "status": "Status",
+      "role": "Role",
+      "team": "Team",
+      "anyRole": "Any role",
+      "anyTeam": "Any team"
+    },
+    "status": {
+      "all": "All statuses",
+      "active": "Active",
+      "invited": "Invited",
+      "deactivated": "Deactivated"
+    },
+    "rowStatus": {
+      "active": "Active",
+      "deactivated": "Deactivated",
+      "invited": "Invited",
+      "notDelivered": "Not delivered"
+    },
+    "copyInviteLink": "Copy invite link",
+    "columns": {
+      "person": "Person",
+      "role": "Role",
+      "teams": "Teams",
+      "signIn": "Sign-in",
+      "twoFactor": "2FA",
+      "lastActive": "Last active",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "roles": {
+      "user": "User",
+      "builder": "Builder",
+      "admin": "Admin",
+      "owner": "Owner"
+    },
+    "noTeams": "No teams",
+    "primaryTeam": "Primary team",
+    "invitedBy": "Invited by {name}",
+    "invited": "Invited",
+    "signInMethod": {
+      "password": "Password",
+      "oauth": "Social sign-in",
+      "sso": "SSO"
+    },
+    "on": "On",
+    "off": "Off",
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "resend": "Resend invite",
+      "copyLink": "Copy invite link",
+      "revoke": "Revoke invitation",
+      "changeRole": "Change role",
+      "changePrimaryTeam": "Change primary team",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate",
+      "remove": "Remove from organization"
+    },
+    "resent": "Invitation sent again",
+    "linkCopied": "Invite link copied",
+    "reactivated": "Member reactivated",
+    "bulk": {
+      "selected": "{count, plural, one {# person selected} other {# people selected}}",
+      "clear": "Clear selection",
+      "changeRole": "Change role",
+      "addToTeam": "Add to team",
+      "deactivate": "Deactivate"
+    },
+    "invite": {
+      "open": "Invite people",
+      "title": "Invite people",
+      "description": "They get an email with a link to join. You can also copy the link.",
+      "emails": "Email addresses",
+      "emailsHelp": "One or more, separated by commas, spaces or new lines.",
+      "emailsRequired": "Enter at least one email address.",
+      "emailsTooMany": "Invite at most {max} people at a time.",
+      "role": "Role",
+      "roles": {
+        "user": {
+          "name": "User",
+          "description": "Uses chat and the agents and knowledge shared with them."
+        },
+        "builder": {
+          "name": "Builder",
+          "description": "Also builds agents and flows and manages knowledge."
+        },
+        "admin": {
+          "name": "Admin",
+          "description": "Also manages members, teams, models and settings."
+        },
+        "owner": {
+          "name": "Owner",
+          "description": "Full control, including security, data and deleting the organization."
+        }
+      },
+      "teams": "Teams",
+      "optional": "Optional",
+      "teamsPlaceholder": "Add to teams",
+      "teamsSearch": "Search teams",
+      "teamsEmpty": "No teams match",
+      "removeTeam": "Remove {label}",
+      "moreTeams": "+{count}",
+      "results": "Invitation results",
+      "sent": "Invitation created",
+      "copyLink": "Copy invite link",
+      "linkCopied": "Invite link copied",
+      "close": "Done",
+      "cancel": "Cancel",
+      "submit": "{count, plural, one {Send invitation} other {Send # invitations}}"
+    },
+    "changeRole": {
+      "title": "Change role for {name}",
+      "bulkTitle": "{count, plural, one {Change role for # person} other {Change role for # people}}",
+      "description": "The new role applies at once.",
+      "roleLabel": "Role",
+      "roles": {
+        "user": {
+          "name": "User",
+          "description": "Uses chat and the agents and knowledge shared with them."
+        },
+        "builder": {
+          "name": "Builder",
+          "description": "Also builds agents and flows and manages knowledge."
+        },
+        "admin": {
+          "name": "Admin",
+          "description": "Also manages members, teams, models and settings."
+        },
+        "owner": {
+          "name": "Owner",
+          "description": "Full control, including security, data and deleting the organization."
+        }
+      },
+      "cancel": "Cancel",
+      "confirm": "Change role",
+      "changed": "{name} is now {role}",
+      "bulkChanged": "{count, plural, one {# role changed} other {# roles changed}}{skipped, plural, =0 {} other { · # left unchanged}}",
+      "promoteImpact": "This gives access to more of the organization: {role} rights apply immediately.",
+      "demoteImpact": "They lose what only their current role allowed, such as editing agents or settings. As {role} they keep what that role allows."
+    },
+    "teamPicker": {
+      "team": "Team",
+      "placeholder": "Choose a team",
+      "cancel": "Cancel",
+      "primaryTitle": "Change primary team for {name}",
+      "primaryDescription": "Their AI usage is charged to their primary team's budget.",
+      "primaryConfirm": "Change primary team",
+      "primarySaved": "{name}'s primary team changed",
+      "bulkTitle": "{count, plural, one {Add # person to a team} other {Add # people to a team}}",
+      "bulkDescription": "They keep the teams they are already in.",
+      "bulkConfirm": "Add to team",
+      "bulkSaved": "{count, plural, one {# person added} other {# people added}}{skipped, plural, =0 {} other { · # left unchanged}}"
+    },
+    "remove": {
+      "title": "Remove {name}?",
+      "description": "They lose access to this organization at once. This can't be undone; they can be invited again.",
+      "impactKeys": "Their personal keys are revoked.",
+      "transferTo": "Hand over their agents and flows to",
+      "transferHelp": "Required when they own any. Choose someone who stays.",
+      "transferPlaceholder": "Choose a person",
+      "confirm": "Remove person",
+      "removed": "{name} was removed"
+    },
+    "deactivate": {
+      "title": "Deactivate {name}?",
+      "description": "They can't sign in or use the organization until you reactivate them.",
+      "impact": "Their agents and flows keep running; their sessions end.",
+      "confirm": "Deactivate",
+      "done": "{name} was deactivated"
+    },
+    "bulkDeactivate": {
+      "title": "{count, plural, one {Deactivate # person?} other {Deactivate # people?}}",
+      "confirm": "Deactivate",
+      "done": "{count, plural, one {# person deactivated} other {# people deactivated}}{skipped, plural, =0 {} other { · # left unchanged}}"
+    },
+    "revoke": {
+      "title": "Revoke the invitation for {email}?",
+      "description": "The link in their email stops working. You can invite them again.",
+      "confirm": "Revoke invitation"
+    }
+  },
+  "teams": {
+    "title": "Teams",
+    "description": "Teams, their members and leads, and what each team can use.",
+    "create": "Create team",
+    "empty": {
+      "title": "Create your first team",
+      "description": "Group people into teams to share models, knowledge and agents.",
+      "note": "Ask an admin to create teams."
+    },
+    "noResults": {
+      "title": "No team matches",
+      "description": "Try another search.",
+      "clear": "Clear search"
+    },
+    "loadError": "Couldn't load teams",
+    "loadMore": "Load more",
+    "tableLabel": "Teams",
+    "search": {
+      "label": "Search teams",
+      "placeholder": "Search by name"
+    },
+    "columns": {
+      "name": "Team",
+      "lead": "Lead",
+      "members": "Members",
+      "primary": "Primary for"
+    },
+    "form": {
+      "createTitle": "Create team",
+      "editTitle": "Edit team",
+      "description": "A team groups people to share models, knowledge and agents.",
+      "name": "Name",
+      "descriptionLabel": "Description",
+      "optional": "optional",
+      "cancel": "Cancel",
+      "create": "Create team",
+      "save": "Save changes",
+      "created": "{name} was created",
+      "saved": "{name} was updated"
+    },
+    "detail": {
+      "title": "Team",
+      "loadError": "Couldn't load the team",
+      "lead": "Lead",
+      "noLead": "No lead",
+      "leadSaved": "Lead updated",
+      "leadBadge": "Lead",
+      "primaryBadge": "Primary",
+      "members": "{count, plural, one {# member} other {# members}}",
+      "primaryHelp": "{count, plural, =0 {No one is charged to this team.} one {# member is charged to this team as their primary team.} other {# members are charged to this team as their primary team.}}",
+      "noMembers": "No one is in this team yet.",
+      "makePrimary": "Make primary team",
+      "remove": "Remove",
+      "removeMember": "Remove {name} from the team",
+      "primarySaved": "{name}'s primary team changed",
+      "removed": "{name} was removed from the team",
+      "add": "Add people",
+      "addPlaceholder": "Add people",
+      "addSearch": "Search people",
+      "addEmpty": "No one else to add",
+      "removeChip": "Remove {label}",
+      "more": "+{count}",
+      "addConfirm": "{count, plural, =0 {Add} one {Add # person} other {Add # people}}",
+      "added": "{count, plural, one {# person added} other {# people added}}",
+      "edit": "Edit team",
+      "delete": "Delete team"
+    },
+    "delete": {
+      "title": "Delete {name}?",
+      "description": "The team is removed for good. Members lose the agents, knowledge and models they had only through it.",
+      "impactMembers": "{count, plural, one {# member leaves the team.} other {# members leave the team.}}",
+      "impactPrimary": "{count, plural, one {# member has this as their primary team and won't be charged to a team until they get a new one.} other {# members have this as their primary team and won't be charged to a team until they get a new one.}}",
+      "impactDependent": "{count, plural, one {# {type} depends on this team.} other {# {type} items depend on this team.}}",
+      "connections": "{count, plural, one {This team has # connection. What should happen to it?} other {This team has # connections. What should happen to them?}}",
+      "connectionsAction": {
+        "move-to-organization": "Move them to the organization",
+        "remove": "Remove them"
+      },
+      "connectionsRequired": "Choose what happens to the connections first.",
+      "confirm": "Delete team",
+      "deleted": "{name} was deleted"
+    }
+  },
+  "access": {
+    "title": "Roles & access",
+    "description": "What each role can do, and the effective access of a person or team.",
+    "matrix": {
+      "title": "What each role can do",
+      "description": "The built-in roles and what they allow by default.",
+      "caption": "Capabilities by role",
+      "capability": "Capability",
+      "roles": {
+        "user": "User",
+        "builder": "Builder",
+        "admin": "Admin",
+        "owner": "Owner"
+      },
+      "allowed": "Allowed",
+      "notAllowed": "Not allowed",
+      "groups": {
+        "access": "Access",
+        "audit": "Audit",
+        "billing": "Billing",
+        "chat": "Chat",
+        "data-control": "Data control",
+        "exports": "Exports",
+        "insights": "Insights",
+        "knowledge": "Knowledge",
+        "members": "Members",
+        "notifications": "Notifications",
+        "settings": "Settings",
+        "teams": "Teams",
+        "vault": "Vault"
+      },
+      "permissions": {
+        "access:read": "See other people's and teams' effective access",
+        "access:read-self": "See their own access",
+        "audit:read": "View the audit log",
+        "billing:manage": "Manage billing and credits",
+        "chat:use": "Use chat",
+        "data-control:delete": "Delete the organization",
+        "data-control:export": "Export all data",
+        "data-control:read": "See data requests and retention",
+        "exports:use": "Export their own data",
+        "insights:read": "View insights and usage",
+        "knowledge:read": "Use knowledge bases",
+        "knowledge:upload": "Add sources to knowledge bases",
+        "members:invite": "Invite people",
+        "members:manage": "Change roles, teams and status",
+        "members:manage-admins": "Change owners",
+        "members:manage-self": "Manage their own membership",
+        "members:read": "See members",
+        "notifications:read": "Read notifications",
+        "settings:manage": "Change organization settings",
+        "teams:manage": "Create and change teams",
+        "teams:read": "See teams",
+        "vault:manage": "Manage provider keys and models",
+        "vault:read": "See the models they may use"
+      }
+    },
+    "effective": {
+      "title": "Effective access",
+      "description": "What a person or team can use, and why something is off.",
+      "kind": "Look up",
+      "kinds": {
+        "person": "Person",
+        "team": "Team"
+      },
+      "subject": "Person or team",
+      "choosePerson": "Choose a person",
+      "chooseTeam": "Choose a team",
+      "search": "Search",
+      "empty": "No one matches",
+      "pick": "Choose a person or team to see their access.",
+      "loadError": "Couldn't load their access",
+      "modules": "Modules",
+      "on": "On",
+      "off": "Off",
+      "change": "Change",
+      "moduleNames": {
+        "chat": "Chat",
+        "agents": "Agents",
+        "flows": "Flows",
+        "knowledge": "Knowledge",
+        "train": "Train",
+        "pieces": "Pieces",
+        "insights": "Insights",
+        "guard": "Guard"
+      },
+      "limits": "Limits",
+      "unlimited": "Unlimited",
+      "limitNames": {
+        "monthlySpendMicros": "Monthly AI spend",
+        "maxAgents": "Agents",
+        "maxFlows": "Flows",
+        "maxRunsPerMonth": "Runs per month",
+        "maxStorageBytes": "Storage",
+        "maxKnowledgeBases": "Knowledge bases"
+      },
+      "limitValue": {
+        "monthlySpendMicros": "${value}",
+        "maxAgents": "{value}",
+        "maxFlows": "{value}",
+        "maxRunsPerMonth": "{value}",
+        "maxStorageBytes": "{value} MB",
+        "maxKnowledgeBases": "{value}"
+      },
+      "models": "Models",
+      "allModels": "Every enabled model",
+      "modelCount": "{count, plural, =0 {No models} one {# model} other {# models}}",
+      "why": "Why",
+      "reason": "{thing} is off · {source}",
+      "reasonType": {
+        "module": "The {name} module",
+        "feature": "The {name} feature",
+        "permission": "The {name} permission",
+        "limit": "The {name} limit",
+        "tool": "The {name} tool",
+        "training": "{name} training"
+      },
+      "source": {
+        "community": "Not in this edition",
+        "plan": "Not in the plan",
+        "license": "Not in the license",
+        "partner": "Set by the partner",
+        "organization": "Set for the organization",
+        "team": "Set by a team",
+        "role": "Set by the role",
+        "feature": "Needs a feature that is off",
+        "grant": "Needs an access grant"
+      }
+    },
+    "customRoles": {
+      "title": "Custom roles",
+      "available": "Create roles with exactly the capabilities you need."
+    }
+  },
+  "dataPrivacy": {
+    "title": "Data & privacy",
+    "description": "Where data is stored, how long it is kept, and exporting or deleting it.",
+    "retention": {
+      "title": "Storage and retention",
+      "loadError": "Couldn't load the retention overview",
+      "selfHosted": "Your data is stored on your server.",
+      "region": "Your data is stored in {region}.",
+      "untilDeleted": "Until someone deletes it",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "items": {
+        "chats": "Chats",
+        "audit_logs": "Audit log",
+        "usage_events": "Usage records",
+        "notifications": "Notifications",
+        "exports": "Export files",
+        "deleted_items": "Recently deleted items"
+      }
+    },
+    "privacy": {
+      "title": "Privacy",
+      "saved": "Privacy settings saved",
+      "chatSharing": {
+        "label": "Chat sharing",
+        "description": "People can share a chat with others in the organization."
+      }
+    },
+    "export": {
+      "title": "Export all data",
+      "description": "Prepare an archive of the organization's data. It is made in the background and the link works for 24 hours.",
+      "request": "Request export",
+      "loadError": "Couldn't load exports",
+      "listLabel": "Exports",
+      "none": "No exports yet.",
+      "ownersOnly": "Only owners can export all data.",
+      "size": "{megabytes} MB",
+      "expires": "Download until {time}",
+      "status": {
+        "requested": "Queued",
+        "preparing": "Preparing",
+        "ready": "Ready",
+        "delivered": "Downloaded",
+        "expired": "Expired",
+        "failed": "Failed",
+        "scheduled": "Scheduled",
+        "canceled": "Canceled"
+      },
+      "download": "Download",
+      "retry": "Try again",
+      "cancel": "Cancel",
+      "requested": "Export requested",
+      "canceled": "Export canceled",
+      "retrying": "Preparing the export again",
+      "confirmTitle": "Export all data?",
+      "confirmDescription": "The archive holds everything the organization has stored.",
+      "personalData": "It contains personal data of your members and their chats. Handle it as you would any personal data.",
+      "expiresNotice": "The download link expires 24 hours after the archive is ready.",
+      "confirm": "Request export"
+    },
+    "delete": {
+      "title": "Delete organization",
+      "description": "Removes the organization and everything in it after a 30-day hold. Only owners can do this.",
+      "open": "Delete organization",
+      "scheduled": {
+        "title": "Deletion is scheduled for {date}",
+        "description": "Until then nothing is removed. Cancel to keep the organization.",
+        "cancel": "Cancel deletion"
+      },
+      "scheduledToast": "Deletion scheduled",
+      "canceled": "Deletion canceled",
+      "confirmTitle": "Delete {name}?",
+      "confirmDescription": "Everything in the organization is removed for good when the hold ends.",
+      "impactHold": "After a 30-day hold, all data is removed and can't be restored.",
+      "impactExport": "Export your data first if you need it.",
+      "impactReauth": "You will be asked to sign in again and confirm with two-step verification.",
+      "confirm": "Delete organization",
+      "reason": "Reason",
+      "reasonHelp": "Saved in the audit log.",
+      "reasonRequired": "Enter a reason",
+      "typeToConfirm": "Type {name} to confirm",
+      "typeMismatch": "The name does not match. Type {name}"
+    }
+  },
+  "security": {
+    "title": "Security",
+    "description": "Two-step verification, session length and sign-in rules.",
+    "loadError": "Couldn't load the security settings",
+    "saved": "Security settings saved",
+    "signIn": {
+      "title": "Sign-in"
+    },
+    "require2fa": {
+      "label": "Require two-step verification",
+      "description": "Everyone in the organization signs in with a code from an authenticator app.",
+      "confirmTitle": "Require two-step verification?",
+      "confirmDescription": "People without it will be asked to set it up before they can continue.",
+      "counting": "Counting who has no two-step verification yet…",
+      "impact": "{count, plural, =0 {Everyone already has it.} one {# member will set it up at their next sign-in.} other {# members will set it up at their next sign-in.}}",
+      "confirm": "Require it"
+    },
+    "sessionLength": {
+      "label": "Session length",
+      "help": "How long someone stays signed in before they must sign in again.",
+      "options": {
+        "default": "Default (7 days)",
+        "8": "8 hours",
+        "24": "1 day",
+        "168": "7 days",
+        "720": "30 days"
+      }
+    },
+    "unsaved": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+    "discard": "Discard",
+    "save": "Save changes",
+    "gated": {
+      "sso": {
+        "title": "Single sign-on",
+        "available": "Sign in through your identity provider with SAML or OIDC."
+      },
+      "scim": {
+        "title": "User provisioning",
+        "available": "Create and remove people automatically from your identity provider."
+      },
+      "ipAllowList": {
+        "title": "IP allow-list",
+        "available": "Allow sign-in only from your network."
+      }
+    },
+    "supportAccess": {
+      "title": "Support and partner access",
+      "description": "See who has been given access to this organization, and end it.",
+      "link": "Open support access in Guard"
+    }
+  },
+  "install": {
+    "title": "Install",
+    "description": "Email server, sign-in methods and sign-up for this install.",
+    "loadError": "Couldn't load the install settings",
+    "version": {
+      "title": "Version",
+      "current": "SurefyOS {version}",
+      "updateTitle": "Version {version} is available",
+      "updateDescription": "Update your install to get the latest fixes."
+    },
+    "organizations": {
+      "title": "Organizations on this install",
+      "count": "{count} of {max}",
+      "countUnlimited": "{count} organizations",
+      "listLabel": "Organizations",
+      "members": "{count, plural, one {# member} other {# members}}",
+      "upgrade": "Multiple organizations is available in SurefyOS Enterprise.",
+      "overLimit": "This install has {count} organizations; your license allows {max}.",
+      "overLimitHelp": "Existing organizations keep working. Remove one or get a license that allows more."
+    },
+    "form": {
+      "saved": "Install settings saved",
+      "unsaved": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+      "discard": "Discard",
+      "save": "Save changes",
+      "signIn": {
+        "title": "Sign-in methods",
+        "description": "How people sign in to this install.",
+        "emailPassword": "Email and password",
+        "notConfigured": "Not configured on the server yet.",
+        "providers": {
+          "google": "Google",
+          "microsoft": "Microsoft",
+          "github": "GitHub"
+        }
+      },
+      "access": {
+        "title": "Sign-up and organizations"
+      },
+      "signupPolicy": {
+        "label": "Who can sign up",
+        "help": "Invitation only is the safe default.",
+        "options": {
+          "invite_only": "Only people who are invited",
+          "open": "Anyone with the address"
+        }
+      },
+      "orgCreationPolicy": {
+        "label": "Who can create organizations",
+        "options": {
+          "install_admins": "Install administrators",
+          "any_user": "Any signed-in person"
+        }
+      },
+      "webSearch": {
+        "title": "Web search",
+        "label": "SearXNG address",
+        "help": "Leave empty to switch web search off."
+      }
+    },
+    "smtp": {
+      "title": "Email server",
+      "description": "Used for invitations, password resets and notifications.",
+      "saved": "Email server saved",
+      "switchedOff": "Email switched off",
+      "fields": {
+        "host": "Server",
+        "port": "Port",
+        "username": "Username",
+        "password": "Password",
+        "fromAddress": "Send from",
+        "fromName": "Sender name",
+        "secure": "Use TLS"
+      },
+      "passwordSaved": "Saved",
+      "passwordHelp": "Leave empty to keep the saved password.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "secureHelp": "Turn on for port 465.",
+      "save": "Save email server",
+      "switchOff": "Switch email off",
+      "test": {
+        "title": "Send a test email",
+        "to": "Send to",
+        "send": "Send test email",
+        "sent": "Test email sent"
+      }
+    },
+    "admins": {
+      "title": "Install administrators",
+      "description": "They manage this install: email, sign-in and organizations.",
+      "loadError": "Couldn't load the administrators",
+      "listLabel": "Install administrators",
+      "add": "Add an administrator",
+      "addPlaceholder": "Choose a person",
+      "addSearch": "Search people",
+      "addEmpty": "No one else to add",
+      "addConfirm": "Add administrator",
+      "added": "Administrator added",
+      "remove": "Remove {name} as administrator",
+      "removeShort": "Remove",
+      "removeTitle": "Remove {name} as install administrator?",
+      "removeDescription": "They keep their account and their role in the organization but can no longer change install settings.",
+      "removeConfirm": "Remove administrator",
+      "removed": "{name} is no longer an administrator"
+    }
+  },
+  "sectionHints": {
+    "vault": "Keys & models"
+  }
+}

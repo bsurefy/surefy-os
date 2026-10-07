@@ -1,0 +1,515 @@
+{
+  "library": {
+    "title": "Knowledge",
+    "description": "Documents and websites your chats and agents answer from, with sources.",
+    "loading": "Loading",
+    "loadError": "Knowledge bases didn't load",
+    "loadMore": "Load more",
+    "tableLabel": "Knowledge bases",
+    "localOnly": "Local models only",
+    "noTeamAccess": "No team access",
+    "kpis": {
+      "label": "Knowledge summary",
+      "bases": "Knowledge bases",
+      "sources": "Sources",
+      "processing": "Processing",
+      "attention": "Needs attention",
+      "hints": {
+        "sources": "Files, pages and synced docs",
+        "processing": "Usually ready in a minute or two",
+        "attention": "Sources that failed to process"
+      }
+    },
+    "views": {
+      "label": "View",
+      "bases": "Knowledge bases",
+      "deleted": "Recently deleted"
+    },
+    "search": {
+      "label": "Search knowledge bases",
+      "placeholder": "Search by name"
+    },
+    "filters": {
+      "label": "Filter",
+      "all": "All knowledge bases",
+      "attention": "Needs attention",
+      "local": "Local models only"
+    },
+    "columns": {
+      "name": "Name",
+      "sources": "Sources",
+      "status": "Status",
+      "usedBy": "Used by",
+      "access": "Access",
+      "updated": "Updated"
+    },
+    "sources": {
+      "files": "{count, plural, one {# file} other {# files}}",
+      "links": "{count, plural, one {# link} other {# links}}",
+      "connectors": "{count, plural, one {# connector} other {# connectors}}",
+      "count": "{count, plural, one {# source} other {# sources}}",
+      "chips": {
+        "file": "FILES",
+        "link": "LINKS",
+        "connector": "SYNC"
+      }
+    },
+    "status": {
+      "ready": "Ready",
+      "empty": "No sources",
+      "attention": "{count, plural, one {# needs attention} other {# need attention}}",
+      "processing": "{count, plural, one {Processing # source} other {Processing # sources}}",
+      "processingValue": "{percent}%",
+      "reindexing": "Re-indexing",
+      "reindexingValue": "{percent}%"
+    },
+    "empty": {
+      "title": "Create your first knowledge base",
+      "description": "Upload documents or add website links, then get answers from them in chat with sources.",
+      "suggestions": {
+        "pdf": {
+          "title": "Policies and handbooks",
+          "description": "The most common first upload"
+        },
+        "url": {
+          "title": "Your help center",
+          "description": "Paste a link to crawl it"
+        },
+        "csv": {
+          "title": "Price lists and FAQs",
+          "description": "Each row becomes searchable"
+        }
+      }
+    },
+    "noResults": {
+      "title": "No knowledge bases found",
+      "description": "Nothing matches your search or filter.",
+      "clear": "Clear filters"
+    },
+    "newButton": "New knowledge base",
+    "create": {
+      "title": "New knowledge base",
+      "description": "A collection of documents and links that chats and agents can search.",
+      "name": "Name",
+      "descriptionLabel": "Description",
+      "optional": "optional",
+      "localOnly": "Local models only",
+      "localOnlyHelp": "Only searched when the answering model runs on your server.",
+      "teams": "Who can search it",
+      "teamsHelp": "You get Can manage. Add teams to let them search it.",
+      "teamsPlaceholder": "Choose teams",
+      "teamsSearch": "Search teams",
+      "teamsEmpty": "No teams found",
+      "removeTeam": "Remove {label}",
+      "moreTeams": "+{count} more",
+      "cancel": "Cancel",
+      "submit": "Create knowledge base"
+    },
+    "deleted": {
+      "title": "Recently deleted",
+      "description": "Knowledge bases and sources you deleted in the last 30 days. Restoring one makes it searchable again at once; nothing is re-indexed.",
+      "loading": "Loading",
+      "loadMore": "Load more",
+      "kind": {
+        "base": "Knowledge base · {count, plural, one {# source} other {# sources}}",
+        "source": "Source in {base}"
+      },
+      "deletedBy": "Deleted by {name} on {date}",
+      "someone": "someone",
+      "daysLeft": "{days, plural, one {Restorable for # more day} other {Restorable for # more days}}",
+      "restore": "Restore",
+      "restoreItem": "Restore {name}",
+      "restored": "Restored",
+      "empty": {
+        "title": "Nothing deleted in the last 30 days",
+        "description": "Knowledge bases and sources you delete wait here before they are removed for good."
+      },
+      "rename": {
+        "title": "Choose another name",
+        "description": "“{name}” is now used by another knowledge base. Restore it under a different name.",
+        "name": "Name",
+        "cancel": "Cancel",
+        "submit": "Restore"
+      }
+    },
+    "usedByNone": "Not used yet",
+    "usedByCount": "{count, plural, one {# agent or chat} other {# agents and chats}}"
+  },
+  "detail": {
+    "title": "Knowledge base",
+    "loading": "Loading",
+    "loadError": "This knowledge base didn't load",
+    "breadcrumb": "Breadcrumb",
+    "library": "Knowledge",
+    "localOnly": "Local models only",
+    "facts": "{sources, plural, one {# source} other {# sources}} · {passages, plural, one {# searchable passage} other {# searchable passages}} · used by {agents, plural, one {# agent} other {# agents}}",
+    "dataLocation": {
+      "local": "Stays on your server",
+      "provider": "Sent to {model}'s provider"
+    },
+    "notFound": {
+      "title": "This knowledge base isn't available",
+      "description": "It may have been deleted, or you may not have access to it.",
+      "back": "Go to Knowledge"
+    },
+    "tabs": {
+      "label": "Knowledge base sections",
+      "sources": "Sources",
+      "test-search": "Test search",
+      "access": "Access",
+      "settings": "Settings"
+    },
+    "menu": {
+      "label": "More actions",
+      "trigger": "More",
+      "rename": "Rename",
+      "settings": "Settings",
+      "reindex": "Re-index all",
+      "delete": "Delete…"
+    },
+    "reindexing": {
+      "title": "Re-indexing",
+      "description": "{done} of {total} documents re-indexed. Search keeps working meanwhile."
+    },
+    "rename": {
+      "title": "Rename knowledge base",
+      "name": "Name",
+      "descriptionLabel": "Description",
+      "optional": "optional",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "reindex": {
+      "description": "Search quality may drop until {count, plural, one {# passage is} other {# passages are}} re-indexed, about {minutes, plural, one {# minute} other {# minutes}}.",
+      "loadingDescription": "Counting the passages to re-index…",
+      "stillSearchable": "The knowledge base stays searchable while it is re-indexed.",
+      "reindex": {
+        "title": "Re-index all sources?",
+        "confirm": "Re-index all"
+      },
+      "model": {
+        "title": "Change the embedding model?",
+        "confirm": "Change model"
+      },
+      "preset": {
+        "title": "Change the chunking preset?",
+        "confirm": "Change preset"
+      }
+    },
+    "delete": {
+      "title": "Delete {name}?",
+      "description": "You can restore it for {days} days.",
+      "impactSources": "{count, plural, one {# source is} other {# sources are}} removed with it.",
+      "impactAgents": "{count, plural, one {# agent uses it and loses} other {# agents use it and lose}} its knowledge: {names}.",
+      "impactChats": "{count, plural, one {# chat selected it} other {# chats selected it}} and will answer without it.",
+      "confirm": "Delete knowledge base",
+      "reason": "Reason",
+      "reasonHelp": "Saved in the audit log and shown in the audit entry.",
+      "reasonRequired": "Enter a reason",
+      "typeToConfirm": "Type {name} to confirm",
+      "typeMismatch": "The name does not match. Type {name}",
+      "deleted": "{name} was deleted. You can restore it from Recently deleted."
+    },
+    "sources": {
+      "tableLabel": "Sources",
+      "loadError": "Sources didn't load",
+      "loadMore": "Load more",
+      "columns": {
+        "name": "Name",
+        "type": "Type",
+        "size": "Size",
+        "passages": "Passages",
+        "status": "Status",
+        "addedBy": "Added by",
+        "actions": "Actions"
+      },
+      "types": {
+        "file": "File",
+        "link": "Link",
+        "connector": "Connector"
+      },
+      "dropzone": {
+        "title": "Drop files here or browse",
+        "hint": "PDF, DOCX, XLSX, CSV, PPTX, TXT, MD, HTML or images · up to {limit}",
+        "browse": "Choose files"
+      },
+      "addLink": "Add link",
+      "upload": {
+        "uploading": "Uploading",
+        "done": "Uploaded",
+        "retry": "Retry",
+        "remove": "Remove {name}",
+        "unsupported": "This file isn't supported · Use PDF, DOCX, XLSX, CSV, PPTX, TXT, MD, HTML or an image",
+        "tooLarge": "Larger than {limit} · Split the file",
+        "failed": "The upload didn't finish · Try again"
+      },
+      "noModel": {
+        "title": "Choose an embedding model before adding documents",
+        "description": "Uploads and links need an embedding model to make them searchable.",
+        "localDescription": "A knowledge base limited to local models needs a local embedding model before you add documents.",
+        "openVault": "Open Vault",
+        "askAdmin": "Ask an admin"
+      },
+      "quota": {
+        "title": "Storage limit reached",
+        "description": "Your existing sources stay searchable. Remove sources to free space."
+      },
+      "attention": {
+        "title": "{count, plural, one {# source needs attention} other {# sources need attention}}",
+        "show": "Show failed"
+      },
+      "search": {
+        "label": "Search sources",
+        "placeholder": "Search by name"
+      },
+      "filters": {
+        "label": "Status",
+        "all": "All statuses",
+        "ready": "Ready",
+        "processing": "Processing",
+        "queued": "Queued",
+        "failed": "Failed",
+        "partially_failed": "Partly failed",
+        "paused": "Paused"
+      },
+      "bulk": {
+        "selected": "{count} selected",
+        "clear": "Clear selection",
+        "reindex": "Re-index",
+        "remove": "Remove",
+        "selectAll": "Select all sources",
+        "selectRow": "Select {name}"
+      },
+      "status": {
+        "uploading": "Uploading",
+        "processing": "Processing",
+        "queued": "Queued",
+        "ready": "Ready",
+        "partially_failed": "Partly failed",
+        "failed": "Failed",
+        "paused": "Paused",
+        "percent": "{percent}%",
+        "failedDocuments": "{count, plural, one {# page failed} other {# pages failed}}"
+      },
+      "reasons": {
+        "KNOWLEDGE_FILE_UNSUPPORTED": "This file isn't supported",
+        "KNOWLEDGE_UPLOAD_CORRUPTED": "The file changed during upload · Add it again",
+        "KNOWLEDGE_PROCESSING_TIMEOUT": "This file took too long to process · Split it into smaller files",
+        "KNOWLEDGE_DOWNLOAD_FAILED": "Couldn't download the page or file",
+        "KNOWLEDGE_LINK_UNREACHABLE": "Couldn't download the link",
+        "KNOWLEDGE_CONNECTION_EXPIRED": "The sign-in expired · Reconnect",
+        "KNOWLEDGE_REEMBED_FAILED": "Couldn't re-index with the new model"
+      },
+      "actions": {
+        "label": "Actions for {name}",
+        "preview": "Preview",
+        "retry": "Retry",
+        "retryOcr": "Retry with OCR",
+        "sync": "Sync now",
+        "remove": "Remove"
+      },
+      "noResults": {
+        "title": "No sources found",
+        "description": "Nothing matches your search or filter.",
+        "clear": "Clear filters"
+      },
+      "empty": {
+        "title": "Add your first documents",
+        "description": "Drop files above or add a link. Each source is searchable once it is ready.",
+        "readOnlyTitle": "No sources yet",
+        "readOnlyDescription": "Sources added to this knowledge base appear here."
+      },
+      "link": {
+        "title": "Add link",
+        "description": "Add a page, or crawl a site. Pages are added to this knowledge base and refreshed on the schedule you choose.",
+        "url": "Address",
+        "name": "Name",
+        "optional": "optional",
+        "crawlDepth": "How far to follow links",
+        "crawlDepthHelp": "Only pages on the same site are followed.",
+        "depth": "{depth, plural, =0 {This page only} one {# level of links} other {# levels of links}}",
+        "includePaths": "Only these paths (one per line)",
+        "excludePaths": "Skip these paths (one per line)",
+        "refresh": "Refresh",
+        "refreshOptions": {
+          "off": "Never",
+          "daily": "Daily",
+          "weekly": "Weekly",
+          "monthly": "Monthly"
+        },
+        "cancel": "Cancel",
+        "submit": "Add link"
+      },
+      "duplicate": {
+        "title": "Already in this knowledge base",
+        "description": "{name} is already in this knowledge base.",
+        "replaceHelp": "Replace removes the old copy (you can restore it for 30 days) and adds this one. Keep both adds it next to the old one.",
+        "remaining": "{count, plural, one {# more file is waiting} other {# more files are waiting}}.",
+        "skip": "Skip",
+        "keepBoth": "Keep both",
+        "replace": "Replace"
+      },
+      "remove": {
+        "titleOne": "Remove {name}?",
+        "titleMany": "Remove {count} sources?",
+        "description": "Agents won't find this anymore. You can restore it for 30 days.",
+        "confirm": "Remove",
+        "removed": "{count, plural, one {Source removed} other {# sources removed}}. Restore from Recently deleted."
+      },
+      "toasts": {
+        "syncStarted": "Syncing {name}",
+        "reindexStarted": "{count, plural, one {# source} other {# sources}} queued for re-indexing"
+      },
+      "links": {
+        "title": "Links",
+        "description": "Add a web page or a whole site; it is crawled and kept in sync.",
+        "hint": "Connectors for Google Drive, Notion and SharePoint come with the Pieces module."
+      }
+    },
+    "testSearch": {
+      "question": "Question",
+      "questionHelp": "Ask what someone would ask in chat. The search runs the same way chat searches.",
+      "minRelevance": "Minimum relevance",
+      "passages": "Passages per answer",
+      "searchAs": {
+        "label": "Search as",
+        "help": "What this person or team can read decides what is found.",
+        "me": "Me",
+        "team": "Team: {name}"
+      },
+      "includeAnswer": "Write an answer preview",
+      "includeAnswerHelp": "Asks a model to answer from the passages used. This is metered like any model call.",
+      "submit": "Search",
+      "results": "Search results",
+      "answer": "Answer preview",
+      "answerModel": "Written by {model}",
+      "found": "{count, plural, one {# passage found} other {# passages found}}",
+      "processing": "{count, plural, one {# source is still processing and wasn't searched} other {# sources are still processing and weren't searched}}.",
+      "noPassages": {
+        "title": "No passages found",
+        "description": "Try different words, lower the minimum relevance, or search as a team that can read this knowledge base."
+      },
+      "noModel": {
+        "title": "Choose an embedding model first",
+        "description": "Search needs an embedding model. Set one in Settings."
+      },
+      "passage": {
+        "page": "Page {page}",
+        "relevance": "{percent} relevant",
+        "used": "Used",
+        "notUsed": "Not used",
+        "source": "From {name}"
+      }
+    },
+    "access": {
+      "loading": "Loading",
+      "loadError": "Access didn't load",
+      "levels": {
+        "none": "No access",
+        "search": "Can search",
+        "manage": "Can manage"
+      },
+      "localOnly": {
+        "title": "Local models only",
+        "description": "This knowledge base is only searched when the answering model runs on your server.",
+        "blocked": "These agents use cloud models and skip it: {names}."
+      },
+      "teams": {
+        "title": "Teams",
+        "description": "Can manage applies to the team's Builders and above; Users in the team can search.",
+        "empty": "There are no teams yet.",
+        "levelFor": "Access for {team}"
+      },
+      "people": {
+        "title": "People",
+        "description": "Exceptions for people outside the teams above.",
+        "levelFor": "Access for {name}",
+        "remove": "Remove {name}",
+        "placeholder": "Add a person",
+        "search": "Search people",
+        "empty": "No people found",
+        "levelToAdd": "Access for the person to add",
+        "add": "Add"
+      },
+      "remove": {
+        "title": "Remove {team}'s access?",
+        "description": "The team can no longer search this knowledge base. You can give it access again at any time.",
+        "impactMembers": "{count, plural, one {# person in {team} loses} other {# people in {team} lose}} access unless they have another grant.",
+        "impactAgents": "{count, plural, one {# agent uses} other {# agents use}} this knowledge base for them: {names}.",
+        "confirm": "Remove access"
+      },
+      "history": "View change history"
+    },
+    "settings": {
+      "general": {
+        "title": "General",
+        "description": "How this knowledge base is named in lists and in chat.",
+        "name": "Name",
+        "descriptionLabel": "Description",
+        "rename": "Rename"
+      },
+      "embedding": {
+        "title": "Embedding model",
+        "description": "Turns your documents into searchable passages. Changing it re-indexes every source; search keeps working meanwhile.",
+        "model": "Embedding model",
+        "none": "No embedding model",
+        "noLocalModel": "A knowledge base limited to local models needs a local embedding model. Enable one in Vault.",
+        "adminOnly": "Only Admins and Owners can change the embedding model.",
+        "running": "Re-indexing with {model}",
+        "progress": "{done} of {total} documents re-indexed.",
+        "cancel": "Cancel"
+      },
+      "chunking": {
+        "title": "Chunking",
+        "description": "How documents are split into passages. Changing it re-indexes every source.",
+        "label": "Chunking preset",
+        "presets": {
+          "default": "Default",
+          "long_documents": "Long documents",
+          "faqs": "FAQs"
+        }
+      },
+      "privacy": {
+        "title": "Privacy",
+        "localOnly": "Local models only",
+        "localOnlyHelp": "Only searched when the answering model runs on your server. Needs a local embedding model."
+      },
+      "danger": {
+        "title": "Delete",
+        "description": "Deleting a knowledge base removes it from chats and agents. You can restore it for 30 days.",
+        "delete": "Delete knowledge base"
+      }
+    }
+  },
+  "preview": {
+    "description": "Extracted text by page. Hover or focus a passage to see its boundaries.",
+    "loading": "Loading",
+    "noDocuments": "This source has no documents yet.",
+    "failed": "This document couldn't be processed.",
+    "notReady": "The text appears here once processing finishes.",
+    "page": "Page {page}",
+    "text": "Text",
+    "passage": "Passage {number}",
+    "noText": "No text was extracted.",
+    "loadMore": "Load more pages",
+    "documents": "Documents",
+    "loadMoreDocuments": "Load more documents",
+    "status": "Status",
+    "statuses": {
+      "pending": "Waiting",
+      "parsing": "Reading",
+      "embedding": "Indexing",
+      "ready": "Ready",
+      "failed": "Failed"
+    },
+    "usedInAnswers": "Used in answers",
+    "usedCount": "{count, plural, one {# time} other {# times}}",
+    "whoCanSearch": "Who can search",
+    "adminsOnly": "Admins and Owners only",
+    "people": "{count, plural, one {# person} other {# people}}",
+    "download": "Download"
+  },
+  "commands": {
+    "create": "New knowledge base"
+  }
+}

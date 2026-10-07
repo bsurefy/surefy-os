@@ -1,0 +1,335 @@
+{
+  "list": {
+    "label": "Chats",
+    "newChat": "New chat",
+    "untitled": "New chat",
+    "pinned": "Pinned",
+    "loading": "Loading chats",
+    "loadMore": "Load more",
+    "undo": "Undo",
+    "empty": {
+      "title": "No chats yet",
+      "description": "Your chats appear here, grouped by date."
+    },
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "previous7": "Previous 7 days",
+      "previous30": "Previous 30 days",
+      "older": "Older"
+    },
+    "search": {
+      "label": "Search chats",
+      "placeholder": "Search chats",
+      "results": "Results",
+      "clear": "Clear search",
+      "noResults": {
+        "title": "No chats found",
+        "description": "Nothing in your chats matches “{query}”."
+      }
+    },
+    "folders": {
+      "title": "Folders",
+      "new": "New folder",
+      "empty": "No chats in this folder",
+      "actions": "Actions for folder {name}",
+      "rename": "Rename",
+      "delete": "Delete folder"
+    },
+    "row": {
+      "actions": "Actions for {title}",
+      "rename": "Rename",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "moveToFolder": "Move to folder",
+      "noFolder": "No folder",
+      "noFolders": "No folders yet",
+      "export": "Export",
+      "delete": "Delete"
+    },
+    "toasts": {
+      "chatDeleted": "Chat deleted",
+      "chatRestored": "Chat restored",
+      "folderDeleted": "Folder “{name}” deleted"
+    },
+    "deleted": {
+      "title": "Recently deleted",
+      "back": "Back to chats",
+      "description": "Deleted chats stay here for 30 days, then they are removed for good.",
+      "deletedOn": "Deleted {date} · {days, plural, one {# day left} other {# days left}}",
+      "restore": "Restore",
+      "restoreChat": "Restore {title}",
+      "empty": {
+        "title": "Nothing deleted in the last 30 days",
+        "description": "Chats you delete wait here before they are removed."
+      }
+    },
+    "name": {
+      "newFolder": {
+        "title": "New folder",
+        "label": "Name",
+        "submit": "Create folder",
+        "cancel": "Cancel"
+      },
+      "renameFolder": {
+        "title": "Rename folder",
+        "label": "Name",
+        "submit": "Save",
+        "cancel": "Cancel"
+      },
+      "renameChat": {
+        "title": "Rename chat",
+        "label": "Title",
+        "submit": "Save",
+        "cancel": "Cancel"
+      }
+    },
+    "export": {
+      "title": "Export chat",
+      "description": "Download this conversation as a file.",
+      "format": "Format",
+      "formats": {
+        "pdf": "PDF",
+        "markdown": "Markdown",
+        "json": "JSON"
+      },
+      "start": "Start export",
+      "cancel": "Cancel",
+      "close": "Close",
+      "download": "Download",
+      "preparing": "Preparing your export…",
+      "ready": "Your export is ready.",
+      "failed": "The export failed.",
+      "expired": "The export expired.",
+      "retry": "Try again"
+    },
+    "open": "Chats",
+    "sheetDescription": "Your chats, folders and recently deleted chats."
+  },
+  "thread": {
+    "title": "New chat",
+    "switched": "Switched to {model}",
+    "loadEarlier": "Show earlier messages",
+    "jump": "Jump to latest",
+    "notFound": {
+      "title": "This chat isn't available",
+      "description": "It may have been deleted, or it isn't shared with you.",
+      "action": "Go to Chat"
+    },
+    "error": {
+      "title": "Couldn't load this chat",
+      "message": "Your messages are safe. Try again in a moment."
+    },
+    "modelWarning": {
+      "title": "Switch to {model}?",
+      "description": "The conversation so far will be sent to {provider}.",
+      "confirm": "Switch model"
+    },
+    "actions": {
+      "copied": "Answer copied"
+    },
+    "empty": {
+      "title": "What can I help with today?",
+      "description": "Ask a question, attach a file or choose the knowledge to answer from.",
+      "suggestions": "Ways to start",
+      "cards": {
+        "knowledge": {
+          "title": "Ask your knowledge",
+          "description": "Get answers from your company's documents, with sources.",
+          "prompt": "What does our documentation say about "
+        },
+        "summarize": {
+          "title": "Summarize a document",
+          "description": "Attach a file and get the key points.",
+          "prompt": "Summarize the attached document in five bullet points."
+        },
+        "draft": {
+          "title": "Draft a message",
+          "description": "A first version of an email or a reply to edit.",
+          "prompt": "Draft a short, friendly email to a customer about "
+        },
+        "explain": {
+          "title": "Explain something",
+          "description": "A clear explanation, step by step.",
+          "prompt": "Explain in simple terms: "
+        }
+      },
+      "noModel": {
+        "title": "Connect a model to start chatting",
+        "admin": "Chat needs an AI model. Add a provider key or a local server in Vault.",
+        "member": "Your admin hasn't enabled any models yet. Ask an admin to connect one.",
+        "open": "Open Vault"
+      },
+      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>."
+    },
+    "header": {
+      "menu": "Chat options",
+      "rename": "Rename",
+      "titleHint": "Click to rename",
+      "private": {
+        "badge": "Private",
+        "toggle": "Private chat",
+        "needsLocal": "Needs a local model · Ask an admin"
+      },
+      "export": "Export",
+      "delete": "Delete chat"
+    },
+    "scope": {
+      "trigger": "Knowledge scope",
+      "title": "Answer from",
+      "label": {
+        "all": "All knowledge",
+        "none": "No knowledge"
+      },
+      "selected": "{count, plural, one {# knowledge base} other {# knowledge bases}}",
+      "options": {
+        "all": {
+          "name": "All knowledge",
+          "description": "Every knowledge base you can read"
+        },
+        "selected": {
+          "name": "Selected knowledge",
+          "description": "Only the bases you tick below"
+        },
+        "none": {
+          "name": "No knowledge",
+          "description": "The model answers on its own"
+        }
+      },
+      "bases": "Knowledge bases",
+      "sources": "{count, plural, one {# source} other {# sources}}",
+      "clear": "Clear",
+      "indexing": "{count, plural, one {# source is still indexing} other {# sources are still indexing}}",
+      "noBases": "You can't read any knowledge base yet."
+    },
+    "answer": {
+      "label": "Answer",
+      "location": {
+        "local": "Stays on your server",
+        "provider": "Sent to {provider}"
+      },
+      "piiMasked": "Personal data hidden before sending",
+      "thinking": "Thinking…",
+      "reasoning": "Reasoning",
+      "reasoningFor": "Reasoned for {seconds, plural, one {# second} other {# seconds}}",
+      "steps": "{count, plural, one {# step} other {# steps}}",
+      "toolState": {
+        "pending": "running",
+        "done": "done",
+        "error": "failed"
+      },
+      "stopped": "Stopped",
+      "continue": "Continue",
+      "interrupted": "Answer interrupted",
+      "retry": "Retry",
+      "actions": "Answer actions",
+      "copy": "Copy answer",
+      "regenerate": "Regenerate answer",
+      "helpful": "Helpful",
+      "notHelpful": "Not helpful",
+      "sources": "Sources",
+      "openSource": "Source {index}: {title}",
+      "page": "p. {page}",
+      "copyCode": "Copy",
+      "copiedCode": "Copied",
+      "copyShort": "Copy",
+      "regenerateShort": "Regenerate",
+      "answeredFrom": "{count, plural, one {Answered from # source} other {Answered from # sources}}",
+      "sourcesFromKnowledge": "Sources from your knowledge"
+    },
+    "user": {
+      "label": "Your message",
+      "attachments": "Attachments",
+      "edit": "Edit",
+      "editLabel": "Edit your message",
+      "editHelp": "Sending replaces this message and the answers after it.",
+      "cancel": "Cancel",
+      "resend": "Save and resend"
+    },
+    "notes": {
+      "processing": "{count, plural, one {# source is still processing and wasn't searched} other {# sources are still processing and weren't searched}}",
+      "skipped": {
+        "no_ready_sources": "No knowledge source was ready to search.",
+        "no_access": "You don't have access to the knowledge in scope."
+      }
+    },
+    "failure": {
+      "retry": "Retry",
+      "retryNow": "Retry now",
+      "useLocal": "Use a local model",
+      "openUsage": "Open usage and budgets",
+      "openVault": "Open Vault",
+      "budget": {
+        "title": "Budget reached",
+        "description": "Your message is saved. Use a local model, or ask an admin to raise the budget."
+      },
+      "credits": {
+        "title": "Credits used up",
+        "description": "Your message is saved. Use a local model, or ask an admin to add credits."
+      },
+      "rateLimit": {
+        "title": "Too many requests",
+        "countdown": "Your message is saved. Trying again in {seconds, plural, one {# second} other {# seconds}}.",
+        "waiting": "Your message is saved. Try again in a moment."
+      },
+      "notAllowed": {
+        "title": "{model} isn't available to you anymore",
+        "description": "Choose another model above. Your history stays.",
+        "fallbackModel": "This model"
+      },
+      "unavailable": {
+        "title": "The model isn't answering",
+        "description": "Your message is saved; nothing was sent. Try again, or choose another model."
+      },
+      "generic": {
+        "title": "Something went wrong",
+        "description": "Your message is saved. Try again."
+      }
+    },
+    "preview": {
+      "citation": "Source {index}",
+      "loading": "Loading the passage…",
+      "error": "Couldn't load this source.",
+      "page": "Page {page}",
+      "removed": "This source was removed from your knowledge, so the passage can't be shown.",
+      "noAccess": "You no longer have access to this source.",
+      "openInKnowledge": "Open in Knowledge",
+      "openLink": "Open the page",
+      "untitled": "Source"
+    },
+    "feedback": {
+      "title": "What went wrong?",
+      "description": "Tell us what a better answer looks like. Your correction may be used to improve answers.",
+      "correction": "A better answer",
+      "optional": "optional",
+      "cancel": "Cancel",
+      "submit": "Send feedback",
+      "thanks": "Thanks for the feedback"
+    },
+    "composer": {
+      "label": "Message",
+      "placeholder": "Message the model…",
+      "add": "Add to message",
+      "addFiles": "Add files or images",
+      "files": "Choose files",
+      "limits": "Images up to {image} MB, documents up to {document} MB · PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD, CSV",
+      "send": "Send message",
+      "stop": "Stop answering",
+      "attachments": "Files to send",
+      "remove": "Remove {name}",
+      "uploading": "Uploading {name}",
+      "retry": "Retry",
+      "offline": "Needs a connection",
+      "noVision": "This model can't read images · Switch model",
+      "errors": {
+        "CHAT_ATTACHMENT_TOO_LARGE": "is too large. Images up to {image} MB, documents up to {document} MB.",
+        "CHAT_ATTACHMENT_UNSUPPORTED": "isn't a supported type. Use PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD or CSV.",
+        "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
+      },
+      "stopShort": "Stop"
+    }
+  },
+  "commands": {
+    "newChat": "New chat"
+  }
+}

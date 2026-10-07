@@ -1,0 +1,223 @@
+/* SPDX-License-Identifier: AGPL-3.0-only */
+/*
+ * @surefy/ui styles entry (`@surefy/ui/styles.css`): Tailwind, the tokens, the theme mapping,
+ * the type scale, layers, motion and base styles. Values: docs/design/shared/foundations.md.
+ * Apps import this file once from their own globals.css and add `@source` for the packages.
+ */
+@import 'tailwindcss';
+@import './tokens/colors.css';
+@import './tokens/semantic.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Utilities reference the variables, so .dark and brand overrides apply at runtime. */
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-scrim: var(--scrim);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+
+  --color-confidence-high: var(--confidence-high);
+  --color-confidence-medium: var(--confidence-medium);
+  --color-confidence-low: var(--confidence-low);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-partner-strip: var(--partner-strip);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+
+  /* shadcn aliases (generated primitives only) */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+
+  /* Fonts: each app loads IBM Plex through next/font and sets these two variables. */
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+@theme {
+  /* Type scale (foundations section 3): size, line height, weight, tracking per style */
+  --text-display: 2.5rem;
+  --text-display--line-height: 3rem;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.025em;
+  --text-page-title: 1.5rem;
+  --text-page-title--line-height: 2rem;
+  --text-page-title--font-weight: 600;
+  --text-page-title--letter-spacing: -0.015em;
+  --text-object-title: 1.125rem;
+  --text-object-title--line-height: 1.625rem;
+  --text-object-title--font-weight: 600;
+  --text-section-title: 0.9375rem;
+  --text-section-title--line-height: 1.375rem;
+  --text-section-title--font-weight: 600;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5625rem;
+  --text-body-lg--font-weight: 400;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-body--font-weight: 400;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.25rem;
+  --text-label--font-weight: 500;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 400;
+
+  /* Motion (foundations section 5) */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --animate-status-pulse: status-pulse 1.6s ease-in-out infinite;
+
+  @keyframes status-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
+
+/* Mono styles: font family and case are not part of the text namespace. */
+@utility text-overline {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+@utility text-code {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+}
+
+/* Layers (foundations section 7): use these names, never raw z-index numbers. */
+@utility z-sticky {
+  z-index: 10;
+}
+@utility z-frame {
+  z-index: 20;
+}
+@utility z-overlay {
+  z-index: 40;
+}
+@utility z-popover {
+  z-index: 50;
+}
+@utility z-toast {
+  z-index: 60;
+}
+@utility z-banner {
+  z-index: 70;
+}
+
+/* Durations (Tailwind has no theme namespace for them) */
+@utility duration-fast {
+  transition-duration: 120ms;
+}
+@utility duration-base {
+  transition-duration: 180ms;
+}
+@utility duration-slow {
+  transition-duration: 240ms;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    -webkit-font-smoothing: antialiased;
+  }
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+  /* Preflight gives buttons the default cursor: every control that acts on a click shows the pointer */
+  button:not(:disabled),
+  summary,
+  select:not(:disabled),
+  input:is([type='checkbox'], [type='radio'], [type='file'], [type='submit']):not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  :is([role='tab'], [role='switch'], [role='checkbox'], [role='radio'], [role='option']):not(
+    [aria-disabled='true']
+  ),
+  [role^='menuitem']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+  /* Focus ring: 2px solid + 2px offset, visible only for keyboard focus */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Reduced motion: pulses stop; sheets and dialogs fade instead of sliding (component variants). */
+@media (prefers-reduced-motion: reduce) {
+  .animate-status-pulse {
+    animation: none;
+  }
+}

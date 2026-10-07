@@ -1,0 +1,21 @@
+{
+  "KNOWLEDGE_NOT_FOUND": "This knowledge base isn't available.",
+  "KNOWLEDGE_SOURCE_NOT_FOUND": "This source no longer exists.",
+  "KNOWLEDGE_DOCUMENT_NOT_FOUND": "This document no longer exists.",
+  "KNOWLEDGE_NAME_TAKEN": "A knowledge base with this name already exists. Choose a different name.",
+  "KNOWLEDGE_BASE_DELETED": "Restore the knowledge base first, then restore this source.",
+  "KNOWLEDGE_NO_EMBEDDING_MODEL": "Choose an embedding model before adding documents.",
+  "KNOWLEDGE_EMBEDDING_MODEL_INVALID": "This model can't be used for embeddings. Choose an enabled embedding model.",
+  "KNOWLEDGE_LOCAL_EMBEDDING_REQUIRED": "A knowledge base limited to local models needs a local embedding model.",
+  "KNOWLEDGE_REEMBED_IN_PROGRESS": "This knowledge base is being re-indexed. Wait for it to finish or cancel it first.",
+  "KNOWLEDGE_SOURCE_STATE_INVALID": "That action doesn't apply to this source right now.",
+  "KNOWLEDGE_DUPLICATE_FILE": "This file is already in this knowledge base.",
+  "KNOWLEDGE_FILE_TOO_LARGE": "This file is larger than the limit. Split it into smaller files.",
+  "KNOWLEDGE_FILE_UNSUPPORTED": "This file type isn't supported. Check the supported types and try another file.",
+  "KNOWLEDGE_UPLOAD_CORRUPTED": "The file changed during upload. Add it again.",
+  "KNOWLEDGE_PROCESSING_TIMEOUT": "Processing this source took too long. Try again, or upload a smaller file.",
+  "KNOWLEDGE_DOWNLOAD_FAILED": "Couldn't download this page or file. Check that it is still available and try again.",
+  "KNOWLEDGE_LINK_UNREACHABLE": "Couldn't reach this link. Check the address and try again.",
+  "KNOWLEDGE_CONNECTION_EXPIRED": "The connection expired. Reconnect to keep syncing; existing passages stay searchable.",
+  "KNOWLEDGE_REEMBED_FAILED": "Couldn't re-index this document with the new model. Try again."
+}
