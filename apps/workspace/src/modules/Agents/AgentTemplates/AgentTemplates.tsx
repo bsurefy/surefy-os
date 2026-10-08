@@ -1,23 +1,41 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { LayoutTemplate } from 'lucide-react'
+'use client'
+
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 
-import { EmptyState } from '@surefy/ui/components/DataDisplay'
+import { ROUTES } from '@/constants/routes'
+import { toRoute } from '@/modules/Workspace'
 import { PageHeader } from '@surefy/ui/components/Layout'
+import { Breadcrumbs } from '@surefy/ui/components/Navigation'
+
+import TemplatePicker from './TemplatePicker'
 
 /**
- * Templates. Module skeleton stub: the page header and empty state until the screen is built.
+ * Templates (Agents › Templates): Customer Support, HR Helper, Sales Assistant, Invoice Checker and
+ * "Start from scratch". Each card lists the tools, knowledge and Guard rules it sets up.
  */
 export default function AgentTemplates() {
   const t = useTranslations('agents.templates')
+  const { orgSlug } = useParams<{ orgSlug: string }>()
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('title')} description={t('description')} />
-      <EmptyState
-        icon={LayoutTemplate}
-        title={t('empty.title')}
-        description={t('empty.description')}
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        breadcrumb={
+          <Breadcrumbs
+            label={t('breadcrumb')}
+            linkComponent={Link}
+            items={[
+              { label: t('agents'), href: toRoute(ROUTES.workspace.agents(orgSlug)) },
+              { label: t('title') },
+            ]}
+          />
+        }
       />
+      <TemplatePicker />
     </div>
   )
 }

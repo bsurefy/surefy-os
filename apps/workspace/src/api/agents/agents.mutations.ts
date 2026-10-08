@@ -3,7 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type {
   AgentDetailDto,
+  AgentLifecycleAction,
+  CreateAgentInput,
+  DeleteAgentQuery,
   DiscoverMcpActionsInput,
+  DuplicateAgentInput,
   PublishAgentInput,
   ReplaceAgentAccessInput,
   SaveAgentDraftInput,
@@ -144,5 +148,71 @@ export function useDiscoverMcpActionsMutation(orgId: string, agentId: string) {
     meta: { silent: true },
     mutationFn: (input: DiscoverMcpActionsInput) =>
       agentsApi.discoverMcpActions(apiClient, orgId, agentId, input),
+  })
+}
+
+/** Creates an agent from a template or from scratch; the lists are read again. */
+export function useCreateAgentMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: CreateAgentInput) => agentsApi.create(apiClient, orgId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) }),
+  })
+}
+
+/** A draft copy of the agent, owned by the caller. */
+export function useDuplicateAgentMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: ({ agentId, ...input }: DuplicateAgentInput & { agentId: string }) =>
+      agentsApi.duplicate(apiClient, orgId, agentId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) }),
+  })
+}
+
+/** Pause, resume, archive or restore. The agent and the lists are read again. */
+export function useAgentLifecycleMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: ({
+      agentId,
+      action,
+    }: {
+      agentId: string
+      action: Exclude<AgentLifecycleAction, 'delete'>
+    }) => agentsApi.lifecycle(apiClient, orgId, agentId, action),
+    onSuccess: async (_agent, { agentId }) => {
+      await queryClient.invalidateQueries({ queryKey: agentKeys.detail(orgId, agentId) })
+      await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
+    },
+  })
+}
+
+/** Deletes the agent; a published one or one with runs also sends the typed name and the reason. */
+export function useDeleteAgentMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: ({ agentId, ...query }: DeleteAgentQuery & { agentId: string }) =>
+      agentsApi.remove(apiClient, orgId, agentId, query),
+    onSuccess: (_result, { agentId }) => {
+      queryClient.removeQueries({ queryKey: agentKeys.detail(orgId, agentId) })
+      return queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
+    },
   })
 }

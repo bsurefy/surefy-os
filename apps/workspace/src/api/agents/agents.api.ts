@@ -3,11 +3,17 @@ import type {
   AgentAccessDto,
   AgentDetailDto,
   AgentDto,
+  AgentImpactDto,
+  AgentLifecycleAction,
+  AgentTemplateListDto,
   AgentReadinessDto,
   AgentVersionDetailDto,
   AgentVersionDto,
+  CreateAgentInput,
+  DeleteAgentQuery,
   DiscoverMcpActionsDto,
   DiscoverMcpActionsInput,
+  DuplicateAgentInput,
   PublishAgentInput,
   PublishAgentResultDto,
   ReplaceAgentAccessInput,
@@ -20,10 +26,43 @@ import type {
 } from '@surefy/contracts'
 import type { HttpClient } from '@surefy/web-core/http'
 
-import type { AgentVersionListFilters } from './agents.queries'
+import type { AgentListFilters, AgentVersionListFilters } from './agents.queries'
 
 /** Agents: the editor's agent with its draft, live metadata, and the versions it reads. */
 export const agentsApi = {
+  list: (http: HttpClient, orgId: string, query: AgentListFilters, signal?: AbortSignal) =>
+    http.getPage<AgentDto>(`/orgs/${orgId}/agents`, { params: { ...query }, signal }),
+  /** From a template, or from scratch without a template key; counts toward the plan's agent limit. */
+  create: (http: HttpClient, orgId: string, input: CreateAgentInput) =>
+    http.post<AgentDto>(`/orgs/${orgId}/agents`, input),
+  /** A draft copy owned by the caller, with no channels and no audience. */
+  duplicate: (http: HttpClient, orgId: string, agentId: string, input: DuplicateAgentInput) =>
+    http.post<AgentDto>(`/orgs/${orgId}/agents/${agentId}/duplicate`, input),
+  /** `pause`, `resume`, `archive` and `restore`; any other transition answers `AGENT_STATE_INVALID`. */
+  lifecycle: (
+    http: HttpClient,
+    orgId: string,
+    agentId: string,
+    action: Exclude<AgentLifecycleAction, 'delete'>,
+  ) => http.post<AgentDto>(`/orgs/${orgId}/agents/${agentId}/${action}`, {}),
+  /** What a pause, an archive or a delete affects: shared teams, live channels, runs. */
+  impact: (
+    http: HttpClient,
+    orgId: string,
+    agentId: string,
+    action: 'pause' | 'archive' | 'delete',
+    signal?: AbortSignal,
+  ) =>
+    http.get<AgentImpactDto>(`/orgs/${orgId}/agents/${agentId}/impact`, {
+      params: { action },
+      signal,
+    }),
+  /** A never-published agent is deleted outright; a published one needs its name and a reason. */
+  remove: (http: HttpClient, orgId: string, agentId: string, query: DeleteAgentQuery = {}) =>
+    http.delete(`/orgs/${orgId}/agents/${agentId}`, { params: { ...query } }),
+  /** The code-only templates, with what each needs from this organization. */
+  templates: (http: HttpClient, orgId: string, signal?: AbortSignal) =>
+    http.get<AgentTemplateListDto>(`/orgs/${orgId}/agents/templates`, { signal }),
   get: (http: HttpClient, orgId: string, agentId: string, signal?: AbortSignal) =>
     http.get<AgentDetailDto>(`/orgs/${orgId}/agents/${agentId}`, { signal }),
   /** Live metadata (name, description): saved directly and not versioned. */

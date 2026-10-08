@@ -2,17 +2,197 @@
   "list": {
     "title": "Agents",
     "description": "Build, test and publish AI agents with tools, knowledge and approval rules.",
+    "browseTemplates": "Browse templates",
+    "createButton": "Create agent",
+    "newAgentName": "New agent",
+    "createError": "Couldn't create the agent",
     "empty": {
       "title": "Create your first agent",
       "description": "Start from a template or from scratch."
+    },
+    "noResults": {
+      "title": "No agents found",
+      "description": "Try a different search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "loadError": "Couldn't load the agents",
+    "loadMore": "Show more agents",
+    "tableLabel": "Agents",
+    "rowActions": "Actions for {name}",
+    "search": {
+      "label": "Search agents",
+      "placeholder": "Search agents"
+    },
+    "filters": {
+      "label": "Status",
+      "all": "All",
+      "active": "Active",
+      "draft": "Draft",
+      "paused": "Paused",
+      "attention": "Needs attention",
+      "archived": "Archived"
+    },
+    "owner": {
+      "label": "Owner",
+      "anyone": "Anyone's agents",
+      "me": "My agents"
+    },
+    "sort": {
+      "label": "Sort by",
+      "lastRun": "Last run",
+      "name": "Name",
+      "runs": "Runs this week"
+    },
+    "views": {
+      "label": "View",
+      "cards": "Cards",
+      "table": "Table"
+    },
+    "columns": {
+      "name": "Agent",
+      "status": "Status",
+      "model": "Model",
+      "lastRun": "Last run",
+      "trust": "Trust score",
+      "runsThisWeek": "Runs this week",
+      "approvals": "Approvals waiting",
+      "sharedWith": "Shared with",
+      "owner": "Owner",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "draft": "Draft",
+      "paused": "Paused",
+      "archived": "Archived"
+    },
+    "unpublishedChanges": "Unpublished changes",
+    "attention": {
+      "label": "Needs attention",
+      "reasons": {
+        "connection_failed": "A tool or channel connection failed or expired",
+        "model_not_allowed": "The model is no longer allowed",
+        "recent_runs_failed": "The last 5 runs failed"
+      }
+    },
+    "noModel": "No model yet",
+    "noDescription": "No description yet.",
+    "formerMember": "Former member",
+    "location": {
+      "local": "Stays on your server",
+      "provider": "Sent to {provider}"
+    },
+    "lastRun": {
+      "queued": "Queued",
+      "running": "Running",
+      "waiting_approval": "Waiting for approval",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "canceled": "Canceled",
+      "timed_out": "Timed out"
+    },
+    "noRuns": "No runs yet",
+    "runsCount": "{count, plural, one {# run} other {# runs}}",
+    "approvalsCount": "{count, plural, one {# approval} other {# approvals}}",
+    "trust": {
+      "notEnough": "Not enough runs yet",
+      "definition": "Share of runs in the last 30 days that finished without a person correcting them. Shown from 20 runs.",
+      "bands": {
+        "high": "Automatic",
+        "medium": "AI double-check",
+        "low": "Needs a person"
+      }
+    },
+    "sharedWith": {
+      "everyone": "Everyone",
+      "none": "Only its owner",
+      "moreTeams": "{count, plural, one {+# team} other {+# teams}}",
+      "people": "{count, plural, one {# person} other {# people}}"
+    },
+    "actions": {
+      "duplicate": "Duplicate",
+      "pause": "Pause",
+      "resume": "Resume",
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete…"
+    },
+    "toasts": {
+      "undo": "Undo",
+      "duplicated": "Created {name}",
+      "resumed": "{name} is live again",
+      "restored": "{name} was restored",
+      "archived": "{name} was archived",
+      "deleted": "{name} was deleted"
+    },
+    "dialogs": {
+      "impact": {
+        "everyone": "Everyone in the organization can use it.",
+        "teams": "{count, plural, one {Shared with # team.} other {Shared with # teams.}}",
+        "people": "{count, plural, one {Shared with # person.} other {Shared with # people.}}",
+        "channels": "{count, plural, one {# live channel stops answering.} other {# live channels stop answering.}}",
+        "approvals": "{count, plural, one {# approval is still waiting.} other {# approvals are still waiting.}}",
+        "unavailable": "Couldn't check who this affects.",
+        "retry": "Try again"
+      },
+      "pause": {
+        "title": "Pause {name}?",
+        "description": "It starts no new runs and answers on no channel until you resume it.",
+        "confirm": "Pause agent",
+        "done": "{name} is paused"
+      },
+      "archive": {
+        "title": "Archive {name}?",
+        "description": "It stops answering and becomes read-only. You can restore it from the Archived filter.",
+        "confirm": "Archive agent",
+        "done": "{name} was archived"
+      },
+      "delete": {
+        "title": "Delete {name}?",
+        "description": "{count, plural, =0 {The agent can't be restored.} one {Its # run stays in the audit log, but the agent can't be restored.} other {Its # runs stay in the audit log, but the agent can't be restored.}}",
+        "confirm": "Delete agent",
+        "reason": "Reason",
+        "reasonHelp": "Saved in the audit log.",
+        "reasonRequired": "Enter a reason",
+        "typeToConfirm": "Type {name} to confirm",
+        "typeMismatch": "The name doesn't match. Type {name}",
+        "done": "{name} was deleted"
+      }
     }
   },
   "templates": {
     "title": "Templates",
     "description": "Start from a template, or from scratch.",
-    "empty": {
-      "title": "No templates available",
-      "description": "Templates appear here when they are available for this organization."
+    "breadcrumb": "Breadcrumb",
+    "agents": "Agents",
+    "loadError": "Couldn't load the templates",
+    "createError": "Couldn't create the agent",
+    "scratch": {
+      "title": "Start from scratch",
+      "description": "A blank agent. You choose the model, tools and knowledge.",
+      "use": "Start from scratch",
+      "agentName": "New agent"
+    },
+    "card": {
+      "use": "Use template",
+      "tools": "Tools",
+      "noTools": "No tools",
+      "knowledge": "Knowledge",
+      "knowledgeSuggestion": "Suggests attaching {name}",
+      "guard": "Guard rules",
+      "model": "Suggested model",
+      "noSuggestedModel": "You choose the model",
+      "permissions": {
+        "read_only": "Read only",
+        "ask_first": "Ask first",
+        "can_act": "Can act"
+      },
+      "setup": {
+        "needs_connection": "Not connected",
+        "bridge_not_installed": "Bridge not installed",
+        "install": "An admin installs it in Bridge",
+        "requestInstall": "Ask an admin to install it"
+      }
     }
   },
   "editor": {

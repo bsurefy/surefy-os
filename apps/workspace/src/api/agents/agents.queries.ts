@@ -2,10 +2,25 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
 import { PAGE_SIZE } from '@surefy/contracts'
+import type { AgentStatus } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { HttpClient } from '@surefy/web-core/http'
 
 import { agentsApi } from './agents.api'
+
+/** Filters are single-valued: `HttpClient` params carry no arrays. */
+export interface AgentListFilters {
+  limit?: number
+  cursor?: string
+  q?: string
+  /** One status; archived agents are listed only when this is `archived`. */
+  status?: AgentStatus
+  needsAttention?: boolean
+  ownerId?: string
+  mine?: boolean
+  /** `lastRunAt`, `name`, `runsThisWeek`, with a leading `-` for descending. */
+  sort?: string
+}
 
 export interface AgentVersionListFilters {
   limit?: number
@@ -16,6 +31,10 @@ export interface AgentVersionListFilters {
 export const agentKeys = {
   all: (orgId: string) => ['orgs', orgId, 'agents'] as const,
   lists: (orgId: string) => [...agentKeys.all(orgId), 'list'] as const,
+  list: (orgId: string, filters: AgentListFilters) => [...agentKeys.lists(orgId), filters] as const,
+  templates: (orgId: string) => [...agentKeys.all(orgId), 'templates'] as const,
+  impact: (orgId: string, agentId: string, action: AgentImpactAction) =>
+    [...agentKeys.detail(orgId, agentId), 'impact', action] as const,
   detail: (orgId: string, agentId: string) => [...agentKeys.all(orgId), 'detail', agentId] as const,
   versions: (orgId: string, agentId: string) =>
     [...agentKeys.detail(orgId, agentId), 'versions'] as const,
@@ -32,7 +51,39 @@ export const agentKeys = {
 }
 
 // `http` defaults to the browser client; server components pass getServerHttpClient()
+export type AgentImpactAction = 'pause' | 'archive' | 'delete'
+
 export const agentQueries = {
+  list: (orgId: string, filters: AgentListFilters, http: HttpClient = apiClient) =>
+    infiniteQueryOptions({
+      queryKey: agentKeys.list(orgId, filters),
+      queryFn: ({ pageParam, signal }) =>
+        agentsApi.list(
+          http,
+          orgId,
+          { ...filters, limit: filters.limit ?? PAGE_SIZE.default, cursor: pageParam },
+          signal,
+        ),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    }),
+  templates: (orgId: string, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: agentKeys.templates(orgId),
+      queryFn: ({ signal }) => agentsApi.templates(http, orgId, signal),
+    }),
+  /** Read when a dialog opens, so the consequence it names is the current one. */
+  impact: (
+    orgId: string,
+    agentId: string,
+    action: AgentImpactAction,
+    http: HttpClient = apiClient,
+  ) =>
+    queryOptions({
+      queryKey: agentKeys.impact(orgId, agentId, action),
+      queryFn: ({ signal }) => agentsApi.impact(http, orgId, agentId, action, signal),
+      staleTime: 0,
+    }),
   detail: (orgId: string, agentId: string, http: HttpClient = apiClient) =>
     queryOptions({
       queryKey: agentKeys.detail(orgId, agentId),

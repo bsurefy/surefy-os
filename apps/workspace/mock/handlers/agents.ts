@@ -18,23 +18,26 @@ import {
   mockOk,
 } from '@surefy/web-core/testing/mock'
 
+import { AGENT_KIND, SUPPORT_AGENT_ID } from './agentIds'
 import { agentPublishingHandlers, resetAgentPublishingMock } from './agentPublishing'
+import { agentListHandlers, resetAgentsListMock } from './agentsList'
 import { agentToolHandlers } from './agentTools'
 import { HELP_CENTER_ID, HR_POLICIES_ID } from './knowledge'
 import { MAYA, OMAR } from './shell.fixtures'
 import { SUPPORT_TEAM_ID } from './teams'
 
-const AGENT_KIND = 70
+export {
+  ARCHIVED_AGENT_ID,
+  DRAFT_AGENT_ID,
+  READ_ONLY_AGENT_ID,
+  RETIRED_MODEL_AGENT_ID,
+  SUPPORT_AGENT_ID,
+} from './agentIds'
+
 const HTTP_NOT_FOUND = 404
 const HTTP_CONFLICT = 409
 const HTTP_SERVER_ERROR = 500
 const NOW = '2026-01-15T09:00:00.000Z'
-
-export const SUPPORT_AGENT_ID = fixtureUuid(AGENT_KIND, 1)
-export const DRAFT_AGENT_ID = fixtureUuid(AGENT_KIND, 2)
-export const ARCHIVED_AGENT_ID = fixtureUuid(AGENT_KIND, 3)
-export const READ_ONLY_AGENT_ID = fixtureUuid(AGENT_KIND, 4)
-export const RETIRED_MODEL_AGENT_ID = fixtureUuid(AGENT_KIND, 5)
 
 /** An active agent, live on version 1, with no draft changes, unless overridden. */
 export const agentDetailFactory = defineFactory(
@@ -176,6 +179,7 @@ let revisionBumped = false
 export function resetAgentsMock(): void {
   agents = seedAgents()
   revisionBumped = false
+  resetAgentsListMock()
   resetAgentPublishingMock()
 }
 
@@ -189,6 +193,13 @@ const liveDefinitionOf = (agent: AgentDetailDto): AgentDefinition =>
 
 const store = {
   find,
+  all: () => agents,
+  add: (agent: AgentDetailDto) => {
+    agents = [...agents, agent]
+  },
+  remove: (id: string) => {
+    agents = agents.filter((agent) => agent.id !== id)
+  },
   save: (updated: AgentDetailDto) => {
     agents = agents.map((agent) => (agent.id === updated.id ? updated : agent))
   },
@@ -203,6 +214,8 @@ const store = {
  * agent then holds their newer revision) and `error` fails the save.
  */
 export const agentsDomain = defineMockDomain('agents', [
+  // before `/:agentId`, which would take `templates` for an id
+  ...agentListHandlers(store),
   defineMockHandler({
     method: 'get',
     path: `${path}/:agentId`,
