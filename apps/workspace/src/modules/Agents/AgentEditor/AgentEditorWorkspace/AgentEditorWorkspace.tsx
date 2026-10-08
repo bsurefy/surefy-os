@@ -92,10 +92,18 @@ export default function AgentEditorWorkspace(props: Readonly<AgentEditorWorkspac
       {c.activeTab === 'model' && <ModelTab {...tabProps} />}
       {c.activeTab === 'tools' && <ToolsTab />}
       {c.activeTab === 'knowledge' && <KnowledgeTab {...tabProps} />}
-      {c.activeTab === 'guard' && <GuardTab />}
+      {c.activeTab === 'guard' && <GuardTab {...tabProps} />}
       {c.activeTab === 'test' && <TestTab />}
-      {c.activeTab === 'publish' && <PublishTab />}
-      {c.activeTab === 'versions' && <VersionsTab />}
+      {c.activeTab === 'publish' && (
+        <PublishTab
+          {...tabProps}
+          saveStatus={status}
+          onFlush={draft.flush}
+          onPublished={draft.adoptRevision}
+          onConflict={draft.reportConflict}
+        />
+      )}
+      {c.activeTab === 'versions' && <VersionsTab {...tabProps} />}
       {c.activeTab === 'runs' && <RunsTab />}
     </div>
   )

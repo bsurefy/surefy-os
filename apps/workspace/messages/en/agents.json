@@ -165,11 +165,164 @@
       }
     },
     "guard": {
-      "title": "Guard",
-      "description": "Approval rules, thresholds and blocked actions for this agent.",
-      "empty": {
-        "title": "No agent rules yet",
-        "description": "This agent follows the organization guardrails."
+      "inherited": {
+        "title": "From Guard",
+        "description": "What the organization already decides for every agent. This agent can be stricter, never looser.",
+        "open": "Open Guard",
+        "loadError": "Couldn't load the organization's Guard rules",
+        "fromGuard": "From Guard",
+        "noRules": "No organization or team rules besides the thresholds.",
+        "off": "Off",
+        "anOwner": "an Owner",
+        "lockedBy": "Locked by {name}: {reason}",
+        "thresholds": {
+          "name": "Confidence thresholds",
+          "value": "Automatic from {auto}% · AI double-check from {review}% · below that a person decides"
+        },
+        "scope": {
+          "organization": "Organization",
+          "team": "Team {team}"
+        },
+        "types": {
+          "approval_rule": "Approval rule",
+          "threshold_override": "Threshold override",
+          "blocked_action": "Blocked action",
+          "action_limit": "Action limit",
+          "content_filter": "Content filter",
+          "data_filter": "Data filter"
+        }
+      },
+      "thresholds": {
+        "title": "Thresholds for this agent",
+        "description": "How sure the agent must be before it acts on its own. Yours can match the organization's or be higher.",
+        "follow": {
+          "label": "Use the organization's thresholds",
+          "help": "Automatic from {auto}%, AI double-check from {review}%."
+        },
+        "auto": {
+          "label": "Automatic from",
+          "help": "At or above this, the agent acts without anyone looking."
+        },
+        "review": {
+          "label": "AI double-check from",
+          "help": "Between the two values a second AI checks the action. Below, a person decides."
+        },
+        "floor": "The organization's thresholds ({auto}% and {review}%) are the lowest this agent can use.",
+        "result": "This agent acts on its own from {auto}%, gets a double-check from {review}% and asks a person below that.",
+        "outdated": {
+          "title": "Lower than the organization's now",
+          "description": "The organization raised its thresholds. Its values apply to this agent until you raise yours.",
+          "raise": "Raise to match"
+        }
+      },
+      "rules": {
+        "title": "Approval rules",
+        "description": "Actions that need a person to say yes first.",
+        "add": "Add approval rule",
+        "empty": {
+          "title": "No approval rules for this agent",
+          "description": "The organization's rules still apply. Add one to ask a person before a specific action."
+        },
+        "suggest": {
+          "title": "{tool} can act on its own",
+          "description": "Tools that can act should have an approval rule, so a person decides first.",
+          "add": "Add a rule for {tool}"
+        },
+        "ask": "Ask first: {action}",
+        "approvers": "Decided by {names}",
+        "waits": "Waits {duration}, then {onTimeout}",
+        "waitsForever": "Waits until someone decides",
+        "onTimeout": {
+          "reject": "rejects",
+          "escalate": "escalates",
+          "continue": "continues"
+        },
+        "units": {
+          "minutes": "{count, plural, one {# minute} other {# minutes}}",
+          "hours": "{count, plural, one {# hour} other {# hours}}",
+          "days": "{count, plural, one {# day} other {# days}}"
+        },
+        "risk": {
+          "low": "Low risk",
+          "medium": "Medium risk",
+          "high": "High risk"
+        },
+        "edit": "Edit the rule for {action}",
+        "remove": "Remove the rule for {action}"
+      },
+      "approvers": {
+        "role": "Role",
+        "team": "Team",
+        "unknownTeam": "A team that was removed",
+        "unknownPerson": "Someone who has left",
+        "roles": {
+          "builder": "Builders, Admins and Owners",
+          "admin": "Admins and Owners",
+          "owner": "Owners"
+        }
+      },
+      "ruleDialog": {
+        "newTitle": "Add approval rule",
+        "editTitle": "Edit approval rule",
+        "description": "A person has to approve this action before the agent takes it.",
+        "action": {
+          "label": "Action",
+          "help": "The tool or action, like Refund API or payments.refund.",
+          "required": "Enter the tool or action."
+        },
+        "approvers": {
+          "label": "Who decides",
+          "placeholder": "Choose who decides",
+          "search": "Search roles, teams and people",
+          "empty": "Nobody matches",
+          "loading": "Loading…",
+          "remove": "Remove {name}",
+          "more": "+{count}",
+          "required": "Choose at least one approver."
+        },
+        "wait": {
+          "label": "Stop waiting after a while",
+          "help": "Without a limit the action waits until someone decides.",
+          "amount": "Wait for",
+          "unit": "Unit",
+          "invalid": "Enter a whole number, up to 30 days."
+        },
+        "units": {
+          "minutes": "Minutes",
+          "hours": "Hours",
+          "days": "Days"
+        },
+        "timeout": {
+          "label": "When nobody answers in time",
+          "reject": "Reject the action",
+          "escalate": "Escalate to someone else",
+          "continue": "Let the action continue"
+        },
+        "escalate": {
+          "label": "Escalate to",
+          "required": "Choose who to escalate to."
+        },
+        "risk": {
+          "label": "Risk",
+          "help": "Shown to the approver.",
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        },
+        "cancel": "Cancel",
+        "save": "Save rule"
+      },
+      "blocked": {
+        "title": "Blocked actions",
+        "description": "Actions this agent never takes, whatever else allows them.",
+        "empty": "Nothing is blocked for this agent.",
+        "remove": "Unblock {action}",
+        "add": {
+          "label": "Block an action",
+          "help": "The tool or action, like Delete record or payments.refund.",
+          "placeholder": "Action name",
+          "submit": "Block"
+        }
       }
     },
     "test": {
@@ -181,11 +334,152 @@
       }
     },
     "publish": {
-      "title": "Publish",
-      "description": "Readiness, who can use the agent, and where it answers.",
-      "empty": {
-        "title": "Not published yet",
-        "description": "Publishing creates a version and turns on its channels."
+      "published": "Version {version} is live",
+      "waitingForAdmin": "Waiting for an admin to approve turning on the API. The rest is live.",
+      "publishing": "Publishing…",
+      "action": "Publish v{version}",
+      "blocked": {
+        "noRights": "You can't publish this agent.",
+        "conflict": "Resolve the edit conflict before publishing.",
+        "saveFailed": "Your latest changes couldn't be saved. Retry saving before publishing.",
+        "readinessUnknown": "The checklist couldn't be loaded.",
+        "notReady": "{count, plural, one {Fix # item above before publishing.} other {Fix # items above before publishing.}}",
+        "nothingToPublish": "Nothing has changed since the live version."
+      },
+      "failure": {
+        "title": "Couldn't publish",
+        "previousStaysLive": "The previous version stays live.",
+        "notSaved": "Your latest changes couldn't be saved first.",
+        "retry": "Retry"
+      },
+      "notes": {
+        "label": "Notes for this version",
+        "help": "Optional. Shown in the version list."
+      },
+      "readiness": {
+        "title": "Readiness",
+        "description": "What has to be right before this agent goes live.",
+        "ready": "Ready to publish.",
+        "notReady": "{count, plural, one {# thing to fix before publishing.} other {# things to fix before publishing.}}",
+        "loadError": "Couldn't check readiness",
+        "fix": "Open {tab}",
+        "state": {
+          "passed": "Done",
+          "blocking": "Required",
+          "warning": "Worth a look"
+        },
+        "items": {
+          "instructions_present": {
+            "label": "Instructions are written",
+            "failed": "Add instructions so the agent knows what to do."
+          },
+          "model_allowed_for_audience": {
+            "label": "The model is allowed for everyone who can use it",
+            "failed": "{kind, select, model {The model {names} isn't available. Choose another model.} other {The model isn't allowed for {names}. Choose another model or ask an admin.}}"
+          },
+          "tools_connected": {
+            "label": "Every tool that is on is connected",
+            "failed": "{names} {count, plural, one {isn't} other {aren't}} connected."
+          },
+          "guard_not_looser": {
+            "label": "Guard rules are no looser than the organization's",
+            "failed": "The thresholds are looser than the organization's. Raise them or follow the organization's."
+          },
+          "tested_since_change": {
+            "label": "Tested since the last change",
+            "failed": "No test run since the last change."
+          },
+          "can_act_without_approval_rule": {
+            "label": "Tools that can act have an approval rule",
+            "failed": "{names} can act without anyone approving first."
+          }
+        }
+      },
+      "audience": {
+        "title": "Who can use it",
+        "description": "The people and teams who can talk to this agent. Owners and Admins always can. Changes apply at once.",
+        "nobody": "Nobody else yet. Add a team, people, or everyone.",
+        "everyone": "Everyone in the organization",
+        "everyoneHelp": "Every member can use the agent",
+        "teamOption": "Team",
+        "unknownTeam": "A team that no longer exists",
+        "unknownPerson": "Someone who has left",
+        "level": {
+          "use": "Can use",
+          "edit": "Can edit"
+        },
+        "levelFor": "What {name} can do",
+        "remove": "Remove {name}",
+        "loadError": "Couldn't load who can use this agent",
+        "saveError": "Couldn't change who can use this agent",
+        "add": {
+          "label": "Add people or teams",
+          "placeholder": "Choose who to add",
+          "search": "Search teams and people",
+          "empty": "No one left to add",
+          "loading": "Loading…"
+        }
+      },
+      "channels": {
+        "title": "Channels",
+        "description": "Where the agent answers. Channels go live when you publish.",
+        "status": {
+          "off": "Off",
+          "active": "Live",
+          "pending_approval": "Waiting for an admin",
+          "paused": "Paused",
+          "error": "Error",
+          "disconnected": "Off"
+        },
+        "chat": {
+          "name": "SurefyOS chat",
+          "help": "People who can use the agent find it in Chat."
+        },
+        "api": {
+          "name": "API",
+          "help": "Call the agent from your own software.",
+          "turnOn": "Turn on the API",
+          "turnOnHelp": "The API goes live with the next publish.",
+          "requestHelp": "An admin approves turning on the API. The rest of the publish goes live meanwhile.",
+          "waiting": {
+            "title": "Waiting for an admin to approve turning on the API",
+            "description": "The agent is live in SurefyOS chat. The API starts answering once an admin approves it in Insights › Approvals."
+          },
+          "unavailable": {
+            "notPublished": {
+              "title": "Publish the agent to turn the API on",
+              "description": "The API answers only for a published agent."
+            },
+            "paused": {
+              "title": "This agent is paused",
+              "description": "The API doesn't answer while the agent is paused."
+            },
+            "archived": {
+              "title": "This agent is archived",
+              "description": "The API doesn't answer for an archived agent."
+            }
+          },
+          "exposes": "Anyone with a key that can run agents can get answers from {names}. There is no signed-in person on the API, so the agent uses its own knowledge and tools.",
+          "exposesNothing": "The agent has no knowledge or tools, so it answers from the model alone.",
+          "rateLimit": "{count} requests a minute, per key.",
+          "howTo": "How to call it",
+          "streamHelp": "Add ?stream=true to stream the answer as it is written.",
+          "copy": "Copy",
+          "copied": "Copied",
+          "keysAdmin": "Keys that can run agents are made in Settings › API keys.",
+          "keysBuilder": "Ask an admin for a key in Settings › API keys.",
+          "createKey": "Create a key"
+        }
+      },
+      "changes": {
+        "title": "What will be published",
+        "titleSince": "Changes since version {version}",
+        "description": "Unpublished changes never affect the people using the agent.",
+        "first": "This is the first version of the agent.",
+        "none": "Nothing has changed since the live version."
+      },
+      "form": {
+        "title": "Publish"
       }
     },
     "versions": {
@@ -194,6 +488,29 @@
       "empty": {
         "title": "No versions yet",
         "description": "Published versions appear here."
+      },
+      "loadError": "Couldn't load the versions",
+      "loadMore": "Load more",
+      "version": "Version {version}",
+      "live": "Live",
+      "publishedBy": "Published by {name} · {date}",
+      "unknownAuthor": "someone who has left",
+      "changes": "Changes",
+      "showChanges": "Show what version {version} changed",
+      "hideChanges": "Hide what version {version} changed",
+      "changesError": "Couldn't load what changed.",
+      "retry": "Retry",
+      "firstVersion": "The first published version.",
+      "noChanges": "Nothing changed from the version before.",
+      "rollback": {
+        "label": "Roll back",
+        "open": "Roll back to version {version}",
+        "title": "Roll back to version {version}?",
+        "description": "Version {version} goes live for everyone using this agent.",
+        "draft": "Your draft stays as it is, with its unpublished changes.",
+        "channels": "Channels answer with this version straight away.",
+        "confirm": "Roll back to v{version}",
+        "done": "Version {version} is live"
       }
     },
     "runs": {
@@ -258,6 +575,46 @@
       "description": "Keep mine saves your version on top of theirs. Review changes shows theirs and drops what you typed since.",
       "review": "Review changes",
       "keepMine": "Keep mine"
+    },
+    "changes": {
+      "tools": {
+        "added": "Tool {name} added",
+        "removed": "Tool {name} removed",
+        "changed": "Tool {name} changed",
+        "permission": "Tool {name}: {before} → {after}",
+        "turnedOn": "Tool {name} turned on",
+        "turnedOff": "Tool {name} turned off"
+      },
+      "permissions": {
+        "read_only": "Read only",
+        "ask_first": "Ask first",
+        "can_act": "Can act"
+      },
+      "rules": {
+        "added": "{name} added",
+        "removed": "{name} removed",
+        "changed": "{name} changed"
+      },
+      "fields": {
+        "instructions": "Instructions changed",
+        "tone": "Tone changed",
+        "conversationStarters": "Conversation starters changed",
+        "modelKey": "Model {before} → {after}",
+        "creativity": "Creativity {before} → {after}",
+        "doubleCheckModelKey": "Double-check model {before} → {after}",
+        "useVaultFallback": "Vault fallback turned {after}",
+        "knowledgeBaseIds": "Knowledge bases changed",
+        "citeSources": "Cite sources turned {after}",
+        "onlyFromKnowledge": "Only answer from knowledge turned {after}",
+        "thresholds": "Guard thresholds: {before} → {after}"
+      },
+      "values": {
+        "none": "none",
+        "on": "on",
+        "off": "off",
+        "followOrganization": "the organization's",
+        "thresholds": "auto {auto}% · review {review}%"
+      }
     }
   },
   "page": {

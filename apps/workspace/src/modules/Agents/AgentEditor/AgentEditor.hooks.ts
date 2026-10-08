@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { agentQueries, useSaveAgentDraftMutation, useUpdateAgentMutation } from '@/api/agents'
 import { ERROR_CODES } from '@surefy/contracts'
@@ -67,6 +67,8 @@ export function useAgentAutosave({ orgId, agent, isReadOnly }: AutosaveOptions) 
   const work = useRef<Work>(initial)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const save = useRef<() => Promise<void>>(() => Promise.resolve())
+  /** The save that is running, with the one queued behind it; `flush` waits for it. */
+  const inFlight = useRef<Promise<void> | null>(null)
 
   const [definition, setDefinition] = useState(initial.definition)
   const [meta, setMeta] = useState(initial.meta)
@@ -157,13 +159,17 @@ export function useAgentAutosave({ orgId, agent, isReadOnly }: AutosaveOptions) 
     w.isSaving = false
     if (w.isQueued) {
       w.isQueued = false
-      void save.current()
+      await save.current()
     }
   }
 
   // The timer and the unmount cleanup call the save of the latest render
   useEffect(() => {
-    save.current = runSave
+    save.current = () => {
+      const running = runSave()
+      inFlight.current = running
+      return running
+    }
   })
 
   // Leaving the editor saves what is pending; closing the page asks first
@@ -202,6 +208,22 @@ export function useAgentAutosave({ orgId, agent, isReadOnly }: AutosaveOptions) 
   /** Save again after a failure. */
   const retry = () => void save.current()
 
+  /**
+   * Saves what is pending, waiting for a save that is running. Returns the revision the draft is
+   * at on the server, or null when the latest edits could not be saved.
+   */
+  const flush = useCallback(async (): Promise<number | null> => {
+    clearTimeout(timer.current)
+    await inFlight.current
+    await save.current()
+    return work.current.isDefinitionDirty ? null : work.current.revision
+  }, [])
+
+  /** The draft moved to `revision` without an edit of ours: a publish bumps it. */
+  const adoptRevision = useCallback((revision: number) => {
+    work.current.revision = revision
+  }, [])
+
   /** Keep mine: send this draft on top of their revision. */
   const keepMine = () => {
     if (status.kind !== 'conflict') return
@@ -239,5 +261,9 @@ export function useAgentAutosave({ orgId, agent, isReadOnly }: AutosaveOptions) 
     retry,
     keepMine,
     reviewChanges,
+    flush,
+    adoptRevision,
+    /** Another person changed the agent first: shows the conflict, as a failed save would. */
+    reportConflict: showFailure,
   }
 }

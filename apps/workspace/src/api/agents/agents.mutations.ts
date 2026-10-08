@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import type { AgentDetailDto, SaveAgentDraftInput, UpdateAgentInput } from '@surefy/contracts'
+import type {
+  AgentDetailDto,
+  PublishAgentInput,
+  ReplaceAgentAccessInput,
+  SaveAgentDraftInput,
+  UpdateAgentInput,
+} from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { MutationHookOptions } from '@surefy/web-core/query'
 
@@ -61,6 +67,63 @@ export function useSaveAgentDraftMutation(
           : detail,
       )
       return queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
+    },
+  })
+}
+
+/**
+ * Publishes the draft. The agent is read again, because a publish changes its live version, its
+ * channels and the draft's revision; the caller reads the new revision from it.
+ */
+export function usePublishAgentMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: PublishAgentInput) => agentsApi.publish(apiClient, orgId, agentId, input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: agentKeys.detail(orgId, agentId) })
+      await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
+    },
+  })
+}
+
+/** Rolls back to an earlier version: the live version changes, the draft does not. */
+export function useRollbackAgentMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (versionId: string) => agentsApi.rollback(apiClient, orgId, agentId, { versionId }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: agentKeys.detail(orgId, agentId) })
+      await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
+    },
+  })
+}
+
+/** Saves the audience at once; a model that an added team may not use is refused. */
+export function useReplaceAgentAccessMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: ReplaceAgentAccessInput) =>
+      agentsApi.replaceAccess(apiClient, orgId, agentId, input),
+    onSuccess: async (access) => {
+      queryClient.setQueryData(agentKeys.access(orgId, agentId), access)
+      // "Model allowed for every audience" depends on who the agent is shared with
+      await queryClient.invalidateQueries({ queryKey: agentKeys.readiness(orgId, agentId) })
+      await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
     },
   })
 }

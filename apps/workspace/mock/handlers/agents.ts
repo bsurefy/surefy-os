@@ -2,32 +2,28 @@
 import {
   agentDetailDtoSchema,
   agentDtoSchema,
-  agentVersionDetailDtoSchema,
-  agentVersionDtoSchema,
   createEmptyAgentDefinition,
   ERROR_CODES,
   okResponse,
-  pageResponse,
-  PAGE_SIZE,
   saveAgentDraftDtoSchema,
   saveAgentDraftInputSchema,
   updateAgentInputSchema,
 } from '@surefy/contracts'
-import type { AgentDefinition, AgentDetailDto, AgentVersionDetailDto } from '@surefy/contracts'
+import type { AgentDefinition, AgentDetailDto } from '@surefy/contracts'
 import { defineFactory, fixtureUuid } from '@surefy/web-core/testing'
 import {
   defineMockDomain,
   defineMockHandler,
   mockError,
   mockOk,
-  mockPage,
 } from '@surefy/web-core/testing/mock'
 
+import { agentPublishingHandlers, resetAgentPublishingMock } from './agentPublishing'
 import { HELP_CENTER_ID, HR_POLICIES_ID } from './knowledge'
 import { MAYA, OMAR } from './shell.fixtures'
+import { SUPPORT_TEAM_ID } from './teams'
 
 const AGENT_KIND = 70
-const VERSION_KIND = 71
 const HTTP_NOT_FOUND = 404
 const HTTP_CONFLICT = 409
 const HTTP_SERVER_ERROR = 500
@@ -38,8 +34,6 @@ export const DRAFT_AGENT_ID = fixtureUuid(AGENT_KIND, 2)
 export const ARCHIVED_AGENT_ID = fixtureUuid(AGENT_KIND, 3)
 export const READ_ONLY_AGENT_ID = fixtureUuid(AGENT_KIND, 4)
 export const RETIRED_MODEL_AGENT_ID = fixtureUuid(AGENT_KIND, 5)
-
-const SUPPORT_LIVE_VERSION_ID = fixtureUuid(VERSION_KIND, 3)
 
 /** An active agent, live on version 1, with no draft changes, unless overridden. */
 export const agentDetailFactory = defineFactory(
@@ -98,6 +92,12 @@ function seedAgents(): AgentDetailDto[] {
       description: 'Answers order and refund questions from the help center.',
       liveVersion: 3,
       hasUnpublishedChanges: true,
+      sharedWith: {
+        everyone: false,
+        teams: [{ id: SUPPORT_TEAM_ID, name: 'Support' }],
+        teamCount: 1,
+        userCount: 0,
+      },
       draft: {
         definition: {
           ...SUPPORT_LIVE_DEFINITION,
@@ -175,23 +175,23 @@ let revisionBumped = false
 export function resetAgentsMock(): void {
   agents = seedAgents()
   revisionBumped = false
+  resetAgentPublishingMock()
 }
 
 const path = '/orgs/:orgId/agents'
 const find = (id: unknown) => agents.find((agent) => agent.id === id)
 const notFound = () => mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_NOT_FOUND, 'Agent not found')
 
-function liveVersionOf(agent: AgentDetailDto): AgentVersionDetailDto | null {
-  if (agent.liveVersion === null) return null
-  return {
-    id: agent.id === SUPPORT_AGENT_ID ? SUPPORT_LIVE_VERSION_ID : fixtureUuid(VERSION_KIND, 1),
-    version: agent.liveVersion,
-    notes: null,
-    publishedBy: MAYA,
-    publishedAt: '2026-01-10T09:00:00.000Z',
-    isLive: true,
-    definition: agent.id === SUPPORT_AGENT_ID ? SUPPORT_LIVE_DEFINITION : agent.draft.definition,
-  }
+/** The definition of the version that is live: for "Support triage" the one the draft was changed from. */
+const liveDefinitionOf = (agent: AgentDetailDto): AgentDefinition =>
+  agent.id === SUPPORT_AGENT_ID ? SUPPORT_LIVE_DEFINITION : agent.draft.definition
+
+const store = {
+  find,
+  save: (updated: AgentDetailDto) => {
+    agents = agents.map((agent) => (agent.id === updated.id ? updated : agent))
+  },
+  liveDefinitionOf,
 }
 
 /**
@@ -292,32 +292,5 @@ export const agentsDomain = defineMockDomain('agents', [
         mockError(HTTP_SERVER_ERROR, ERROR_CODES.INTERNAL_ERROR, 'The draft could not be saved'),
     },
   }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:agentId/versions`,
-    response: pageResponse(agentVersionDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = find(params.agentId)
-        if (!found) return notFound()
-        const live = liveVersionOf(found)
-        if (!live) return mockPage([], null)
-        return mockPage([agentVersionDtoSchema.parse(live)].slice(0, PAGE_SIZE.default), null)
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:agentId/versions/:versionId`,
-    response: okResponse(agentVersionDetailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = find(params.agentId)
-        const live = found ? liveVersionOf(found) : null
-        return live && live.id === params.versionId
-          ? mockOk(live)
-          : mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_VERSION_NOT_FOUND, 'Version not found')
-      },
-    },
-  }),
+  ...agentPublishingHandlers(store),
 ])

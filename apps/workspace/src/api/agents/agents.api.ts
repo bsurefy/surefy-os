@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
+  AgentAccessDto,
   AgentDetailDto,
   AgentDto,
+  AgentReadinessDto,
   AgentVersionDetailDto,
   AgentVersionDto,
+  PublishAgentInput,
+  PublishAgentResultDto,
+  ReplaceAgentAccessInput,
+  RollbackAgentInput,
   SaveAgentDraftDto,
   SaveAgentDraftInput,
   UpdateAgentInput,
@@ -43,4 +49,22 @@ export const agentsApi = {
     http.get<AgentVersionDetailDto>(`/orgs/${orgId}/agents/${agentId}/versions/${versionId}`, {
       signal,
     }),
+  /** Whether the draft can be published: the blocking items and the warnings. */
+  readiness: (http: HttpClient, orgId: string, agentId: string, signal?: AbortSignal) =>
+    http.get<AgentReadinessDto>(`/orgs/${orgId}/agents/${agentId}/readiness`, { signal }),
+  /** One transaction: a version, the live pointer, the channels. A failed publish changes nothing. */
+  publish: (http: HttpClient, orgId: string, agentId: string, input: PublishAgentInput) =>
+    http.post<PublishAgentResultDto>(`/orgs/${orgId}/agents/${agentId}/publish`, input),
+  /** Points the live version at an earlier one (T2); creates no version and leaves the draft alone. */
+  rollback: (http: HttpClient, orgId: string, agentId: string, input: RollbackAgentInput) =>
+    http.post<AgentDto>(`/orgs/${orgId}/agents/${agentId}/rollback`, input),
+  /** Who can use the agent: live metadata, not versioned. */
+  access: (http: HttpClient, orgId: string, agentId: string, signal?: AbortSignal) =>
+    http.get<AgentAccessDto>(`/orgs/${orgId}/agents/${agentId}/access`, { signal }),
+  replaceAccess: (
+    http: HttpClient,
+    orgId: string,
+    agentId: string,
+    input: ReplaceAgentAccessInput,
+  ) => http.put<AgentAccessDto>(`/orgs/${orgId}/agents/${agentId}/access`, input),
 }
