@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { authHeaders, type AuthHeaders } from './auth.js'
 import { createTestApp, type TestApp, type TestAppOptions } from './testApp.js'
-import { seedOrg, type SeededOrg, type TestMember } from '../factories/index.js'
+import { seedApiKey, seedOrg, type SeededOrg, type TestMember } from '../factories/index.js'
 
 import type { CrossTenantSubjects } from '../isolation/index.js'
 
@@ -15,7 +15,7 @@ export interface TwoOrgSetup extends TestApp {
   b: SeededOrg<'bea'>
   /** The session cookie of a seeded member. */
   sessionOf: (member: TestMember) => AuthHeaders
-  /** B's Owner against A's resources, for `assertRouteIsolation`. */
+  /** B's Owner (and an API key of B) against A's resources, for `assertRouteIsolation`. */
   subjects: (params: Record<string, string>, markers: readonly string[]) => CrossTenantSubjects
 }
 
@@ -27,6 +27,7 @@ export async function setupTwoOrgs(options: TestAppOptions = {}): Promise<TwoOrg
     members: { olivia: 'owner', adam: 'admin', uma: 'user' },
   })
   const b = await seedOrg(container, { name: 'Beta Works', members: { bea: 'owner' } })
+  const keyOfB = await seedApiKey(container, b.id, { createdByUserId: b.members.bea.id })
   const sessions = new Map<string, AuthHeaders>()
   for (const member of [...Object.values(a.members), ...Object.values(b.members)]) {
     sessions.set(member.id, await authHeaders(app, member))
@@ -43,7 +44,7 @@ export async function setupTwoOrgs(options: TestAppOptions = {}): Promise<TwoOrg
     sessionOf,
     subjects: (params, markers) => ({
       orgA: { id: a.id, params, markers: [...markers] },
-      orgB: { id: b.id, session: sessionOf(b.members.bea) },
+      orgB: { id: b.id, session: sessionOf(b.members.bea), apiKey: keyOfB.headers },
     }),
   }
 }

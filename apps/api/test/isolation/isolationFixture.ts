@@ -20,6 +20,7 @@ import {
 } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
+  apiKeyCreatedDtoSchema,
   credentialDtoSchema,
   dataRequestDtoSchema,
   exportDtoSchema,
@@ -238,6 +239,16 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
   ).data
   if (model === undefined) throw new Error('no vault model of A')
 
+  // An API key of A, created through the API like a person would
+  const apiKey = expectData(
+    await request(app, 'POST', `${orgUrl}/api-keys`, {
+      headers,
+      payload: { name: 'Secret Website Key', scopes: ['agents:invoke'] },
+    }),
+    201,
+    apiKeyCreatedDtoSchema,
+  )
+
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
   // request, a background export, a sealed chain head and a purge record.
   const policy = await request(app, 'PUT', `${orgUrl}/access/policy`, {
@@ -391,6 +402,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       dataRequestId: dataRequest.id,
       exportId: dataExport.id,
       credentialId: credential.id,
+      keyId: apiKey.apiKey.id,
       serverId: server.id,
       modelId: model.id,
       chatId: chat.chatId,
@@ -417,6 +429,10 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       dataRequest.id,
       dataExport.id,
       credential.id,
+      apiKey.apiKey.id,
+      'Secret Website Key',
+      apiKey.secret,
+      apiKey.apiKey.keyPrefix,
       'Secret OpenAI',
       VAULT_SECRET,
       server.id,

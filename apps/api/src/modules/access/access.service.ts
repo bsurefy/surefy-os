@@ -10,6 +10,7 @@ import {
   type AccessPolicyDto,
   type Feature,
   type MemberEffectiveAccessDto,
+  type Permission,
   type TeamEffectiveAccessDto,
 } from '@surefy/contracts'
 
@@ -88,8 +89,9 @@ export class AccessService implements TenantAccessResolver {
    * access; then every extension access check runs.
    */
   async resolve(actor: ActorContext, orgId: string): Promise<EffectiveAccess | null> {
+    if (actor.apiKey !== undefined) return this.resolveApiKey(actor.apiKey, orgId)
     const { userId } = actor
-    if (userId === null) return null // API keys (V1) and access grants arrive with their resolvers
+    if (userId === null) return null // access grants arrive with their resolver
     const header = await this.deps.db.tenant(orgId, (tx) =>
       this.deps.organizations.findAccessHeaderInTx(tx, orgId),
     )
@@ -105,6 +107,58 @@ export class AccessService implements TenantAccessResolver {
     }
     for (const check of this.deps.hooks.accessChecks()) await check.check({ actor, orgId, access })
     return access
+  }
+
+  /**
+   * An API key's access (access-and-entitlements.md, "API keys and grants"): the organization level
+   * only, with no role and no teams. The key's scopes are cut down to what the organization's
+   * modules and features allow at the time of use. Nothing for another organization's key or an
+   * organization that is not active.
+   */
+  private async resolveApiKey(
+    apiKey: NonNullable<ActorContext['apiKey']>,
+    orgId: string,
+  ): Promise<EffectiveAccess | null> {
+    if (apiKey.orgId !== orgId) return null
+    const header = await this.deps.db.tenant(orgId, (tx) =>
+      this.deps.organizations.findAccessHeaderInTx(tx, orgId),
+    )
+    if (header?.status !== 'active') return null
+    return this.deps.cache.wrap(
+      versionedKey(orgScope(orgId), header.accessVersion, 'access', 'key', apiKey.id),
+      EFFECTIVE_ACCESS_TTL_SECONDS,
+      () => this.computeForApiKey(orgId, apiKey.permissions),
+    )
+  }
+
+  private async computeForApiKey(
+    orgId: string,
+    scopes: readonly Permission[],
+  ): Promise<EffectiveAccess> {
+    const grant = await this.deps.entitlements.getEntitlements({ orgId })
+    return this.deps.db.tenant(orgId, async (tx) => {
+      const policy = await this.deps.accessRepository.find(tx, orgId, null)
+      const level = this.organizationLevel(grant, policy?.policy)
+      return {
+        role: null,
+        teamIds: [],
+        primaryTeamId: null,
+        permissions: filterPermissions(scopes, level.modules, level.features),
+        modules: level.modules,
+        features: grant.readOnly ? [] : level.features,
+        readOnlyFeatures: grant.readOnly ? level.features : [],
+        license: grant.license,
+        allowedModelIds: await this.deps.models.allowedFor(tx, {
+          orgId,
+          userId: null,
+          teamIds: [],
+          providersAllowed: level.providersAllowed,
+          localModels: level.providerFlags.localModels,
+        }),
+        limits: level.limits,
+        reasons: level.reasons,
+      }
+    })
   }
 
   /**

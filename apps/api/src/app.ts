@@ -66,7 +66,11 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
   await app.register(rateLimitPlugin, { redis: container.cache.client })
   await app.register(errorHandlerPlugin)
   await app.register(replyPlugin)
-  await app.register(sessionPlugin, { config, auth: container.auth })
+  await app.register(sessionPlugin, {
+    config,
+    auth: container.auth,
+    apiKeys: container.modules.apiKeys.authenticator,
+  })
   await app.register(accessPlugin, { tenants: container.tenants, guardedPrefix: API_PREFIX })
   await app.register(openapiPlugin, { config })
   await app.register(healthPlugin, {
@@ -86,6 +90,7 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       await api.register(container.modules.teams.routes)
       await api.register(container.modules.members.routes)
       await api.register(container.modules.access.routes)
+      await api.register(container.modules.apiKeys.routes)
       await api.register(container.modules.vault.routes)
       await api.register(container.modules.chats.routes)
       await api.register(container.modules.usage.routes)

@@ -15,6 +15,9 @@ export type AuthHeaders = Record<string, string>
 /** The workspace origin of the test environment: Better Auth trusts it for sign-in. */
 export const TEST_APP_ORIGIN = validEnv.APP_ORIGIN
 
+/** The host of `API_PUBLIC_URL`: the only host that accepts an API key. */
+export const TEST_API_HOST = new URL(validEnv.API_PUBLIC_URL).host
+
 /** The session cookie Better Auth sets (`cookiePrefix: 'surefy'`, not secure outside production). */
 export const SESSION_COOKIE = 'surefy.session_token'
 
@@ -23,7 +26,9 @@ export const SESSION_COOKIE = 'surefy.session_token'
  * (authentication.md); users sign in through Better Auth with `app.inject`.
  */
 export function authHeaders(app: FastifyInstance, actor: TestActor): Promise<AuthHeaders> {
-  if (actor.kind === 'apiKey') return Promise.resolve({ authorization: `Bearer ${actor.token}` })
+  if (actor.kind === 'apiKey') {
+    return Promise.resolve({ authorization: `Bearer ${actor.token}`, host: TEST_API_HOST })
+  }
   return signIn(app, actor)
 }
 

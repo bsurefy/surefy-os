@@ -15,6 +15,7 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import { createApiKeysModule } from './modules/apiKeys/index.js'
 import { createAuditModule, createInstallAudit } from './modules/audit/index.js'
 import {
   createAuthEmails,
@@ -48,6 +49,7 @@ import {
   createVaultOrganizationSetup,
   VaultRepository,
 } from './modules/vault/index.js'
+import { publicApiHost } from './plugins/security.plugin.js'
 
 import type { Config } from './core/config/index.js'
 import type { TenantAccessResolver } from './plugins/access.plugin.js'
@@ -182,6 +184,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     audit: audit.service,
     models: modelGrants.service,
   })
+  const apiKeys = createApiKeysModule({
+    db,
+    cache,
+    logger,
+    access: access.service,
+    users,
+    audit: audit.service,
+    publicApiHost: publicApiHost(config),
+  })
   const vault = createVaultModule({
     db,
     crypto,
@@ -266,6 +277,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     members,
     install,
     access,
+    apiKeys,
     vault,
     modelGateway,
     chats,

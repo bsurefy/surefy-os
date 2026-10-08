@@ -277,6 +277,20 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'POST /api/v1/orgs/:orgId/exports/:exportId/download': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/data-control/retention': { class: 'orgScoped' },
 
+  // apiKeys
+  'GET /api/v1/orgs/:orgId/api-keys': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/api-keys': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder key', scopes: ['agents:invoke'] }),
+  },
+  'GET /api/v1/orgs/:orgId/api-keys/:keyId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/api-keys/:keyId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Taken over' }),
+  },
+  'GET /api/v1/orgs/:orgId/api-keys/:keyId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/api-keys/:keyId/revoke': { class: 'orgScoped' },
+
   // vault
   'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/vault/credentials': { class: 'orgScoped' },

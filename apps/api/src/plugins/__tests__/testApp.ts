@@ -130,6 +130,7 @@ export async function createTestApp(options: TestAppOptions = {}) {
       teams: { routes: noRoutes },
       members: { routes: noRoutes },
       access: { routes: noRoutes },
+      apiKeys: { routes: noRoutes, authenticator: { resolve: () => Promise.resolve(null) } },
       vault: { routes: noRoutes },
       chats: { routes: noRoutes },
       usage: { routes: noRoutes },

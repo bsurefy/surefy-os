@@ -20,5 +20,6 @@ export {
   type SeedOrgOptions,
   type TestMember,
 } from './organization.factory.js'
+export { seedApiKey, type SeededApiKey, type SeedApiKeyOptions } from './apiKey.factory.js'
 export { createTestUser, type TestUser, type TestUserOptions } from './user.factory.js'
 export { newId, testApiKeyToken, testEmail, testPassword, testSlug } from './values.js'

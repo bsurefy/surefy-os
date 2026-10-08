@@ -15,6 +15,7 @@ const workers = registerJobs(container, [
   ...container.modules.notifications.jobs,
   ...container.modules.audit.jobs,
   ...container.modules.dataControl.jobs,
+  ...container.modules.apiKeys.jobs,
   ...container.modules.vault.jobs,
   ...container.modules.chats.jobs,
   ...container.modules.usage.jobs,

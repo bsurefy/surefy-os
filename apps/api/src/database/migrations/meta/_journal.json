@@ -162,6 +162,20 @@
       "when": 1791373047406,
       "tag": "0022_bridge-naming",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791456394422,
+      "tag": "0023_api-keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791456399041,
+      "tag": "0024_api-keys-security",
+      "breakpoints": true
     }
   ]
 }

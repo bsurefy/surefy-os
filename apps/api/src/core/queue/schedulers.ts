@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { QUEUES, type QueueName } from '@/constants/queues.js'
+import { API_KEYS_JOBS, LAST_USED_FLUSH_EVERY_MS } from '@/modules/apiKeys/apiKeys.constants.js'
 import {
   SEAL_AUDIT_LOG_JOB_NAME,
   VERIFY_AUDIT_LOG_JOB_NAME,
@@ -104,6 +105,18 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     queue: QUEUES.MAINTENANCE,
     repeat: { pattern: '50 3 * * *' },
     job: { name: VAULT_JOBS.SYNC_MODELS },
+  },
+  {
+    id: 'api-keys-last-used',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { every: LAST_USED_FLUSH_EVERY_MS },
+    job: { name: API_KEYS_JOBS.FLUSH_LAST_USED },
+  },
+  {
+    id: 'api-keys-cleanup-daily',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '20 4 * * *' },
+    job: { name: API_KEYS_JOBS.CLEANUP },
   },
   KNOWLEDGE_SCHEDULER,
   OUTBOX_SCHEDULER,
