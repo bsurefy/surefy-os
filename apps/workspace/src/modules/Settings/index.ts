@@ -4,7 +4,10 @@
 // files it needs directly.
 export { default as AccessSettings } from './AccessSettings'
 export { default as ApiKeysSettings } from './ApiKeysSettings'
-export { default as ConnectionsSettings } from './ConnectionsSettings'
+export {
+  default as ConnectionsSettings,
+  ConnectingPage as ConnectionsOAuthCallback,
+} from './ConnectionsSettings'
 export { default as DataPrivacySettings } from './DataPrivacySettings'
 export { default as GeneralSettings } from './GeneralSettings'
 export { default as InstallSettings } from './InstallSettings'

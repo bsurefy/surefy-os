@@ -718,9 +718,273 @@
   "connections": {
     "title": "Connections",
     "description": "Accounts in other apps that agents, knowledge sources and channels use.",
+    "offline": "You're offline. Connections stay visible; adding, reconnecting and disconnecting need a connection.",
+    "add": {
+      "open": "Add connection",
+      "title": "Add connection",
+      "titleApp": "Connect {app}",
+      "step": "Step {step} of {total}",
+      "connected": "Connected {name}",
+      "connectedAs": "Connected as {account}",
+      "app": {
+        "search": "Search apps",
+        "noMatch": "No app matches your search.",
+        "loadError": "Couldn't load the apps",
+        "notSetUp": "Not set up on this install · Ask an install administrator",
+        "groups": {
+          "knowledge": "Knowledge sources",
+          "channels": "Channels",
+          "tools": "Tools"
+        },
+        "hints": {
+          "google-drive": "Sync files into knowledge",
+          "notion": "Sync pages into knowledge",
+          "slack": "Let an agent answer in Slack",
+          "whatsapp": "Let an agent answer on WhatsApp",
+          "http": "Call your own API as an agent tool",
+          "mcp": "Give agents the tools of an MCP server"
+        }
+      },
+      "signIn": {
+        "method": "How to sign in",
+        "methods": {
+          "oauth": "Sign in",
+          "clientCredentials": "Client ID and secret",
+          "api_key": "API key",
+          "bearer": "Token",
+          "basic": "Username and password",
+          "none": "No sign-in"
+        },
+        "back": "Back",
+        "next": "Next"
+      },
+      "scope": {
+        "label": "Who can use it",
+        "personal": {
+          "name": "Just me",
+          "description": "Only you, and the agents and flows you build, can use it."
+        },
+        "team": {
+          "name": "A team",
+          "description": "Members of the team you pick can use it."
+        },
+        "organization": {
+          "name": "Organization",
+          "description": "Anyone allowed to use the tool, source or channel through their access."
+        },
+        "teamLoading": "Loading teams…",
+        "teamPlaceholder": "Choose a team",
+        "back": "Back",
+        "continueWith": "Continue with {app}",
+        "save": "Connect",
+        "reconnectIt": "Show connections",
+        "teamSelect": "Team"
+      }
+    },
+    "fields": {
+      "show": "Show",
+      "hide": "Hide",
+      "secretHelp": "You won't be able to see this again.",
+      "name": "Name",
+      "nameOptional": "Name (optional)",
+      "namePlaceholderOauth": "Defaults to the {app} account's name",
+      "baseUrl": "Address",
+      "baseUrlHelp": "Use an https:// address. A plain http:// address works only for hosts an install administrator allowed.",
+      "apiKey": "API key",
+      "token": "Token",
+      "username": "Username",
+      "password": "Password",
+      "tokenUrl": "Token URL",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "oauthScopes": "Scopes (optional)",
+      "oauthScopesHelp": "Separate scopes with spaces.",
+      "oauthHelp": "You'll continue to {app} to sign in, then come back here.",
+      "noneHelp": "This address needs no sign-in.",
+      "optionalSuffix": "(optional)",
+      "extra": {
+        "whatsapp": {
+          "phoneNumberId": "Phone number ID",
+          "businessAccountId": "Business account ID"
+        }
+      }
+    },
+    "reconnect": {
+      "title": "Reconnect {name}",
+      "description": "Enter new credentials. They're checked before anything is stored.",
+      "oauthDescription": "Sign in again to {account}. It must be the same account.",
+      "cancel": "Cancel",
+      "continueWith": "Continue with {app}",
+      "submit": "Reconnect",
+      "reconnected": "Reconnected {name}"
+    },
+    "rename": {
+      "title": "Rename connection",
+      "titleWithAddress": "Rename connection or edit its address",
+      "description": "The name is how people pick this connection.",
+      "name": "Name",
+      "baseUrl": "Address",
+      "baseUrlHelp": "Use an https:// address.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "renamed": "Saved {name}"
+    },
+    "disconnect": {
+      "title": "Disconnect {name}?",
+      "description": "This stops everything below from using it. A disconnected connection can't be reconnected; adding it again creates a new one.",
+      "unused": "Nothing uses this connection. A disconnected connection can't be reconnected; adding it again creates a new one.",
+      "confirm": "Disconnect",
+      "disconnected": "Disconnected {name}",
+      "impactUnavailable": "Couldn't load what depends on this.",
+      "retry": "Retry",
+      "types": {
+        "agent": "{count, plural, one {# agent} other {# agents}} will lose a tool: {names}{more, plural, =0 {} other { and # more}}",
+        "flow": "{count, plural, one {# flow} other {# flows}} will pause: {names}{more, plural, =0 {} other { and # more}}",
+        "knowledge_source": "{count, plural, one {# knowledge source} other {# knowledge sources}} will stop syncing: {names}{more, plural, =0 {} other { and # more}}",
+        "channel": "{count, plural, one {# channel} other {# channels}} will stop answering: {names}{more, plural, =0 {} other { and # more}}",
+        "other": "{count, plural, one {# {type}} other {# {type}}} will stop working"
+      }
+    },
+    "usedBy": {
+      "title": "What uses {name}",
+      "description": "Agents, flows, knowledge sources and channels that use this connection.",
+      "loadError": "Couldn't load what uses this connection",
+      "none": "Nothing uses this connection yet.",
+      "more": "and {count} more",
+      "close": "Close",
+      "types": {
+        "agent": "{count, plural, one {Agent} other {Agents}}",
+        "flow": "{count, plural, one {Flow} other {Flows}}",
+        "knowledge_source": "{count, plural, one {Knowledge source} other {Knowledge sources}}",
+        "channel": "{count, plural, one {Channel} other {Channels}}",
+        "other": "{type}"
+      }
+    },
+    "callback": {
+      "title": "Connecting",
+      "connecting": "Connecting…",
+      "connected": "Connected {account}",
+      "reconnected": "Reconnected {account}",
+      "declined": {
+        "title": "The app didn't finish connecting",
+        "description": "The sign-in wasn't completed. Nothing was saved."
+      },
+      "expired": {
+        "title": "That sign-in took too long",
+        "description": "Sign-in attempts last 10 minutes. Nothing was saved."
+      },
+      "failed": {
+        "title": "Couldn't finish connecting"
+      },
+      "startAgain": "Start again",
+      "tryAgain": "Try again"
+    },
+    "banner": {
+      "title": "{count, plural, one {# connection needs} other {# connections need}} attention",
+      "show": "Show"
+    },
+    "search": {
+      "label": "Search connections",
+      "placeholder": "Search by name"
+    },
+    "filters": {
+      "app": "App",
+      "anyApp": "Any app",
+      "kind": "Used for",
+      "anyKind": "Used for: any",
+      "scope": "Who can use it",
+      "anyScope": "Who can use it: any",
+      "status": "Status"
+    },
+    "kindFilters": {
+      "knowledge_connector": "Knowledge sources",
+      "api_tool": "API tools",
+      "mcp_server": "MCP servers",
+      "channel": "Channels"
+    },
+    "scopeFilters": {
+      "personal": "Just me",
+      "team": "A team",
+      "organization": "Organization"
+    },
+    "statusFilters": {
+      "all": "All statuses",
+      "active": "Active",
+      "attention": "Needs attention",
+      "disconnected": "Disconnected"
+    },
+    "tableLabel": "Connections",
+    "columns": {
+      "connection": "Connection",
+      "usedFor": "Used for",
+      "whoCanUse": "Who can use it",
+      "connectedBy": "Connected by",
+      "usedBy": "Used by",
+      "lastUsed": "Last used",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "test": "Test",
+      "reconnect": "Reconnect",
+      "rename": "Rename",
+      "renameAndAddress": "Rename or edit address",
+      "disconnect": "Disconnect…"
+    },
+    "kinds": {
+      "knowledge_connector": "Knowledge source",
+      "api_tool": "API tool",
+      "mcp_server": "MCP server",
+      "channel": "Channel",
+      "bridge": "Bridge"
+    },
+    "scope": {
+      "personal": "Just me",
+      "personalOwner": "Just me ({owner})",
+      "team": "Team",
+      "organization": "Organization"
+    },
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "error": "Error",
+      "revoked": "Disconnected"
+    },
+    "reasons": {
+      "expired": "Sign-in expired",
+      "refreshFailed": "The app refused a fresh sign-in",
+      "rejected": "The app rejects calls",
+      "unreachable": "Nothing answers at the address",
+      "unknown": "The app didn't say why"
+    },
+    "usedByCount": "{count, plural, one {# use} other {# uses}}",
+    "usedByNone": "None",
+    "neverUsed": "Never",
+    "formerMember": "Former member",
+    "loadError": "Couldn't load connections",
+    "loadMore": "Load more",
+    "noResults": {
+      "title": "No connections match",
+      "description": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
     "empty": {
-      "title": "No connections yet",
-      "description": "Connect the apps your agents and knowledge need."
+      "title": "Connect the apps your agents and knowledge need",
+      "description": "Connect an account once, then let knowledge sources, agent tools and channels use it."
+    },
+    "test": {
+      "ok": "{name} is working",
+      "failed": "{name} failed its check: {reason}",
+      "unknownReason": "no reason given"
+    },
+    "apps": {
+      "google-drive": "Google Drive",
+      "notion": "Notion",
+      "slack": "Slack",
+      "whatsapp": "WhatsApp",
+      "http": "Custom API",
+      "mcp": "MCP server"
     }
   },
   "apiKeys": {
