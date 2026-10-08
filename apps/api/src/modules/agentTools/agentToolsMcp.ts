@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { McpError, MCP_TOOLS_MAX } from '@/integrations/mcp/index.js'
 import { OutboundError } from '@/modules/connections/index.js'
-import { AGENT_RUNS_ERROR_CODES, CONNECTIONS_ERROR_CODES } from '@surefy/contracts'
-import type { AgentMcpAction } from '@surefy/contracts'
+import {
+  AGENT_RUNS_ERROR_CODES,
+  AGENTS_ERROR_CODES,
+  CONNECTIONS_ERROR_CODES,
+} from '@surefy/contracts'
+import type { AgentMcpAction, AgentToolFailureCode } from '@surefy/contracts'
 
 import { MCP_TOOL_PROVIDER, TRANSIENT_STATUSES } from './agentTools.constants.js'
 import { slug } from './agentTools.names.js'
@@ -31,7 +35,8 @@ export interface McpToolAdapterDeps {
 
 /** Discovery of an MCP server's tools, as data: the actions found, or why not. */
 export type Discovery =
-  { ok: true; tools: McpToolInfo[] } | { ok: false; code: string; message: string }
+  | { ok: true; tools: McpToolInfo[] }
+  | { ok: false; code: string; message: string; reason?: AgentToolFailureCode }
 
 const OPEN_OBJECT = { type: 'object', additionalProperties: true } as const
 
@@ -44,13 +49,17 @@ function describeFailure(error: unknown, target: string): Failed | null {
         CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
         'The server refused the connection’s credentials',
         target,
+        { reason: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED },
       )
     case 'http':
       return failed(AGENT_RUNS_ERROR_CODES.AGENT_TOOL_FAILED, error.message, target, {
         transient: error.status !== null && TRANSIENT_STATUSES.has(error.status),
+        reason: AGENTS_ERROR_CODES.AGENT_TOOL_HTTP_ERROR,
       })
     default:
-      return failed(AGENT_RUNS_ERROR_CODES.AGENT_TOOL_FAILED, error.message, target)
+      return failed(AGENT_RUNS_ERROR_CODES.AGENT_TOOL_FAILED, error.message, target, {
+        reason: AGENTS_ERROR_CODES.AGENT_TOOL_BAD_RESPONSE,
+      })
   }
 }
 
@@ -98,7 +107,12 @@ export class McpToolAdapter implements ToolAdapter {
       const scrub = createScrubber(opened.connection.secret, headers)
       const failure = describeFailure(error, target)
       if (failure === null) throw error
-      return { ok: false, code: failure.code, message: scrub(failure.message) }
+      return {
+        ok: false,
+        code: failure.code,
+        message: scrub(failure.message),
+        ...(failure.reason === undefined ? {} : { reason: failure.reason }),
+      }
     }
   }
 

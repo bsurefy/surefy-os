@@ -8,10 +8,14 @@ import type {
   AgentDefinition,
   AgentTrustDto,
   ConnectionStatus,
+  DiscoverMcpActionsDto,
+  DiscoverMcpActionsInput,
   EffectiveAccessDto,
   ModelRefDto,
   OrgRole,
   TeamRefDto,
+  TestAgentToolDto,
+  TestAgentToolInput,
   UserRefDto,
 } from '@surefy/contracts'
 
@@ -106,6 +110,18 @@ export interface AgentsGuard {
     tx: DbExecutor,
     orgId: string,
   ): Promise<{ autoBp: number; reviewBp: number }>
+}
+
+/** The editor's test call and MCP discovery (agentTools module). */
+export interface AgentsToolProbe {
+  testApi(
+    ctx: { orgId: string; principal: { userId: string | null; teamIds: readonly string[] } },
+    input: TestAgentToolInput,
+  ): Promise<TestAgentToolDto>
+  discover(
+    ctx: { orgId: string; principal: { userId: string | null; teamIds: readonly string[] } },
+    input: DiscoverMcpActionsInput,
+  ): Promise<DiscoverMcpActionsDto>
 }
 
 /** Writes an outbox event in the caller's transaction (outbox module). */

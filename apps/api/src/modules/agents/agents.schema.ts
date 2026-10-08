@@ -16,6 +16,8 @@ import {
   agentVersionParamsSchema,
   createAgentInputSchema,
   deleteAgentQuerySchema,
+  discoverMcpActionsDtoSchema,
+  discoverMcpActionsInputSchema,
   duplicateAgentInputSchema,
   listAgentsQuerySchema,
   listAgentVersionsQuerySchema,
@@ -29,6 +31,8 @@ import {
   rollbackAgentInputSchema,
   saveAgentDraftDtoSchema,
   saveAgentDraftInputSchema,
+  testAgentToolDtoSchema,
+  testAgentToolInputSchema,
   updateAgentInputSchema,
   usableAgentDtoSchema,
 } from '@surefy/contracts'
@@ -189,4 +193,22 @@ export const replaceAccessRoute = {
   params: agentParamsSchema,
   body: replaceAgentAccessInputSchema,
   response: { 200: okResponse(agentAccessDtoSchema) },
+}
+
+// ── Trying a tool ───────────────────────────────────────────────────────────────────────────────
+
+export const testAgentToolRoute = {
+  tags: TAGS,
+  summary: 'Send the request an API tool would send, as it stands in the editor',
+  params: agentParamsSchema,
+  body: testAgentToolInputSchema,
+  response: { 200: okResponse(testAgentToolDtoSchema) },
+}
+
+export const discoverMcpActionsRoute = {
+  tags: TAGS,
+  summary: 'Connect to an MCP server and list the actions it offers',
+  params: agentParamsSchema,
+  body: discoverMcpActionsInputSchema,
+  response: { 200: okResponse(discoverMcpActionsDtoSchema) },
 }

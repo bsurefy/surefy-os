@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { AppError } from '@/core/errors/index.js'
 import { connectionAuthHeaders } from '@/modules/connections/index.js'
-import { AGENT_RUNS_ERROR_CODES } from '@surefy/contracts'
-import type { ConnectionSecret } from '@surefy/contracts'
+import {
+  AGENT_RUNS_ERROR_CODES,
+  AGENT_TOOL_FAILURE_CODES,
+  AGENTS_ERROR_CODES,
+  CONNECTIONS_ERROR_CODES,
+} from '@surefy/contracts'
+import type { AgentToolFailureCode, ConnectionSecret } from '@surefy/contracts'
 
 import type { Attempt, AgentToolsConnections, AgentToolsContext } from './agentTools.types.js'
 import type { OutboundError } from '@/modules/connections/index.js'
@@ -16,7 +21,12 @@ export function failed(
   code: string,
   message: string,
   target: string,
-  options: { content?: string; transient?: boolean; beforeSend?: boolean } = {},
+  options: {
+    content?: string
+    transient?: boolean
+    beforeSend?: boolean
+    reason?: AgentToolFailureCode
+  } = {},
 ): Failed {
   return {
     ok: false,
@@ -26,8 +36,13 @@ export function failed(
     target,
     transient: options.transient ?? false,
     beforeSend: options.beforeSend ?? false,
+    ...(options.reason === undefined ? {} : { reason: options.reason }),
   }
 }
+
+/** The code, when it is one the editor's test call and discovery name. */
+export const asFailureReason = (code: string): AgentToolFailureCode | undefined =>
+  AGENT_TOOL_FAILURE_CODES.find((candidate) => candidate === code)
 
 /** A failure of the safe outbound client, as the model and the timeline should read it. */
 export function outboundFailure(error: OutboundError, target: string): Failed {
@@ -37,19 +52,21 @@ export function outboundFailure(error: OutboundError, target: string): Failed {
         AGENT_RUNS_ERROR_CODES.AGENT_TOOL_FAILED,
         'This address cannot be called from SurefyOS',
         target,
+        { reason: CONNECTIONS_ERROR_CODES.CONNECTION_BASE_URL_NOT_ALLOWED },
       )
     case 'timeout':
       return failed(
         AGENT_RUNS_ERROR_CODES.AGENT_TOOL_TIMEOUT,
         'The server did not answer in time',
         target,
-        { transient: true },
+        { transient: true, reason: AGENT_RUNS_ERROR_CODES.AGENT_TOOL_TIMEOUT },
       )
     case 'too_large':
       return failed(
         AGENT_RUNS_ERROR_CODES.AGENT_TOOL_FAILED,
         'The answer is larger than SurefyOS reads',
         target,
+        { reason: AGENTS_ERROR_CODES.AGENT_TOOL_BAD_RESPONSE },
       )
     case 'unreachable':
       return failed(
@@ -57,7 +74,11 @@ export function outboundFailure(error: OutboundError, target: string): Failed {
         'The server could not be reached',
         target,
         // a refused connection or an unknown host: the request never left
-        { transient: true, beforeSend: /^(connect|getaddrinfo)\b/i.test(error.message) },
+        {
+          transient: true,
+          beforeSend: /^(connect|getaddrinfo)\b/i.test(error.message),
+          reason: CONNECTIONS_ERROR_CODES.CONNECTION_UNREACHABLE,
+        },
       )
   }
 }
@@ -93,7 +114,16 @@ export async function openToolConnection(
   } catch (error) {
     // an expired, revoked or forbidden connection fails the call with its own code
     if (error instanceof AppError) {
-      return { ok: false, failure: failed(error.code, error.message, use.target) }
+      const reason = asFailureReason(error.code)
+      return {
+        ok: false,
+        failure: failed(
+          error.code,
+          error.message,
+          use.target,
+          reason === undefined ? {} : { reason },
+        ),
+      }
     }
     throw error
   }
@@ -108,6 +138,7 @@ export async function openToolConnection(
         AGENT_RUNS_ERROR_CODES.AGENT_TOOL_FAILED,
         'This connection cannot be used with this address',
         use.target,
+        { reason: CONNECTIONS_ERROR_CODES.CONNECTION_BASE_URL_NOT_ALLOWED },
       ),
     }
   }

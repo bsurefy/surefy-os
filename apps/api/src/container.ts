@@ -309,6 +309,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     models: agentModels,
     connections: connections.service,
     guard: guard.settings,
+    toolProbe: agentTools.probe,
     templates: templates.service,
     audit: audit.service,
     outbox: () => outbox.service,

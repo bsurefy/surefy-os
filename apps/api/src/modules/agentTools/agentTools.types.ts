@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { AgentTool, AgentToolPermission } from '@surefy/contracts'
+import type { AgentTool, AgentToolFailureCode, AgentToolPermission } from '@surefy/contracts'
 
 import type { ConnectionPrincipal, ConnectionUse } from '@/modules/connections/index.js'
 
@@ -80,6 +80,8 @@ export type Attempt =
       transient: boolean
       /** Nothing reached the target, so repeating is safe even for a tool that acts. */
       beforeSend: boolean
+      /** Why, in the words of the editor's test call and discovery; unset for failures of a run. */
+      reason?: AgentToolFailureCode
     }
 
 export interface ToolAdapter {

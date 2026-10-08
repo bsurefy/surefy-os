@@ -14,3 +14,4 @@ export type {
   ToolOutcome,
   ToolSuccess,
 } from './agentTools.types.js'
+export type { ToolProbe } from './agentToolsProbe.js'

@@ -6,6 +6,7 @@ import {
   archiveAgentRoute,
   createAgentRoute,
   deleteAgentRoute,
+  discoverMcpActionsRoute,
   duplicateAgentRoute,
   getAccessRoute,
   getAgentRoute,
@@ -22,6 +23,7 @@ import {
   resumeAgentRoute,
   rollbackAgentRoute,
   saveDraftRoute,
+  testAgentToolRoute,
   updateAgentRoute,
   versionDiffRoute,
 } from './agents.schema.js'
@@ -73,6 +75,13 @@ export function agentsRoutes(c: AgentsController): FastifyPluginAsyncZod {
       `${one}/versions/:versionId/diff`,
       { schema: versionDiffRoute, preHandler: read },
       c.versionDiff,
+    )
+
+    app.post(`${one}/tools/test`, { schema: testAgentToolRoute, preHandler: edit }, c.testTool)
+    app.post(
+      `${one}/tools/discover`,
+      { schema: discoverMcpActionsRoute, preHandler: edit },
+      c.discoverTools,
     )
 
     app.get(`${one}/access`, { schema: getAccessRoute, preHandler: read }, c.getAccess)

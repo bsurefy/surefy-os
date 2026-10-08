@@ -386,6 +386,20 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'GET /api/v1/orgs/:orgId/agents/:agentId/versions': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/agents/:agentId/versions/:versionId': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/agents/:agentId/versions/:versionId/diff': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/tools/test': {
+    class: 'orgScoped',
+    payload: () => ({
+      method: 'GET',
+      url: 'https://api.intruder.test/orders',
+      headers: [],
+      connectionId: null,
+      arguments: {},
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/tools/discover': {
+    class: 'orgScoped',
+    payload: () => ({ serverUrl: 'https://mcp.intruder.test/mcp', connectionId: null }),
+  },
   'GET /api/v1/orgs/:orgId/agents/:agentId/access': { class: 'orgScoped' },
   'PUT /api/v1/orgs/:orgId/agents/:agentId/access': {
     class: 'orgScoped',

@@ -8,6 +8,7 @@ import { AgentReadiness } from './agents.readiness.js'
 import { AgentsRepository } from './agents.repository.js'
 import { agentsRoutes } from './agents.routes.js'
 import { AgentsService } from './agents.service.js'
+import { AgentToolsTry } from './agents.tools.js'
 import { NO_APPROVALS, NO_CHANNELS, NO_DEPENDENCIES, NO_RUNS } from './agents.types.js'
 
 import type {
@@ -20,6 +21,7 @@ import type {
   AgentsModels,
   AgentsOrganizations,
   AgentsOutbox,
+  AgentsToolProbe,
   AgentsTeams,
   AgentsUserRefs,
 } from './agents.types.js'
@@ -35,6 +37,8 @@ export interface AgentsModuleDeps {
   models: AgentsModels
   connections: AgentsConnections
   guard: AgentsGuard
+  /** The tool adapters' test call and MCP discovery. */
+  toolProbe: AgentsToolProbe
   templates: Pick<TemplatesService, 'definitionFor' | 'preferredModelKeys'>
   audit: AuditRecorder
   /** The outbox service; read when an event is written, because the outbox is built after this. */
@@ -124,7 +128,19 @@ export function createAgentsModule(deps: AgentsModuleDeps) {
     publishing,
     audience,
     repository,
-    routes: agentsRoutes(new AgentsController(service, publishing, audience)),
+    routes: agentsRoutes(
+      new AgentsController(
+        service,
+        publishing,
+        audience,
+        new AgentToolsTry({
+          db: deps.db,
+          repository,
+          connections: deps.connections,
+          probe: deps.toolProbe,
+        }),
+      ),
+    ),
   }
 }
 export type AgentsModule = ReturnType<typeof createAgentsModule>

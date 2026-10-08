@@ -6,6 +6,7 @@ import type {
   archiveAgentRoute,
   createAgentRoute,
   deleteAgentRoute,
+  discoverMcpActionsRoute,
   duplicateAgentRoute,
   getAccessRoute,
   getAgentRoute,
@@ -22,10 +23,12 @@ import type {
   resumeAgentRoute,
   rollbackAgentRoute,
   saveDraftRoute,
+  testAgentToolRoute,
   updateAgentRoute,
   versionDiffRoute,
 } from './agents.schema.js'
 import type { AgentsService } from './agents.service.js'
+import type { AgentToolsTry } from './agents.tools.js'
 import type { ZodReply, ZodRequest } from '@/types/fastify.js'
 
 /** Thin handlers: the request in, one service call, the reply out (controllers.md). */
@@ -34,6 +37,7 @@ export class AgentsController {
     private readonly agents: AgentsService,
     private readonly publishing: AgentPublishing,
     private readonly audience: AgentAudience,
+    private readonly tools: AgentToolsTry,
   ) {}
 
   list = async (
@@ -198,5 +202,19 @@ export class AgentsController {
     reply: ZodReply<typeof replaceAccessRoute>,
   ) => {
     reply.ok(await this.audience.replace(request.tenant, request.params.agentId, request.body))
+  }
+
+  testTool = async (
+    request: ZodRequest<typeof testAgentToolRoute>,
+    reply: ZodReply<typeof testAgentToolRoute>,
+  ) => {
+    reply.ok(await this.tools.test(request.tenant, request.params.agentId, request.body))
+  }
+
+  discoverTools = async (
+    request: ZodRequest<typeof discoverMcpActionsRoute>,
+    reply: ZodReply<typeof discoverMcpActionsRoute>,
+  ) => {
+    reply.ok(await this.tools.discover(request.tenant, request.params.agentId, request.body))
   }
 }
