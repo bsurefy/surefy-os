@@ -39,9 +39,9 @@ export class HttpMlService implements MlService {
   async parseDocument(input: ParseDocumentInput, signal?: AbortSignal): Promise<ParsedDocument> {
     const timeout = AbortSignal.timeout(this.parseTimeoutMs)
     const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
-    let result: Awaited<ReturnType<MlClient['POST']>>
-    try {
-      result = await this.client.POST('/v1/documents/parse', {
+    // typed through the call itself: `MlClient['POST']` covers every endpoint of the service
+    const parse = () =>
+      this.client.POST('/v1/documents/parse', {
         body: {
           fileUrl: input.fileUrl,
           mimeType: input.mimeType,
@@ -51,6 +51,9 @@ export class HttpMlService implements MlService {
         headers: input.requestId === undefined ? {} : { 'x-request-id': input.requestId },
         signal: combined,
       })
+    let result: Awaited<ReturnType<typeof parse>>
+    try {
+      result = await parse()
     } catch (error) {
       if (timeout.aborted) throw new MlTimeoutError('the parse took too long', 'ML_TIMEOUT')
       if (signal?.aborted) throw error
