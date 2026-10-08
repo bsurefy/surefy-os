@@ -9,6 +9,8 @@ export const SETTINGS_SECTION = {
   TEAMS: 'teams',
   ACCESS: 'access',
   VAULT: 'vault',
+  CONNECTIONS: 'connections',
+  API_KEYS: 'api-keys',
   USAGE: 'usage',
   DATA_PRIVACY: 'data-privacy',
   SECURITY: 'security',

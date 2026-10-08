@@ -208,5 +208,37 @@
       "expired": "The download link expired",
       "retry": "Retry"
     }
+  },
+  "overview": {
+    "title": "Overview",
+    "description": "How actions were checked, what was blocked and what needs attention.",
+    "empty": {
+      "title": "No checks yet",
+      "description": "Actions and decisions appear here as people use agents and flows."
+    }
+  },
+  "defaults": {
+    "title": "Defaults",
+    "description": "Confidence thresholds and approval settings for the organization.",
+    "empty": {
+      "title": "Defaults are not set",
+      "description": "Thresholds and approval settings start from the standard values."
+    }
+  },
+  "guardrails": {
+    "title": "Guardrails",
+    "description": "Approval rules, limits and blocked actions.",
+    "empty": {
+      "title": "No guardrails yet",
+      "description": "Add a rule to control what agents may do."
+    }
+  },
+  "dataFilters": {
+    "title": "Data filters",
+    "description": "Which personal data is detected, masked or blocked before it leaves.",
+    "empty": {
+      "title": "No data filters yet",
+      "description": "Personal-data types use the standard actions until you change them."
+    }
   }
 }

@@ -10,7 +10,17 @@ import type { SettingsSection } from '@/constants/routes'
 
 /** A settings section's message keys: `settings.sections.<id>` and `settings.<id>.…`. */
 export type SettingsSectionId =
-  'general' | 'members' | 'teams' | 'access' | 'vault' | 'dataPrivacy' | 'security' | 'install'
+  | 'general'
+  | 'members'
+  | 'teams'
+  | 'access'
+  | 'vault'
+  | 'connections'
+  | 'apiKeys'
+  | 'usage'
+  | 'dataPrivacy'
+  | 'security'
+  | 'install'
 
 /**
  * One entry of the settings navigation (navigation.md §6). Like the sidebar, visibility comes

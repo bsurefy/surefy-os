@@ -1,0 +1,101 @@
+{
+  "list": {
+    "title": "Agents",
+    "description": "Build, test and publish AI agents with tools, knowledge and approval rules.",
+    "empty": {
+      "title": "Create your first agent",
+      "description": "Start from a template or from scratch."
+    }
+  },
+  "templates": {
+    "title": "Templates",
+    "description": "Start from a template, or from scratch.",
+    "empty": {
+      "title": "No templates available",
+      "description": "Templates appear here when they are available for this organization."
+    }
+  },
+  "editor": {
+    "title": "Agent",
+    "description": "Instructions, model, tools, knowledge, Guard rules, tests and publishing.",
+    "empty": {
+      "title": "Nothing to edit yet",
+      "description": "The editor opens here once the agent loads."
+    },
+    "instructions": {
+      "title": "Instructions",
+      "description": "Name, description, instructions, tone and conversation starters.",
+      "empty": {
+        "title": "No instructions yet",
+        "description": "Write it like you would brief a new teammate."
+      }
+    },
+    "model": {
+      "title": "Model",
+      "description": "The model, its creativity and the AI double-check model.",
+      "empty": {
+        "title": "No model chosen",
+        "description": "Choose an allowed model for this agent."
+      }
+    },
+    "tools": {
+      "title": "Tools",
+      "description": "APIs, MCP servers and bridge actions the agent may use, and what each may do.",
+      "empty": {
+        "title": "No tools yet",
+        "description": "Tools default to read only."
+      }
+    },
+    "knowledge": {
+      "title": "Knowledge",
+      "description": "The knowledge bases the agent may search.",
+      "empty": {
+        "title": "No knowledge attached",
+        "description": "Add knowledge bases the agent can search and cite."
+      }
+    },
+    "guard": {
+      "title": "Guard",
+      "description": "Approval rules, thresholds and blocked actions for this agent.",
+      "empty": {
+        "title": "No agent rules yet",
+        "description": "This agent follows the organization guardrails."
+      }
+    },
+    "test": {
+      "title": "Test",
+      "description": "Try the agent in a sandbox and see every step.",
+      "empty": {
+        "title": "No test runs yet",
+        "description": "Send a message to see the steps the agent takes."
+      }
+    },
+    "publish": {
+      "title": "Publish",
+      "description": "Readiness, who can use the agent, and where it answers.",
+      "empty": {
+        "title": "Not published yet",
+        "description": "Publishing creates a version and turns on its channels."
+      }
+    },
+    "versions": {
+      "title": "Versions",
+      "description": "Every published version, with what changed.",
+      "empty": {
+        "title": "No versions yet",
+        "description": "Published versions appear here."
+      }
+    },
+    "runs": {
+      "title": "Runs",
+      "description": "The runs of this agent.",
+      "empty": {
+        "title": "No runs yet",
+        "description": "Runs appear here once the agent is used."
+      }
+    }
+  },
+  "page": {
+    "title": "Agents"
+  }
+}

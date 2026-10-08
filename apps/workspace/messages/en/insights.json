@@ -107,5 +107,21 @@
       "expired": "The download link expired",
       "retry": "Try again"
     }
+  },
+  "runs": {
+    "title": "Runs",
+    "description": "Every agent run, with status, cost and duration.",
+    "empty": {
+      "title": "No runs yet",
+      "description": "Runs appear here once agents are used."
+    }
+  },
+  "approvals": {
+    "title": "Approvals",
+    "description": "Actions waiting for a person to decide.",
+    "empty": {
+      "title": "All caught up",
+      "description": "Nothing is waiting for your decision."
+    }
   }
 }

@@ -5,6 +5,9 @@
     "teams": "Teams",
     "access": "Roles & access",
     "vault": "Vault",
+    "connections": "Connections",
+    "apiKeys": "API keys",
+    "usage": "Usage & budgets",
     "dataPrivacy": "Data & privacy",
     "security": "Security",
     "install": "Install"
@@ -711,5 +714,29 @@
   },
   "sectionHints": {
     "vault": "Keys & models"
+  },
+  "connections": {
+    "title": "Connections",
+    "description": "Accounts in other apps that agents, knowledge sources and channels use.",
+    "empty": {
+      "title": "No connections yet",
+      "description": "Connect the apps your agents and knowledge need."
+    }
+  },
+  "apiKeys": {
+    "title": "API keys",
+    "description": "Keys that let your own software call SurefyOS.",
+    "empty": {
+      "title": "No API keys yet",
+      "description": "Create a key to call your agents from your own software."
+    }
+  },
+  "usage": {
+    "title": "Usage & budgets",
+    "description": "AI cost budgets for the organization, teams and people.",
+    "empty": {
+      "title": "No budgets yet",
+      "description": "Set a budget to cap what AI usage can cost."
+    }
   }
 }

@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { BookOpen, ChartNoAxesColumn, MessageSquare, Shield, SlidersHorizontal } from 'lucide-react'
+import {
+  BookOpen,
+  Bot,
+  ChartNoAxesColumn,
+  MessageSquare,
+  Shield,
+  SlidersHorizontal,
+} from 'lucide-react'
 
 import { ROUTES } from '@/constants/routes'
 // The file itself, not the module entry: that entry carries server guards, and this list is
@@ -28,7 +35,7 @@ export const NAV_ITEM_KEYS = [
 /**
  * The workspace navigation (pages-routing.md §8). The sidebar, the command palette's "Go to"
  * group and the "g then …" shortcuts are built from it, filtered by effective access. The module
- * skeleton adds one entry per MVP module with `released: false`; each module flips its own flag
+ * skeleton adds one entry per module with `released: false`; each module flips its own flag
  * in its integration task. Entries are listed in display order within their group.
  */
 export const WORKSPACE_NAV: readonly NavEntry[] = [
@@ -41,6 +48,17 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     module: 'chat',
     anyPermission: [PERMISSIONS.CHAT_USE],
     goKey: 'c',
+  },
+  {
+    key: 'agents',
+    group: 'build',
+    icon: Bot,
+    href: (orgSlug) => ROUTES.workspace.agents(orgSlug),
+    released: false,
+    module: 'agents',
+    // Builders and above; Users reach shared agents from Chat
+    anyPermission: [PERMISSIONS.AGENTS_READ],
+    goKey: 'a',
   },
   {
     key: 'knowledge',

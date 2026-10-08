@@ -5,9 +5,8 @@ import { PERMISSIONS } from '@surefy/contracts'
 import type { SettingsSectionEntry } from './Settings.types'
 
 /**
- * The settings navigation in display order (navigation.md §6): the MVP sections, each
- * released once its integration task has flipped it. Usage & budgets, Branding, Billing and
- * License arrive with their phases.
+ * The settings navigation in display order (navigation.md §6): each section is released once
+ * its integration task has flipped it. Branding, Billing and License arrive with their phases.
  */
 export const SETTINGS_SECTIONS: readonly SettingsSectionEntry[] = [
   {
@@ -40,6 +39,25 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionEntry[] = [
     released: true,
     // Builders see the read-only list of the models they may use
     anyPermission: [PERMISSIONS.VAULT_READ],
+  },
+  {
+    id: 'connections',
+    section: SETTINGS_SECTION.CONNECTIONS,
+    released: false,
+    // Builders see and manage their own personal connections
+    anyPermission: [PERMISSIONS.CONNECTIONS_USE],
+  },
+  {
+    id: 'apiKeys',
+    section: SETTINGS_SECTION.API_KEYS,
+    released: false,
+    anyPermission: [PERMISSIONS.API_KEYS_MANAGE],
+  },
+  {
+    id: 'usage',
+    section: SETTINGS_SECTION.USAGE,
+    released: false,
+    anyPermission: [PERMISSIONS.INSIGHTS_READ],
   },
   {
     id: 'dataPrivacy',
