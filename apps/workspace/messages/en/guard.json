@@ -212,33 +212,600 @@
   "overview": {
     "title": "Overview",
     "description": "How actions were checked, what was blocked and what needs attention.",
+    "loadError": "Couldn't load the Guard overview",
     "empty": {
       "title": "No checks yet",
       "description": "Actions and decisions appear here as people use agents and flows."
+    },
+    "range": {
+      "label": "Range",
+      "7d": "Last 7 days",
+      "30d": "Last 30 days"
+    },
+    "checked": {
+      "title": "How actions were checked",
+      "description": "Every action an agent or flow tried in this period, by what Guard did with it."
+    },
+    "stats": {
+      "auto": {
+        "label": "Ran automatically",
+        "share": "{share} of checked actions"
+      },
+      "doubleChecked": {
+        "label": "AI double-checked",
+        "share": "{share} of checked actions"
+      },
+      "needsPerson": {
+        "label": "Needed a person",
+        "share": "{share} of checked actions"
+      },
+      "blockedByLimits": {
+        "label": "Blocked by limits",
+        "help": "Stopped by a blocked action or a limit"
+      },
+      "personalDataHidden": {
+        "label": "Personal data hidden",
+        "help": "Requests where data was masked or blocked"
+      },
+      "ranOnLocalModels": {
+        "label": "Ran on local models",
+        "help": "Data stayed on your network, so the filter did not apply"
+      },
+      "medianMinutesToApprove": {
+        "label": "Median time to approve",
+        "help": "From request to a person's decision",
+        "none": "—"
+      }
+    },
+    "duration": {
+      "minutes": "{count, plural, one {# minute} other {# minutes}}",
+      "hours": "{count, plural, one {# hour} other {# hours}}"
+    },
+    "attention": {
+      "title": "Needs your attention",
+      "description": "Open items that Guard cannot settle by itself.",
+      "empty": "Nothing needs your attention.",
+      "kinds": {
+        "approvals_overdue": "{count, plural, one {# approval has} other {# approvals have}} waited longer than the target time",
+        "guardrail_conflict": "{count, plural, one {# guardrail conflicts} other {# guardrails conflict}} with another rule",
+        "agent_thresholds_outdated": "{count, plural, one {# agent uses} other {# agents use}} thresholds looser than your defaults"
+      },
+      "actions": {
+        "approvals_overdue": "Review approvals",
+        "guardrail_conflict": "Open rule",
+        "agent_thresholds_outdated": "Open agent"
+      }
+    },
+    "approvals": {
+      "title": "Approvals",
+      "description": "Decisions that need a person are in the approvals queue.",
+      "open": "Open approvals queue"
     }
   },
   "defaults": {
     "title": "Defaults",
     "description": "Confidence thresholds and approval settings for the organization.",
-    "empty": {
-      "title": "Defaults are not set",
-      "description": "Thresholds and approval settings start from the standard values."
+    "loadError": "Couldn't load the Guard defaults",
+    "readOnly": {
+      "title": "You can view these values",
+      "description": "Admins and Owners change the Guard defaults."
+    },
+    "thresholds": {
+      "title": "Confidence thresholds",
+      "description": "How sure Guard must be before an action runs without a person.",
+      "auto": {
+        "label": "Automatic",
+        "help": "At or above this confidence the action runs on its own."
+      },
+      "review": {
+        "label": "AI double-check",
+        "help": "At or above this a second model reviews the action. Below it a person decides."
+      },
+      "summary": "Automatic at {auto}% and above · AI double-check {review}–{autoBelow}% · Needs a person below {review}%",
+      "summaryNoCheck": "Automatic at {auto}% and above · Needs a person below {auto}%",
+      "invalid": "The double-check threshold must be lower than the automatic one."
+    },
+    "impact": {
+      "title": "Impact preview",
+      "headline": "With these values, {human} of the last {total} actions would have needed a person.",
+      "bands": {
+        "auto": "Automatic",
+        "doubleCheck": "AI double-check",
+        "human": "Needs a person"
+      },
+      "empty": "There are no recent actions to preview yet.",
+      "loading": "Checking recent actions…",
+      "error": "Couldn't preview the impact",
+      "retry": "Try again",
+      "invalid": "Choose a double-check threshold below the automatic one to see the impact."
+    },
+    "approvals": {
+      "title": "Approval settings",
+      "description": "What can be approved quickly, when people confirm it is them, and how long approvals may wait.",
+      "quick": {
+        "legend": "Quick-approve limit",
+        "help": "The top-bar popover and bulk approve decide only approvals within this limit. 0 means no money.",
+        "amount": "Largest amount",
+        "risk": "Highest risk",
+        "risks": {
+          "low": "Low risk only",
+          "medium": "Up to medium risk"
+        }
+      },
+      "stepUp": {
+        "label": "Ask people to confirm it is them above an amount",
+        "help": "Approvals above this amount need a fresh sign-in.",
+        "amount": "Amount",
+        "required": "Enter an amount"
+      },
+      "target": {
+        "legend": "Target time to decide",
+        "help": "The queue shows a warning when an approval waits longer.",
+        "value": "Time",
+        "unit": "Unit",
+        "units": {
+          "minutes": "Minutes",
+          "hours": "Hours",
+          "days": "Days"
+        },
+        "invalid": "Enter a time of up to one year."
+      }
+    },
+    "save": {
+      "unsaved": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+      "failed": "Couldn't save the changes",
+      "retry": "Retry",
+      "discard": "Discard",
+      "save": "Save",
+      "saved": "Guard defaults saved",
+      "confirm": {
+        "title": "Save the Guard defaults?",
+        "description": "Applies to all agents and flows that use defaults.",
+        "looser": "This makes Guard looser:",
+        "reason": "Reason",
+        "reasonHelp": "Saved in the audit log.",
+        "reasonRequired": "Give a reason for loosening Guard.",
+        "confirm": "Save defaults"
+      }
+    },
+    "loosened": {
+      "auto": "The automatic threshold goes from {from}% to {to}%.",
+      "review": "The double-check threshold goes from {from}% to {to}%.",
+      "quickAmount": "The quick-approve limit goes from {from} to {to}.",
+      "quickRisk": "Quick approve now includes medium-risk actions.",
+      "stepUp": "People no longer confirm it is them above {from}.",
+      "stepUpRaised": "People confirm it is them only above {to} instead of {from}."
     }
   },
   "guardrails": {
     "title": "Guardrails",
-    "description": "Approval rules, limits and blocked actions.",
+    "description": "Approval rules, limits and blocked actions that apply to your agents and flows.",
+    "tableLabel": "Guardrails",
+    "loadError": "Couldn't load the guardrails",
+    "loadMore": "Load more",
+    "add": "Add guardrail",
+    "search": {
+      "label": "Search guardrails",
+      "placeholder": "Search by name"
+    },
     "empty": {
       "title": "No guardrails yet",
-      "description": "Add a rule to control what agents may do."
+      "description": "Add a rule to control what agents may do.",
+      "action": "Add guardrail"
+    },
+    "noResults": {
+      "title": "No guardrails match",
+      "description": "Try another search, or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "filters": {
+      "type": "Type",
+      "anyType": "Any type",
+      "scope": "Scope",
+      "anyScope": "Any scope",
+      "status": "Status",
+      "anyStatus": "Any status",
+      "on": "On",
+      "off": "Off"
+    },
+    "types": {
+      "approval_rule": "Approval rule",
+      "threshold_override": "Threshold override",
+      "blocked_action": "Blocked action",
+      "action_limit": "Action limit",
+      "data_filter": "Data filter",
+      "content_filter": "Content filter"
+    },
+    "typeHelp": {
+      "approval_rule": "A person decides before the action runs.",
+      "threshold_override": "Asks for more confidence than the defaults for these actions.",
+      "blocked_action": "The action is never allowed.",
+      "action_limit": "Business limits, such as a refund amount per action or payments per day.",
+      "content_filter": "Flags or blocks content in these categories."
+    },
+    "scopes": {
+      "organization": "Organization",
+      "team": "Team",
+      "agent": "Agent",
+      "flow": "Flow"
+    },
+    "scopeTeam": "Team · {team}",
+    "columns": {
+      "name": "Name",
+      "type": "Type",
+      "scope": "Scope",
+      "usedBy": "Used by",
+      "triggered": "Triggered this week",
+      "status": "On",
+      "actions": "Actions"
+    },
+    "usedBy": "{count, plural, =0 {Nothing yet} one {# agent or flow} other {# agents and flows}}",
+    "locked": {
+      "label": "Locked",
+      "detail": "Locked by {name} · {reason}",
+      "owner": "An Owner"
+    },
+    "toggle": "{name}",
+    "turnedOn": "{name} is on",
+    "turnedOff": "{name} is off",
+    "impact": {
+      "agents": "{count, plural, one {Affects # agent} other {Affects # agents}}",
+      "flows": "{count, plural, one {Affects # flow} other {Affects # flows}}",
+      "other": "{count, plural, one {Affects # item} other {Affects # items}}",
+      "none": "No agent or flow uses it yet.",
+      "unavailable": "Couldn't check what this affects.",
+      "retry": "Try again"
+    },
+    "reason": {
+      "label": "Reason",
+      "help": "Saved in the audit log.",
+      "required": "Give a reason. It is saved in the audit log."
+    },
+    "sheet": {
+      "addTitle": "Add guardrail",
+      "addDescription": "Choose what the rule does, then which actions it covers.",
+      "close": "Close",
+      "loadError": "Couldn't load this guardrail",
+      "retry": "Try again",
+      "readOnly": {
+        "title": "You can view this rule",
+        "description": "Admins and Owners change guardrails."
+      },
+      "notFound": "This guardrail no longer exists.",
+      "name": "Name",
+      "type": "Type",
+      "typeFixed": "A rule keeps its type. Add another rule to use a different one.",
+      "scope": "Scope",
+      "scopeOptions": {
+        "organization": "Whole organization",
+        "team": "One team"
+      },
+      "team": "Team",
+      "teamPlaceholder": "Choose a team",
+      "teamSearch": "Search teams",
+      "teamEmpty": "No teams",
+      "enabled": "On",
+      "enabledHelp": "A rule that is off stays saved but is not checked.",
+      "match": {
+        "title": "Which actions",
+        "action": "Action",
+        "actionHelp": "A tool, bridge action or category, such as payments.refund.",
+        "conditions": "Only when",
+        "conditionsHelp": "Narrow the rule to actions whose input matches.",
+        "addCondition": "Add condition",
+        "removeCondition": "Remove condition {index}",
+        "field": "Field",
+        "operator": "Is",
+        "value": "Value",
+        "valueHelp": "A number, text, true or false. For “is one of”, separate values with commas.",
+        "operators": {
+          "gt": "greater than",
+          "gte": "at least",
+          "lt": "less than",
+          "lte": "at most",
+          "eq": "equal to",
+          "neq": "not equal to",
+          "in": "one of"
+        },
+        "conditionInvalid": "Complete or remove this condition"
+      },
+      "approval": {
+        "title": "Approval",
+        "approvers": "Approvers",
+        "approversHelp": "A role means that role and every role above it.",
+        "approversPlaceholder": "Choose who decides",
+        "approversSearch": "Search people, teams and roles",
+        "approversEmpty": "No match",
+        "approversLoading": "Loading…",
+        "removeApprover": "Remove {name}",
+        "moreApprovers": "+{count}",
+        "roles": {
+          "builder": "Builders and above",
+          "admin": "Admins and Owners",
+          "owner": "Owners"
+        },
+        "kindRole": "Role",
+        "kindTeam": "Team",
+        "waits": "Stop waiting after a while",
+        "waitsHelp": "Without it the approval waits until someone decides or it is canceled.",
+        "waitAmount": "Wait",
+        "waitUnit": "Unit",
+        "units": {
+          "minutes": "Minutes",
+          "hours": "Hours",
+          "days": "Days"
+        },
+        "onTimeout": "When nobody answers",
+        "timeouts": {
+          "reject": "Reject the action",
+          "escalate": "Escalate to others",
+          "continue": "Let the action continue"
+        },
+        "escalateTo": "Escalate to",
+        "risk": "Risk",
+        "risks": {
+          "low": "Low",
+          "medium": "Medium",
+          "high": "High"
+        }
+      },
+      "override": {
+        "title": "Thresholds",
+        "help": "Only values higher than your defaults take effect.",
+        "auto": "Automatic",
+        "review": "AI double-check"
+      },
+      "blocked": {
+        "title": "Blocked",
+        "help": "Any agent or flow that tries this action is stopped and the attempt is recorded."
+      },
+      "limit": {
+        "title": "Limits",
+        "help": "Set one or more limits. What happens when one is reached is below.",
+        "perAction": "Amount per action",
+        "perDayCount": "Actions per day",
+        "perDayAmount": "Amount per day",
+        "onReached": "When a limit is reached",
+        "reached": {
+          "block": "Block the action",
+          "require_approval": "Ask a person to approve"
+        }
+      },
+      "content": {
+        "title": "Content",
+        "categories": "Categories",
+        "categoriesPlaceholder": "Choose categories",
+        "categoriesSearch": "Search categories",
+        "categoriesEmpty": "No match",
+        "removeCategory": "Remove {name}",
+        "labels": {
+          "profanity": "Profanity",
+          "violence": "Violence",
+          "self_harm": "Self-harm",
+          "hate": "Hate",
+          "sexual": "Sexual content"
+        },
+        "action": "What to do",
+        "actions": {
+          "flag": "Flag it for review",
+          "block": "Block it"
+        }
+      },
+      "validation": {
+        "name": "Enter a name",
+        "action": "Enter the action this rule covers",
+        "team": "Choose a team",
+        "condition": "Complete or remove this condition",
+        "approvers": "Choose at least one approver",
+        "wait": "Enter a wait of up to 30 days",
+        "escalate": "Choose who to escalate to",
+        "thresholds": "The double-check threshold must be lower than the automatic one.",
+        "limit": "Set at least one limit",
+        "categories": "Choose at least one category"
+      },
+      "lock": {
+        "bannerLocked": "Locked by {name} · {reason}",
+        "bannerLockedAdmin": "Locked by {name} · {reason}. Only Owners can change, turn off or delete this rule.",
+        "lock": "Lock",
+        "unlock": "Unlock",
+        "dialogTitle": "Lock “{name}”?",
+        "dialogDescription": "Only Owners can change, turn off or delete a locked rule.",
+        "confirm": "Lock rule",
+        "reason": "Reason",
+        "reasonHelp": "Shown next to the lock and saved in the audit log.",
+        "reasonRequired": "Give a reason for the lock.",
+        "locked": "{name} is locked",
+        "unlocked": "{name} is unlocked"
+      },
+      "conflict": {
+        "title": "Another rule already blocks this action",
+        "description": "“{name}” blocks the same action. You can still save stricter rules.",
+        "open": "Open that rule"
+      },
+      "summary": {
+        "scope": "Scope",
+        "usedBy": "Used by",
+        "triggered": "Triggered this week",
+        "status": "Status",
+        "agent": {
+          "title": "This rule belongs to an agent",
+          "description": "Agent rules are edited in the agent's Guard tab.",
+          "open": "Open the agent's Guard tab"
+        },
+        "flow": {
+          "title": "This rule belongs to a flow",
+          "description": "Flow rules are edited in the flow's steps.",
+          "open": "Open the flow"
+        },
+        "data_filters": {
+          "title": "This is a data filter",
+          "description": "Personal-data filters are edited in Data filters.",
+          "open": "Open Data filters"
+        }
+      },
+      "save": "Save",
+      "add": "Add guardrail",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "added": "“{name}” added",
+      "saved": "“{name}” saved",
+      "deleted": "“{name}” deleted",
+      "saveFailed": "Couldn't save · Retry",
+      "saveConfirm": {
+        "title": "Save changes to “{name}”?",
+        "description": "This makes the rule less strict, so it stops fewer actions than before.",
+        "confirm": "Save changes"
+      },
+      "deleteConfirm": {
+        "title": "Delete “{name}”?",
+        "description": "The rule is removed for good. Agents and flows are no longer checked by it.",
+        "confirm": "Delete rule"
+      }
+    },
+    "turnOff": {
+      "title": "Turn off “{name}”?",
+      "description": "Agents and flows stop being checked by this rule.",
+      "confirm": "Turn off"
     }
   },
   "dataFilters": {
     "title": "Data filters",
-    "description": "Which personal data is detected, masked or blocked before it leaves.",
-    "empty": {
-      "title": "No data filters yet",
-      "description": "Personal-data types use the standard actions until you change them."
+    "description": "Which personal data is detected, masked or blocked before it leaves for a cloud model.",
+    "loadError": "Couldn't load the data filters",
+    "readOnly": {
+      "title": "You can view these filters",
+      "description": "Admins and Owners change the data filters."
+    },
+    "localModels": {
+      "title": "Local models skip the filter",
+      "description": "Data sent to a model on your own network stays there, so the filter does not apply."
+    },
+    "types": {
+      "person_name": "Names",
+      "email": "Email addresses",
+      "phone": "Phone numbers",
+      "payment_card": "Payment card numbers",
+      "bank_account": "Bank account numbers",
+      "government_id": "Government IDs",
+      "address": "Addresses",
+      "custom": "Custom pattern"
+    },
+    "actions": {
+      "detect": "Detect",
+      "mask": "Mask",
+      "block": "Block"
+    },
+    "actionHelp": {
+      "detect": "Found and recorded, sent as written.",
+      "mask": "Replaced with a placeholder, such as [EMAIL].",
+      "block": "The request is stopped."
+    },
+    "section": {
+      "title": "Personal-data types",
+      "description": "What happens when this data would leave for a cloud model or a search provider."
+    },
+    "actionLabel": "Action for {type}",
+    "standard": "Standard",
+    "saved": "{type} is set to {action}",
+    "exceptions": {
+      "title": "Exceptions",
+      "none": "No exceptions",
+      "add": "Add exception",
+      "addFor": "Add an exception for {type}",
+      "team": "Team: {name}",
+      "agent": "Agent: {name}",
+      "entry": "{target} · {action}",
+      "remove": "Remove the exception for {target}",
+      "removed": "Exception for {target} removed"
+    },
+    "exceptionDialog": {
+      "title": "Add an exception for {type}",
+      "description": "A team can handle this type differently from the organization. Loosening the filter sends more data to cloud models, so it is recorded with your reason.",
+      "team": "Team",
+      "teamPlaceholder": "Choose a team",
+      "teamSearch": "Search teams",
+      "teamEmpty": "No teams",
+      "teamRequired": "Choose a team",
+      "action": "Action",
+      "reason": "Reason",
+      "reasonHelp": "Saved in the audit log.",
+      "reasonRequired": "Give a reason. It is saved in the audit log.",
+      "save": "Add exception",
+      "cancel": "Cancel",
+      "added": "Exception added for {target}"
+    },
+    "custom": {
+      "title": "Custom patterns",
+      "description": "Your own types, found by a pattern such as a customer number.",
+      "add": "Add custom type",
+      "edit": "Edit {label}",
+      "delete": "Delete {label}",
+      "pattern": "Pattern: {pattern}",
+      "none": "No custom types yet"
+    },
+    "customDialog": {
+      "addTitle": "Add a custom type",
+      "editTitle": "Edit {label}",
+      "description": "A regular expression that finds the data, such as a customer number.",
+      "label": "Name",
+      "labelRequired": "Enter a name",
+      "pattern": "Pattern",
+      "patternHelp": "Up to 500 characters. Patterns that could run slowly are refused.",
+      "patternRequired": "Enter a pattern",
+      "action": "Action",
+      "save": "Save",
+      "add": "Add type",
+      "cancel": "Cancel",
+      "added": "{label} added",
+      "updated": "{label} saved"
+    },
+    "loosen": {
+      "title": "Loosen the filter for {type}?",
+      "description": "More of this data reaches cloud models, with less protection.",
+      "change": "{type} goes from {from} to {to}.",
+      "confirm": "Loosen filter",
+      "reason": "Reason",
+      "reasonHelp": "Saved in the audit log.",
+      "reasonRequired": "Give a reason. It is saved in the audit log."
+    },
+    "removeCustom": {
+      "title": "Delete “{label}”?",
+      "description": "This data is no longer looked for, and it reaches cloud models as written.",
+      "confirm": "Delete type",
+      "deleted": "{label} deleted"
+    },
+    "removeException": {
+      "title": "Remove the exception for {target}?",
+      "description": "The team follows the organization's action for {type} again, which is less strict.",
+      "confirm": "Remove exception"
+    },
+    "tryIt": {
+      "title": "Try it",
+      "description": "See what the filter does to a text before it leaves. Nothing is saved or sent.",
+      "text": "Sample text",
+      "sample": "Hi, I'm Maria Lopez. You can email me at maria@example.com or call +14155550132. My card is 4111 1111 1111 1111.",
+      "as": "As",
+      "asOrganization": "The organization",
+      "empty": "Enter some text to see the result.",
+      "running": "Checking…",
+      "masked": "What leaves",
+      "none": "No personal data found.",
+      "found": "Found",
+      "finding": "{type}: {count, plural, one {# match} other {# matches}} · {action}",
+      "blocked": {
+        "title": "A real request would be stopped",
+        "description": "The text has data of a type that is set to block."
+      },
+      "error": "Couldn't run the test",
+      "retry": "Try again"
     }
+  },
+  "tabs": {
+    "label": "Guard sections",
+    "overview": "Overview",
+    "defaults": "Defaults",
+    "guardrails": "Guardrails",
+    "data-filters": "Data filters",
+    "audit-log": "Audit log"
   }
 }

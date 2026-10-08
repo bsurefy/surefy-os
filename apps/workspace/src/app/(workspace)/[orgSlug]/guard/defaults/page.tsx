@@ -1,10 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 
-/**
- * Not released. S6-07 replaces this body with GuardDefaults behind the access check, and the module's
- * navigation keeps this page unlinked until then.
- */
-export default function GuardDefaultsPage(): never {
-  notFound()
+import { checkPageAccess } from '@/core/auth'
+import { GuardDefaults } from '@/modules/Guard'
+import { assertNavReleased, NoAccessState } from '@/modules/Workspace'
+import { PERMISSIONS } from '@surefy/contracts'
+
+import type { Metadata } from 'next'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('guard.defaults')
+  return { title: t('title') }
+}
+
+/** Guard › Defaults. */
+export default async function GuardDefaultsPage({
+  params,
+}: Readonly<PageProps<'/[orgSlug]/guard/defaults'>>) {
+  assertNavReleased('guard')
+  const { orgSlug } = await params
+  const { isAllowed } = await checkPageAccess(orgSlug, PERMISSIONS.GUARD_READ)
+  if (!isAllowed) return <NoAccessState area="guard" />
+  return <GuardDefaults />
 }
