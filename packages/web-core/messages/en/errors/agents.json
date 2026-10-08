@@ -11,5 +11,7 @@
   "AGENT_TEMPLATE_NOT_FOUND": "This template doesn't exist.",
   "AGENT_CHANNEL_NOT_FOUND": "This channel no longer exists.",
   "AGENT_CHANNEL_EXISTS": "This agent already has a channel of that type.",
-  "AGENT_CHANNEL_PENDING_APPROVAL": "This channel is waiting for an admin's approval and can't be changed yet."
+  "AGENT_CHANNEL_PENDING_APPROVAL": "This channel is waiting for an admin's approval and can't be changed yet.",
+  "AGENT_TOOL_HTTP_ERROR": "The address answered with an error. Check the URL, the method and the arguments.",
+  "AGENT_TOOL_BAD_RESPONSE": "The answer wasn't what this tool expects. Check that the address is the right one."
 }

@@ -6,12 +6,16 @@ import type {
   AgentReadinessDto,
   AgentVersionDetailDto,
   AgentVersionDto,
+  DiscoverMcpActionsDto,
+  DiscoverMcpActionsInput,
   PublishAgentInput,
   PublishAgentResultDto,
   ReplaceAgentAccessInput,
   RollbackAgentInput,
   SaveAgentDraftDto,
   SaveAgentDraftInput,
+  TestAgentToolDto,
+  TestAgentToolInput,
   UpdateAgentInput,
 } from '@surefy/contracts'
 import type { HttpClient } from '@surefy/web-core/http'
@@ -67,4 +71,17 @@ export const agentsApi = {
     agentId: string,
     input: ReplaceAgentAccessInput,
   ) => http.put<AgentAccessDto>(`/orgs/${orgId}/agents/${agentId}/access`, input),
+  /**
+   * Sends the request an API tool would send, as it stands in the editor. A failed call is an
+   * answer with `ok: false`, not an error.
+   */
+  testTool: (http: HttpClient, orgId: string, agentId: string, input: TestAgentToolInput) =>
+    http.post<TestAgentToolDto>(`/orgs/${orgId}/agents/${agentId}/tools/test`, input),
+  /** Connects to an MCP server and lists the actions it offers. */
+  discoverMcpActions: (
+    http: HttpClient,
+    orgId: string,
+    agentId: string,
+    input: DiscoverMcpActionsInput,
+  ) => http.post<DiscoverMcpActionsDto>(`/orgs/${orgId}/agents/${agentId}/tools/discover`, input),
 }

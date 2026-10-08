@@ -90,7 +90,7 @@ export default function AgentEditorWorkspace(props: Readonly<AgentEditorWorkspac
         />
       )}
       {c.activeTab === 'model' && <ModelTab {...tabProps} />}
-      {c.activeTab === 'tools' && <ToolsTab />}
+      {c.activeTab === 'tools' && <ToolsTab {...tabProps} />}
       {c.activeTab === 'knowledge' && <KnowledgeTab {...tabProps} />}
       {c.activeTab === 'guard' && <GuardTab {...tabProps} />}
       {c.activeTab === 'test' && <TestTab />}

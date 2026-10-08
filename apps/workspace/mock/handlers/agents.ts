@@ -19,6 +19,7 @@ import {
 } from '@surefy/web-core/testing/mock'
 
 import { agentPublishingHandlers, resetAgentPublishingMock } from './agentPublishing'
+import { agentToolHandlers } from './agentTools'
 import { HELP_CENTER_ID, HR_POLICIES_ID } from './knowledge'
 import { MAYA, OMAR } from './shell.fixtures'
 import { SUPPORT_TEAM_ID } from './teams'
@@ -293,4 +294,5 @@ export const agentsDomain = defineMockDomain('agents', [
     },
   }),
   ...agentPublishingHandlers(store),
+  ...agentToolHandlers(store),
 ])

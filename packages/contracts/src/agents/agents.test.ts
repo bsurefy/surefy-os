@@ -14,6 +14,8 @@ import {
   createAgentInputSchema,
   createEmptyAgentDefinition,
   deleteAgentQuerySchema,
+  discoverMcpActionsDtoSchema,
+  discoverMcpActionsInputSchema,
   diffAgentDefinitions,
   ERROR_CODES,
   listAgentsQuerySchema,
@@ -21,6 +23,8 @@ import {
   replaceAgentAccessInputSchema,
   ROLE_PERMISSIONS,
   saveAgentDraftInputSchema,
+  testAgentToolDtoSchema,
+  testAgentToolInputSchema,
   updateAgentChannelInputSchema,
   updateAgentInputSchema,
 } from '../index.js'
@@ -369,5 +373,57 @@ describe('agent codes, permissions and audit', () => {
     for (const action of Object.values(AGENT_AUDIT_ACTIONS)) {
       expect(action).toMatch(/^agent(_channel)?\.[a-z_]+$/)
     }
+  })
+})
+
+describe('tool test call and discovery', () => {
+  const now = '2026-10-08T10:00:00.000Z'
+
+  it('takes the request an API tool would send', () => {
+    const input = testAgentToolInputSchema.parse({
+      method: 'GET',
+      url: 'https://api.example.com/orders',
+      headers: [{ name: 'X-Region', value: 'eu' }],
+      connectionId: null,
+      arguments: { orderId: '42' },
+    })
+    expect(input.method).toBe('GET')
+    expect(
+      testAgentToolInputSchema.safeParse({ ...input, url: 'ftp://api.example.com' }).success,
+    ).toBe(false)
+    expect(testAgentToolInputSchema.safeParse({ ...input, method: 'TRACE' }).success).toBe(false)
+  })
+
+  it('answers a failed call as data, with a reason', () => {
+    const failed = testAgentToolDtoSchema.parse({
+      ok: false,
+      statusCode: 500,
+      latencyMs: 120,
+      reasonCode: 'AGENT_TOOL_HTTP_ERROR',
+      responsePreview: null,
+      truncated: false,
+      testedAt: now,
+    })
+    expect(failed.ok).toBe(false)
+    expect(
+      testAgentToolDtoSchema.safeParse({ ...failed, reasonCode: 'SOMETHING_ELSE' }).success,
+    ).toBe(false)
+  })
+
+  it('lists the actions of an MCP server', () => {
+    expect(
+      discoverMcpActionsInputSchema.safeParse({
+        serverUrl: 'https://mcp.example.com/sse',
+        connectionId: null,
+      }).success,
+    ).toBe(true)
+    const found = discoverMcpActionsDtoSchema.parse({
+      ok: true,
+      latencyMs: 80,
+      reasonCode: null,
+      actions: [{ name: 'search', description: 'Search', enabled: true, permission: null }],
+      discoveredAt: now,
+    })
+    expect(found.actions).toHaveLength(1)
   })
 })

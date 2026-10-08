@@ -14,4 +14,6 @@ export const AGENTS_ERROR_CODES = {
   AGENT_CHANNEL_NOT_FOUND: 'AGENT_CHANNEL_NOT_FOUND', // 404
   AGENT_CHANNEL_EXISTS: 'AGENT_CHANNEL_EXISTS', // 409: an agent has at most one workspace chat, API and widget channel
   AGENT_CHANNEL_PENDING_APPROVAL: 'AGENT_CHANNEL_PENDING_APPROVAL', // 409: the channel waits for an Admin and cannot change yet
+  AGENT_TOOL_HTTP_ERROR: 'AGENT_TOOL_HTTP_ERROR', // status reason: the tool's address answered with an error status
+  AGENT_TOOL_BAD_RESPONSE: 'AGENT_TOOL_BAD_RESPONSE', // status reason: the answer was not what the tool kind expects (an MCP server that does not speak MCP)
 } as const

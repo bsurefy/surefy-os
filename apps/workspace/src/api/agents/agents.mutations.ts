@@ -3,9 +3,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type {
   AgentDetailDto,
+  DiscoverMcpActionsInput,
   PublishAgentInput,
   ReplaceAgentAccessInput,
   SaveAgentDraftInput,
+  TestAgentToolInput,
   UpdateAgentInput,
 } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
@@ -125,5 +127,22 @@ export function useReplaceAgentAccessMutation(
       await queryClient.invalidateQueries({ queryKey: agentKeys.readiness(orgId, agentId) })
       await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
     },
+  })
+}
+
+/** Tries an API tool as it stands in the editor. Nothing is stored; the dialog shows the answer. */
+export function useTestAgentToolMutation(orgId: string, agentId: string) {
+  return useMutation({
+    meta: { silent: true },
+    mutationFn: (input: TestAgentToolInput) => agentsApi.testTool(apiClient, orgId, agentId, input),
+  })
+}
+
+/** Connects to an MCP server and lists its actions. Nothing is stored; the dialog shows the answer. */
+export function useDiscoverMcpActionsMutation(orgId: string, agentId: string) {
+  return useMutation({
+    meta: { silent: true },
+    mutationFn: (input: DiscoverMcpActionsInput) =>
+      agentsApi.discoverMcpActions(apiClient, orgId, agentId, input),
   })
 }

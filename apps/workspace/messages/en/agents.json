@@ -121,10 +121,173 @@
     },
     "tools": {
       "title": "Tools",
-      "description": "APIs, MCP servers and bridge actions the agent may use, and what each may do.",
+      "description": "APIs and MCP servers the agent may use, and what each may do. Tools start read only.",
       "empty": {
         "title": "No tools yet",
-        "description": "Tools default to read only."
+        "description": "Add an API or an MCP server so the agent can look things up or act. Tools start read only.",
+        "readOnly": "This agent has no tools."
+      },
+      "add": {
+        "button": "Add tool",
+        "api": "API tool",
+        "mcp": "MCP server"
+      },
+      "toasts": {
+        "removed": "Removed {name}",
+        "undo": "Undo"
+      },
+      "connection": {
+        "placeholder": "Choose an account",
+        "search": "Search accounts",
+        "empty": "No accounts you can use yet",
+        "loading": "Loading accounts…",
+        "add": "Add connection",
+        "status": {
+          "active": "Connected",
+          "expired": "Expired",
+          "error": "Needs attention",
+          "revoked": "Disconnected"
+        }
+      },
+      "row": {
+        "kind": {
+          "api": "API tool",
+          "mcp": "MCP server",
+          "bridge_action": "Bridge action",
+          "flow": "Flow",
+          "web_search": "Web search"
+        },
+        "actionsOn": "{on} of {total} actions on",
+        "permission": {
+          "read_only": "Read only",
+          "ask_first": "Ask first",
+          "can_act": "Can act"
+        },
+        "on": "On",
+        "off": "Off",
+        "permissionOf": "What {name} may do",
+        "toggle": "Use {name}",
+        "edit": "Edit {name}",
+        "remove": "Remove {name}",
+        "connection": "Connection: {name}",
+        "borrowed": "Uses {owner}’s connection",
+        "connectionStatus": {
+          "active": "Connected",
+          "expired": "Connection expired",
+          "error": "Connection failed",
+          "revoked": "Disconnected"
+        },
+        "reconnect": "Reconnect",
+        "unavailable": "Connection unavailable",
+        "notConnected": "Not connected",
+        "noSignIn": "No sign-in",
+        "noApprovalRule": "Can act without asking.",
+        "addApprovalRule": "Add an approval rule in Guard"
+      },
+      "apiDialog": {
+        "newTitle": "Add an API tool",
+        "editTitle": "Edit API tool",
+        "description": "The agent sends this request when it needs what the API knows or does.",
+        "name": {
+          "label": "Name",
+          "help": "What you and the agent call this tool, for example “Order lookup”.",
+          "required": "Give the tool a name.",
+          "taken": "Another tool already has this name."
+        },
+        "purpose": {
+          "label": "When should the agent use it?",
+          "help": "Tells the agent what the tool is for."
+        },
+        "method": {
+          "label": "Method"
+        },
+        "url": {
+          "label": "Address",
+          "invalid": "Enter an address that starts with https:// or http://."
+        },
+        "changesData": {
+          "title": "{method} changes data on the other side",
+          "description": "The tool starts read only. Choose Ask first or Can act in the list when it should be allowed to."
+        },
+        "connection": {
+          "label": "Account",
+          "none": "No sign-in",
+          "help": "The account the request signs in with. Keys and tokens belong in a connection, not in headers."
+        },
+        "headers": {
+          "label": "Headers",
+          "help": "Public headers only, such as an API version.",
+          "name": "Header {number} name",
+          "value": "Header {number} value",
+          "namePlaceholder": "Name",
+          "valuePlaceholder": "Value",
+          "remove": "Remove header {number}",
+          "add": "Add header",
+          "invalid": "Use letters, numbers and hyphens only."
+        },
+        "inputSchema": {
+          "label": "Arguments",
+          "help": "Optional. A JSON Schema of what the agent fills in for each call.",
+          "placeholder": "{\"type\": \"object\", \"properties\": {\"orderId\": {\"type\": \"string\"}}}",
+          "invalid": "Enter a JSON object, or leave this empty."
+        },
+        "test": {
+          "title": "Test call",
+          "help": "Sends the request now with the arguments below and shows the answer. Nothing is saved.",
+          "helpChanges": "Sends a real {method} request now. It may change data on the other side.",
+          "arguments": "Test arguments (JSON)",
+          "argumentsInvalid": "Enter a JSON object, or leave this empty.",
+          "run": "Run test",
+          "passed": "Passed",
+          "failed": "Failed",
+          "status": "Status {code}",
+          "latency": "{ms} ms",
+          "copy": "Copy",
+          "copied": "Copied",
+          "truncated": "Only the start of the answer is shown."
+        },
+        "cancel": "Cancel",
+        "save": "Save tool"
+      },
+      "mcpDialog": {
+        "newTitle": "Add an MCP server",
+        "editTitle": "Edit MCP server",
+        "description": "The agent can use the actions this server offers.",
+        "name": {
+          "label": "Name",
+          "help": "What you and the agent call this server, for example “Company wiki”.",
+          "required": "Give the server a name.",
+          "taken": "Another tool already has this name."
+        },
+        "purpose": {
+          "label": "When should the agent use it?",
+          "help": "Tells the agent what the server is for."
+        },
+        "url": {
+          "label": "Server address",
+          "invalid": "Enter an address that starts with https:// or http://."
+        },
+        "connection": {
+          "label": "Account",
+          "help": "The account the server signs in with. An open server needs a connection with no sign-in."
+        },
+        "actions": {
+          "title": "Actions",
+          "help": "Find what the server offers, then turn actions off or give them their own permission.",
+          "find": "Find actions",
+          "refresh": "Find again",
+          "failed": "Couldn’t find actions",
+          "none": "The server offers no actions.",
+          "inherit": "Same as the tool",
+          "permission": {
+            "read_only": "Read only",
+            "ask_first": "Ask first",
+            "can_act": "Can act"
+          },
+          "permissionOf": "What {name} may do"
+        },
+        "cancel": "Cancel",
+        "save": "Save server"
       }
     },
     "knowledge": {
