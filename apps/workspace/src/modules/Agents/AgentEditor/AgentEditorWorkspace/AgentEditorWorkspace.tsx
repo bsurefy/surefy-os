@@ -93,7 +93,7 @@ export default function AgentEditorWorkspace(props: Readonly<AgentEditorWorkspac
       {c.activeTab === 'tools' && <ToolsTab {...tabProps} />}
       {c.activeTab === 'knowledge' && <KnowledgeTab {...tabProps} />}
       {c.activeTab === 'guard' && <GuardTab {...tabProps} />}
-      {c.activeTab === 'test' && <TestTab />}
+      {c.activeTab === 'test' && <TestTab {...tabProps} onFlush={draft.flush} />}
       {c.activeTab === 'publish' && (
         <PublishTab
           {...tabProps}
@@ -104,7 +104,7 @@ export default function AgentEditorWorkspace(props: Readonly<AgentEditorWorkspac
         />
       )}
       {c.activeTab === 'versions' && <VersionsTab {...tabProps} />}
-      {c.activeTab === 'runs' && <RunsTab />}
+      {c.activeTab === 'runs' && <RunsTab agent={agent} />}
     </div>
   )
 }

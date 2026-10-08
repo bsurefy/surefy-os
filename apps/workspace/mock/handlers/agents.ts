@@ -20,6 +20,7 @@ import {
 
 import { AGENT_KIND, SUPPORT_AGENT_ID } from './agentIds'
 import { agentPublishingHandlers, resetAgentPublishingMock } from './agentPublishing'
+import { resetAgentRunsMock, setAgentLookup } from './agentRuns'
 import { agentListHandlers, resetAgentsListMock } from './agentsList'
 import { agentToolHandlers } from './agentTools'
 import { HELP_CENTER_ID, HR_POLICIES_ID } from './knowledge'
@@ -181,10 +182,15 @@ export function resetAgentsMock(): void {
   revisionBumped = false
   resetAgentsListMock()
   resetAgentPublishingMock()
+  resetAgentRunsMock()
 }
 
 const path = '/orgs/:orgId/agents'
 const find = (id: unknown) => agents.find((agent) => agent.id === id)
+setAgentLookup((id) => {
+  const agent = find(id)
+  return agent && { id: agent.id, name: agent.name, draftUpdatedAt: agent.draft.updatedAt }
+})
 const notFound = () => mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_NOT_FOUND, 'Agent not found')
 
 /** The definition of the version that is live: for "Support triage" the one the draft was changed from. */

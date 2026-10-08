@@ -28,6 +28,7 @@ import type {
 import { fixtureUuid } from '@surefy/web-core/testing'
 import { defineMockHandler, mockError, mockOk, mockPage } from '@surefy/web-core/testing/mock'
 
+import { hasTestRunSince } from './agentRuns'
 import { MAYA, OMAR } from './shell.fixtures'
 import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
 
@@ -203,8 +204,14 @@ function readinessOf(agent: AgentDetailDto): AgentReadinessItemDto[] {
       'guard',
       isLooser ? [{ type: 'thresholds', id: null, name: 'Thresholds' }] : [],
     ),
-    // there are no test runs in the mock yet
-    item('tested_since_change', 'warning', 'test', [{ type: 'test', id: null, name: 'Test run' }]),
+    item(
+      'tested_since_change',
+      'warning',
+      'test',
+      hasTestRunSince(agent.id, agent.draft.updatedAt)
+        ? []
+        : [{ type: 'test', id: null, name: 'Test run' }],
+    ),
     item(
       'can_act_without_approval_rule',
       'warning',

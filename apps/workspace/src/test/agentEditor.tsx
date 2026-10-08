@@ -4,7 +4,9 @@ import { accessAs, ORG_ID, seededShellClient } from '@/test/shell'
 import type { AgentDefinition, OrgRole } from '@surefy/contracts'
 import { renderWithProviders } from '@surefy/web-core/testing'
 
+import { agentRunsDomain } from '../../mock/handlers/agentRuns'
 import { agentsDomain } from '../../mock/handlers/agents'
+import { approvalsDomain } from '../../mock/handlers/approvals'
 import { connectionsDomain } from '../../mock/handlers/connections'
 import { guardDomain } from '../../mock/handlers/guard'
 import { knowledgeDomain } from '../../mock/handlers/knowledge'
@@ -19,6 +21,8 @@ import type { SetupServer } from 'msw/node'
 /** The mock handlers an agent editor test needs. */
 export const agentEditorHandlers = [
   ...agentsDomain.handlers,
+  ...agentRunsDomain.handlers,
+  ...approvalsDomain.handlers,
   ...connectionsDomain.handlers,
   ...modelsDomain.handlers,
   ...guardDomain.handlers,

@@ -1,22 +1,49 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { FlaskConical } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+'use client'
 
-import { EmptyState } from '@surefy/ui/components/DataDisplay'
-import { PageHeader } from '@surefy/ui/components/Layout'
+import StepTrace from './StepTrace'
+import TestChat from './TestChat'
+import { useTestTabController } from './TestTab.controller'
 
-/**
- * Test. Module skeleton stub: the page header and empty state until the screen is built.
- */
-export default function TestTab() {
-  const t = useTranslations('agents.editor.test')
+import type { TestTabProps } from './TestTab.types'
+
+/** Test: a sandbox chat with the draft on one side, the steps of its latest run on the other. */
+export default function TestTab(props: Readonly<TestTabProps>) {
+  const c = useTestTabController(props)
+  const { trace } = c
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t('title')} description={t('description')} />
-      <EmptyState
-        icon={FlaskConical}
-        title={t('empty.title')}
-        description={t('empty.description')}
+    <div className="grid items-start gap-6 lg:grid-cols-2">
+      <TestChat
+        messages={c.messages}
+        starters={c.starters}
+        activity={c.activity}
+        isSaving={c.isSaving}
+        notSaved={c.notSaved}
+        isReadOnly={c.isReadOnly}
+        failureMessage={c.failureMessage}
+        composer={c.composer}
+      />
+      <StepTrace
+        view={{
+          orgId: c.orgId,
+          runId: trace.value.runId,
+          trace: trace.value,
+          totals: trace.totals,
+          longestMs: trace.longestMs,
+          thresholds: trace.thresholds,
+          openSeqs: trace.openSeqs,
+          onToggle: trace.onToggle,
+          toolsHref: trace.toolsHref,
+          failedSeq: trace.failedSeq,
+          canApprove: trace.canApprove,
+          isApproving: trace.isApproving,
+          onApprove: trace.onApprove,
+          canRetryStep: trace.canRetryStep,
+          isRetrying: trace.isRetrying,
+          onRetryStep: trace.onRetryStep,
+          errorOf: c.errorOf,
+        }}
       />
     </div>
   )

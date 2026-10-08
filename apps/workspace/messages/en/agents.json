@@ -669,11 +669,94 @@
       }
     },
     "test": {
-      "title": "Test",
-      "description": "Try the agent in a sandbox and see every step.",
-      "empty": {
-        "title": "No test runs yet",
-        "description": "Send a message to see the steps the agent takes."
+      "stopped": "Run stopped",
+      "chat": {
+        "title": "Conversation",
+        "description": "Try the agent with your saved changes. Nothing here reaches the people who use it.",
+        "empty": {
+          "title": "Say something to the agent",
+          "description": "It answers with the draft as it is now, and every step shows on the right."
+        },
+        "starters": "Or start with one of these",
+        "you": "You",
+        "agent": "Agent",
+        "working": "Working…",
+        "label": "Message to the agent",
+        "placeholder": "Ask the agent something…",
+        "send": "Send",
+        "stop": "Stop",
+        "clear": "New test",
+        "saving": "Saving your changes first…",
+        "sandbox": "Sandbox · Enter to send, Shift+Enter for a new line",
+        "failed": "The run failed",
+        "notSaved": {
+          "title": "Your latest changes couldn't be saved",
+          "description": "The test would use an older version of the draft. Try again once they are saved."
+        },
+        "readOnly": "This agent is read-only, so it can't be tested here."
+      },
+      "trace": {
+        "title": "Steps",
+        "description": "What the agent does for each message.",
+        "stepCount": "{count, plural, one {# step} other {# steps}}",
+        "starting": "Starting the run…",
+        "empty": {
+          "title": "No steps yet",
+          "description": "Send a message to see the knowledge, model, tool and approval steps of the run."
+        },
+        "status": {
+          "queued": "Queued",
+          "running": "Running",
+          "waiting_approval": "Waiting for approval",
+          "succeeded": "Done",
+          "failed": "Failed",
+          "canceled": "Stopped",
+          "timed_out": "Timed out"
+        }
+      },
+      "step": {
+        "types": {
+          "retrieval": "Knowledge",
+          "model": "Model",
+          "tool": "Tool",
+          "decision": "Decision",
+          "approval": "Approval",
+          "guard": "Guard check",
+          "web_search": "Web search"
+        },
+        "statuses": {
+          "succeeded": "Done",
+          "failed": "Failed",
+          "skipped": "Reused",
+          "waiting": "Waiting",
+          "blocked": "Blocked"
+        },
+        "bands": {
+          "high": "Automatic",
+          "medium": "AI double-check",
+          "low": "Needs a person"
+        },
+        "duration": {
+          "ms": "{value} ms",
+          "s": "{value} s"
+        },
+        "tokens": "{count, plural, one {# token} other {# tokens}}",
+        "skipped": "Reused from the earlier run",
+        "expand": "Show the input and output of {name}",
+        "collapse": "Hide the input and output of {name}",
+        "input": "Input",
+        "output": "Output",
+        "noData": "This step kept no input or output.",
+        "truncated": "Shortened to fit.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "loadError": "Couldn't load this step",
+        "waiting": "Waiting for an approval",
+        "waitingFor": "Waiting for approval by {names}",
+        "approve": "Approve as tester",
+        "failed": "This tool call failed",
+        "retry": "Retry step",
+        "openTool": "Open tool settings"
       }
     },
     "publish": {
@@ -858,11 +941,64 @@
     },
     "runs": {
       "title": "Runs",
-      "description": "The runs of this agent.",
+      "description": "What this agent has done for the people who use it. Open a run to see every step in Insights.",
+      "search": {
+        "label": "Search runs",
+        "placeholder": "Search by run ID or person"
+      },
+      "filters": {
+        "status": "Status",
+        "anyStatus": "All runs",
+        "needsPerson": "Needed a person",
+        "testRuns": "Test runs"
+      },
+      "columns": {
+        "when": "Started",
+        "run": "Run",
+        "startedBy": "Started by",
+        "status": "Status",
+        "version": "Version",
+        "duration": "Time",
+        "cost": "Cost"
+      },
+      "tableLabel": "Runs of this agent",
+      "test": "Test run",
+      "draft": "Draft",
+      "version": "v{version}",
+      "neededHuman": "Needed a person",
+      "duration": {
+        "ms": "{value} ms",
+        "s": "{value} s"
+      },
+      "triggers": {
+        "chat": "SurefyOS chat",
+        "test": "Test",
+        "api": "API",
+        "widget": "Website widget",
+        "slack": "Slack",
+        "whatsapp": "WhatsApp",
+        "flow": "Flow"
+      },
+      "statuses": {
+        "queued": "Queued",
+        "running": "Running",
+        "waiting_approval": "Waiting for approval",
+        "succeeded": "Done",
+        "failed": "Failed",
+        "canceled": "Stopped",
+        "timed_out": "Timed out"
+      },
       "empty": {
         "title": "No runs yet",
-        "description": "Runs appear here once the agent is used."
-      }
+        "description": "Runs appear here once people use the agent."
+      },
+      "noResults": {
+        "title": "No runs match",
+        "description": "Try another search or clear the filters.",
+        "clear": "Clear filters"
+      },
+      "loadError": "Couldn't load the runs",
+      "loadMore": "Load more runs"
     },
     "loading": "Loading the agent",
     "loadError": "Couldn't load this agent",

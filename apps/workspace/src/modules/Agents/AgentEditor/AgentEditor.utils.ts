@@ -77,3 +77,16 @@ export function clearDeviceDraft(orgId: string, agentId: string): void {
     // nothing to clear
   }
 }
+
+const MICROS_PER_UNIT = 1_000_000
+const MS_PER_SECOND = 1000
+
+/** Money travels as micros of a currency. */
+export const microsToUnits = (micros: number): number => micros / MICROS_PER_UNIT
+
+/** A duration as a number and its unit: 420 ms, 1.4 s. */
+export function splitDuration(ms: number): { unit: 'ms' | 's'; value: number } {
+  return ms < MS_PER_SECOND
+    ? { unit: 'ms', value: Math.round(ms) }
+    : { unit: 's', value: ms / MS_PER_SECOND }
+}

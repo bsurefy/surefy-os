@@ -2,7 +2,7 @@
 
 /**
  * Query keys of the `approvals` domain (services-api.md §3): the approvals queue. The domain's screen task
- * adds the fetchers, the query options and the mutations next to this file.
+ * adds the query options next to this file.
  */
 export const approvalKeys = {
   all: (orgId: string) => ['orgs', orgId, 'approvals'] as const,
