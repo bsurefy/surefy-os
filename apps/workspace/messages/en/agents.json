@@ -23,19 +23,100 @@
       "description": "The editor opens here once the agent loads."
     },
     "instructions": {
-      "title": "Instructions",
-      "description": "Name, description, instructions, tone and conversation starters.",
-      "empty": {
-        "title": "No instructions yet",
-        "description": "Write it like you would brief a new teammate."
+      "about": {
+        "title": "About this agent"
+      },
+      "optional": "(optional)",
+      "name": {
+        "label": "Name",
+        "required": "Give the agent a name."
+      },
+      "descriptionField": {
+        "label": "Description",
+        "help": "What people see when they pick the agent."
+      },
+      "briefing": {
+        "title": "Instructions",
+        "description": "Write it like you'd brief a new teammate: what the agent does, what it should never do, and how to hand over to a person.",
+        "label": "Instructions",
+        "placeholder": "You help customers with orders and refunds. Be brief and kind. If a refund is above $500, hand over to a person.",
+        "count": "{count} of {max} characters"
+      },
+      "tone": {
+        "title": "Tone",
+        "label": "Tone of voice",
+        "help": "How the agent should sound.",
+        "placeholder": "Friendly and concise"
+      },
+      "starters": {
+        "title": "Conversation starters",
+        "description": "Suggestions people can tap to begin a conversation. Up to 6.",
+        "add": "Add starter",
+        "empty": "No starters yet.",
+        "item": "Conversation starter {number}",
+        "remove": "Remove conversation starter {number}"
+      },
+      "preview": {
+        "label": "Preview",
+        "title": "Preview",
+        "description": "How the agent looks in Chat."
       }
     },
     "model": {
-      "title": "Model",
-      "description": "The model, its creativity and the AI double-check model.",
-      "empty": {
-        "title": "No model chosen",
-        "description": "Choose an allowed model for this agent."
+      "loadError": "Couldn't load the models",
+      "optional": "(optional)",
+      "picker": {
+        "placeholder": "Choose a model",
+        "search": "Search models",
+        "empty": "No models match",
+        "loading": "Loading models…"
+      },
+      "model": {
+        "title": "Model",
+        "description": "Only models you're allowed to use are listed.",
+        "label": "Model"
+      },
+      "auto": {
+        "label": "Auto",
+        "soon": "Picks the best model for each task. Coming soon."
+      },
+      "unavailable": {
+        "title": "Model removed by an admin",
+        "description": "Choose another model. Until you publish, the live version keeps answering with its fallback.",
+        "option": "No longer available"
+      },
+      "modelDetails": "{provider} · {cost} · {location}",
+      "cost": {
+        "free": "Free",
+        "low": "Low cost",
+        "medium": "Medium cost",
+        "high": "High cost",
+        "unknown": "Cost unknown"
+      },
+      "location": {
+        "on_server": "Stays on your server",
+        "sent_to_provider": "Sent to the provider"
+      },
+      "dataLocation": {
+        "local": "Stays on your server",
+        "provider": "Sent to {provider}"
+      },
+      "creativity": {
+        "label": "Creativity",
+        "help": "Low is precise and repeatable. High is varied and inventive."
+      },
+      "safety": {
+        "title": "Safety",
+        "description": "How the agent checks itself, and what happens to private conversations."
+      },
+      "doubleCheck": {
+        "label": "AI double-check model",
+        "help": "Reviews risky actions before a person is asked.",
+        "none": "No double-check model"
+      },
+      "fallback": {
+        "label": "Use the Vault fallback order",
+        "help": "Private conversations fall back to local models only."
       }
     },
     "tools": {
@@ -47,11 +128,40 @@
       }
     },
     "knowledge": {
-      "title": "Knowledge",
-      "description": "The knowledge bases the agent may search.",
+      "loadError": "Couldn't load the knowledge bases",
+      "bases": {
+        "title": "Knowledge bases",
+        "description": "The agent searches these to answer. You can add the bases you manage."
+      },
       "empty": {
         "title": "No knowledge attached",
-        "description": "Add knowledge bases the agent can search and cite."
+        "description": "Add a knowledge base so the agent can search and cite it.",
+        "create": "Open Knowledge"
+      },
+      "sourceCount": "{count, plural, =0 {No sources} one {# source} other {# sources}}",
+      "localOnly": "Local models only",
+      "unavailable": {
+        "name": "Knowledge base unavailable",
+        "description": "It was deleted, or you can no longer see it."
+      },
+      "remove": "Remove {name}",
+      "add": {
+        "label": "Add a knowledge base",
+        "placeholder": "Choose a knowledge base",
+        "search": "Search knowledge bases",
+        "empty": "No more knowledge bases to add",
+        "loading": "Loading knowledge bases…"
+      },
+      "answers": {
+        "title": "Answers"
+      },
+      "cite": {
+        "label": "Cite sources",
+        "help": "Show which documents an answer came from."
+      },
+      "only": {
+        "label": "Only answer from knowledge",
+        "help": "When the knowledge has no answer, say so instead of guessing."
       }
     },
     "guard": {
@@ -93,6 +203,61 @@
         "title": "No runs yet",
         "description": "Runs appear here once the agent is used."
       }
+    },
+    "loading": "Loading the agent",
+    "loadError": "Couldn't load this agent",
+    "notFound": {
+      "title": "This agent isn't available",
+      "description": "It may have been deleted, or it isn't shared with you.",
+      "back": "Back to Agents"
+    },
+    "tabs": {
+      "instructions": "Instructions",
+      "model": "Model",
+      "tools": "Tools",
+      "knowledge": "Knowledge",
+      "guard": "Guard",
+      "test": "Test",
+      "publish": "Publish",
+      "versions": "Versions",
+      "runs": "Runs"
+    },
+    "header": {
+      "breadcrumb": "Agent location",
+      "agents": "Agents",
+      "tabs": "Agent sections",
+      "status": {
+        "draft": "Draft",
+        "active": "Active",
+        "paused": "Paused",
+        "archived": "Archived"
+      },
+      "notPublished": "Not published yet",
+      "live": "Version {version} is live",
+      "changes": "{count, plural, =0 {No unpublished changes} one {# unpublished change} other {# unpublished changes}}",
+      "changesUnknown": "Unpublished changes",
+      "saving": "Saving…",
+      "saved": "Saved {time}",
+      "saveFailed": "Couldn't save · {reason}",
+      "retry": "Retry",
+      "test": "Test",
+      "publish": "Publish v{version}"
+    },
+    "archived": {
+      "title": "This agent is archived",
+      "description": "It is read-only. Restore it from the Agents list to edit it again."
+    },
+    "readOnly": {
+      "title": "You can view this agent but not change it",
+      "description": "Only its owner, people it's shared with for editing, and Admins can edit it."
+    },
+    "conflict": {
+      "someone": "Someone",
+      "changed": "{name} changed this agent while you were editing",
+      "published": "{name} published v{version} while you were editing",
+      "description": "Keep mine saves your version on top of theirs. Review changes shows theirs and drops what you typed since.",
+      "review": "Review changes",
+      "keepMine": "Keep mine"
     }
   },
   "page": {
