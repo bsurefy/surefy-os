@@ -15,6 +15,7 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import { createAgentToolsModule } from './modules/agentTools/index.js'
 import { createApiKeysModule } from './modules/apiKeys/index.js'
 import {
   createApprovalsModule,
@@ -160,6 +161,11 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     outbox: () => outbox.service,
     audit: audit.service,
     ...(overrides.connections?.http === undefined ? {} : { http: overrides.connections.http }),
+  })
+  // tools for agent runs: the executor (agentRuns) is their only caller
+  const agentTools = createAgentToolsModule({
+    connections: connections.service,
+    http: connections.http,
   })
   // fresh-session checks come from the access module, which is built after the modules below
   const approvals = createApprovalsModule({
@@ -334,6 +340,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     apiKeys,
     vault,
     connections,
+    agentTools,
     approvals,
     modelGateway,
     chats,

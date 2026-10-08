@@ -20,7 +20,7 @@ import type { LookupAddress } from 'node:dns'
 // the install's list for local servers may use plain http and private addresses.
 
 export interface HttpRequest {
-  method: 'GET' | 'POST' | 'DELETE'
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   headers?: Record<string, string>
   body?: string
   timeoutMs?: number

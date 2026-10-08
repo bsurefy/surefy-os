@@ -11,4 +11,5 @@ export type {
   ConnectionPrincipal,
 } from './connections.types.js'
 export type { ConnectionUse } from './connections.service.js'
-export type { OutboundHttp } from './connectionsHttp.js'
+export { OutboundError, type HttpResult, type OutboundHttp } from './connectionsHttp.js'
+export { authHeaders as connectionAuthHeaders } from './providers/providerHttp.js'

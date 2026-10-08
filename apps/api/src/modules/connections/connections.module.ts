@@ -132,6 +132,8 @@ export function createConnectionsModule(deps: ConnectionsModuleDeps) {
   return {
     /** Other modules use connections through this: `assertUsable` at save time, `open` at run time. */
     service,
+    /** The client for calls to other apps; agent tools send their requests through it too. */
+    http,
     maintenance,
     lastUsed,
     jobs: [
