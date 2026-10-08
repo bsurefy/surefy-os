@@ -7,6 +7,7 @@ export { default as ApiKeysSettings } from './ApiKeysSettings'
 export {
   default as ConnectionsSettings,
   ConnectingPage as ConnectionsOAuthCallback,
+  getOauthReturnPath,
 } from './ConnectionsSettings'
 export { default as DataPrivacySettings } from './DataPrivacySettings'
 export { default as GeneralSettings } from './GeneralSettings'

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { CONNECTIONS_ERROR_CODES } from '@surefy/contracts'
+import { CONNECTIONS_ERROR_CODES, findBuiltInConnectionProvider } from '@surefy/contracts'
 import type {
   ConnectionDto,
   ConnectionImpactDto,
@@ -216,15 +216,20 @@ export function buildReconnectInput(
   }
 }
 
-/** The sign-in method a reconnect asks for, from how the connection was made. */
+/**
+ * The sign-in method a reconnect asks for, from how the connection was made. An OAuth 2
+ * connection to a custom API or an MCP server signs in with client credentials; the apps that
+ * redirect (Slack, Google Drive, Notion) use the authorization code flow. The account label does
+ * not tell them apart: the API names a custom address by its host.
+ */
 export function getReconnectMethod(
-  connection: Pick<ConnectionDto, 'authType' | 'externalAccountLabel'>,
+  connection: Pick<ConnectionDto, 'authType' | 'providerKey'>,
 ): SignInMethod {
   if (connection.authType === 'oauth2') {
-    // an authorization code sign-in names its account; client credentials do not
-    return connection.externalAccountLabel
-      ? SIGN_IN_METHOD.OAUTH
-      : SIGN_IN_METHOD.CLIENT_CREDENTIALS
+    const flows = findBuiltInConnectionProvider(connection.providerKey)?.oauthFlows ?? []
+    return flows.includes('client_credentials')
+      ? SIGN_IN_METHOD.CLIENT_CREDENTIALS
+      : SIGN_IN_METHOD.OAUTH
   }
   return connection.authType
 }

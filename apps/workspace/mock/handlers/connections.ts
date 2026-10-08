@@ -245,223 +245,227 @@ function buildConnection(input: StartOauthInput | z.infer<typeof createConnectio
 }
 
 /**
- * Connections (B6-01's routes; until they exist the handlers serve the screen and
- * `MOCK_DOMAINS=connections` shows its states). The list holds a Google Drive source, an expired
- * Slack sign-in (four things depend on it), Omar's personal Notion key, a team API tool the app
- * rejects, an open MCP server and a disconnected WhatsApp number, which only the Disconnected
+ * Connections (B6-01's routes, live: the real API answers; the handlers stay for component tests
+ * and `MOCK_DOMAINS=connections` shows its states). The list holds a Google Drive source, an
+ * expired Slack sign-in (four things depend on it), Omar's personal Notion key, a team API tool the
+ * app rejects, an open MCP server and a disconnected WhatsApp number, which only the Disconnected
  * filter shows. Scenarios: on the list `own-only` (what a Builder is sent); on the providers
  * `oauth-not-configured`; on a create `provider-rejected`, `unreachable`, `base-url-not-allowed`
  * and `duplicate`; on `oauth/complete` `denied`, `state-invalid` and `account-mismatch`; on a
  * reconnect `provider-rejected`; on a test `failed`; on the impact `no-impact` and `many`.
  */
-export const connectionsDomain = defineMockDomain('connections', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/providers`,
-    response: okResponse(z.array(connectionProviderDtoSchema)),
-    scenarios: {
-      default: () => mockOk(providers(true)),
-      'oauth-not-configured': () => mockOk(providers(false)),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path,
-    response: pageResponse(connectionDtoSchema),
-    scenarios: {
-      default: ({ request }) => listConnections(new URL(request.url), false),
-      'own-only': ({ request }) => listConnections(new URL(request.url), true),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path,
-    response: okResponse(connectionDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createConnectionInputSchema.parse(await request.json())
-        const created = buildConnection(input)
-        connections = [created, ...connections]
-        return mockOk(created, { status: 201 })
+export const connectionsDomain = defineMockDomain(
+  'connections',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/providers`,
+      response: okResponse(z.array(connectionProviderDtoSchema)),
+      scenarios: {
+        default: () => mockOk(providers(true)),
+        'oauth-not-configured': () => mockOk(providers(false)),
       },
-      'provider-rejected': () => failure('CONNECTION_PROVIDER_REJECTED'),
-      unreachable: () => failure('CONNECTION_UNREACHABLE'),
-      'base-url-not-allowed': () => failure('CONNECTION_BASE_URL_NOT_ALLOWED'),
-      duplicate: () => failure('CONNECTION_DUPLICATE', HTTP_CONFLICT),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/oauth/start`,
-    response: okResponse(oauthStartDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = startOauthInputSchema.parse(await request.json())
-        signIns += 1
-        const state = `mock-state-${signIns}`
-        pending.set(state, input)
-        return mockOk({
-          flow: 'authorization_code' as const,
-          authorizationUrl: `${OAUTH_AUTHORIZE_URL}?state=${state}`,
-          state,
-          expiresAt: OAUTH_EXPIRES_AT,
-        })
+    }),
+    defineMockHandler({
+      method: 'get',
+      path,
+      response: pageResponse(connectionDtoSchema),
+      scenarios: {
+        default: ({ request }) => listConnections(new URL(request.url), false),
+        'own-only': ({ request }) => listConnections(new URL(request.url), true),
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/oauth/complete`,
-    response: okResponse(oauthCompleteDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = completeOauthInputSchema.parse(await request.json())
-        const started = pending.get(input.state)
-        if (!started) return failure('CONNECTION_OAUTH_STATE_INVALID')
-        pending.delete(input.state)
-        if (input.error !== undefined) return failure('CONNECTION_OAUTH_DENIED')
-        const target = started.reconnectConnectionId ? find(started.reconnectConnectionId) : null
-        if (started.reconnectConnectionId && !target) return notFound()
-        const connection = target
-          ? replace({
-              ...target,
+    }),
+    defineMockHandler({
+      method: 'post',
+      path,
+      response: okResponse(connectionDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createConnectionInputSchema.parse(await request.json())
+          const created = buildConnection(input)
+          connections = [created, ...connections]
+          return mockOk(created, { status: 201 })
+        },
+        'provider-rejected': () => failure('CONNECTION_PROVIDER_REJECTED'),
+        unreachable: () => failure('CONNECTION_UNREACHABLE'),
+        'base-url-not-allowed': () => failure('CONNECTION_BASE_URL_NOT_ALLOWED'),
+        duplicate: () => failure('CONNECTION_DUPLICATE', HTTP_CONFLICT),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/oauth/start`,
+      response: okResponse(oauthStartDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = startOauthInputSchema.parse(await request.json())
+          signIns += 1
+          const state = `mock-state-${signIns}`
+          pending.set(state, input)
+          return mockOk({
+            flow: 'authorization_code' as const,
+            authorizationUrl: `${OAUTH_AUTHORIZE_URL}?state=${state}`,
+            state,
+            expiresAt: OAUTH_EXPIRES_AT,
+          })
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/oauth/complete`,
+      response: okResponse(oauthCompleteDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = completeOauthInputSchema.parse(await request.json())
+          const started = pending.get(input.state)
+          if (!started) return failure('CONNECTION_OAUTH_STATE_INVALID')
+          pending.delete(input.state)
+          if (input.error !== undefined) return failure('CONNECTION_OAUTH_DENIED')
+          const target = started.reconnectConnectionId ? find(started.reconnectConnectionId) : null
+          if (started.reconnectConnectionId && !target) return notFound()
+          const connection = target
+            ? replace({
+                ...target,
+                status: 'active',
+                statusReasonCode: null,
+                lastRefreshedAt: NOW,
+                updatedAt: NOW,
+              })
+            : buildConnection(started)
+          if (!target) connections = [connection, ...connections]
+          return mockOk({
+            connection,
+            outcome: target ? ('reconnected' as const) : ('created' as const),
+            returnTo: started.returnTo ?? null,
+          })
+        },
+        denied: () => failure('CONNECTION_OAUTH_DENIED'),
+        'state-invalid': () => failure('CONNECTION_OAUTH_STATE_INVALID'),
+        'account-mismatch': () => failure('CONNECTION_ACCOUNT_MISMATCH'),
+      },
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/:connectionId`,
+      response: okResponse(connectionDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = find(params.connectionId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revokedError()
+          const input = updateConnectionInputSchema.parse(await request.json())
+          return mockOk(replace({ ...found, ...input, updatedAt: NOW }))
+        },
+        'base-url-not-allowed': () => failure('CONNECTION_BASE_URL_NOT_ALLOWED'),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/:connectionId/impact`,
+      response: okResponse(connectionImpactDtoSchema),
+      scenarios: {
+        default: ({ params }) =>
+          find(params.connectionId)
+            ? mockOk(IMPACTS[String(params.connectionId)] ?? NO_IMPACT)
+            : notFound(),
+        'no-impact': () => mockOk(NO_IMPACT),
+        many: () =>
+          mockOk({
+            dependents: [{ type: 'agent', count: MANY_DEPENDENTS }],
+            listed: Array.from({ length: IMPACT_LISTED_MAX }, (_, index) =>
+              agent(index + 1, `Agent ${index + 1}`),
+            ),
+          }),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:connectionId/reconnect`,
+      response: okResponse(connectionDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = find(params.connectionId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revokedError()
+          const input = reconnectConnectionInputSchema.parse(await request.json())
+          const secret = 'secret' in input ? input.secret : null
+          return mockOk(
+            replace({
+              ...found,
               status: 'active',
               statusReasonCode: null,
+              secretLast4: secret ? secret.slice(-4) : found.secretLast4,
               lastRefreshedAt: NOW,
               updatedAt: NOW,
-            })
-          : buildConnection(started)
-        if (!target) connections = [connection, ...connections]
-        return mockOk({
-          connection,
-          outcome: target ? ('reconnected' as const) : ('created' as const),
-          returnTo: started.returnTo ?? null,
-        })
+            }),
+          )
+        },
+        'provider-rejected': () => failure('CONNECTION_PROVIDER_REJECTED'),
+        'account-mismatch': () => failure('CONNECTION_ACCOUNT_MISMATCH'),
       },
-      denied: () => failure('CONNECTION_OAUTH_DENIED'),
-      'state-invalid': () => failure('CONNECTION_OAUTH_STATE_INVALID'),
-      'account-mismatch': () => failure('CONNECTION_ACCOUNT_MISMATCH'),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/:connectionId`,
-    response: okResponse(connectionDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = find(params.connectionId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revokedError()
-        const input = updateConnectionInputSchema.parse(await request.json())
-        return mockOk(replace({ ...found, ...input, updatedAt: NOW }))
-      },
-      'base-url-not-allowed': () => failure('CONNECTION_BASE_URL_NOT_ALLOWED'),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:connectionId/impact`,
-    response: okResponse(connectionImpactDtoSchema),
-    scenarios: {
-      default: ({ params }) =>
-        find(params.connectionId)
-          ? mockOk(IMPACTS[String(params.connectionId)] ?? NO_IMPACT)
-          : notFound(),
-      'no-impact': () => mockOk(NO_IMPACT),
-      many: () =>
-        mockOk({
-          dependents: [{ type: 'agent', count: MANY_DEPENDENTS }],
-          listed: Array.from({ length: IMPACT_LISTED_MAX }, (_, index) =>
-            agent(index + 1, `Agent ${index + 1}`),
-          ),
-        }),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:connectionId/reconnect`,
-    response: okResponse(connectionDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = find(params.connectionId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revokedError()
-        const input = reconnectConnectionInputSchema.parse(await request.json())
-        const secret = 'secret' in input ? input.secret : null
-        return mockOk(
-          replace({
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:connectionId/test`,
+      response: okResponse(connectionCheckDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = find(params.connectionId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revokedError()
+          // a connection that works again is active
+          const connection = replace({
             ...found,
             status: 'active',
             statusReasonCode: null,
-            secretLast4: secret ? secret.slice(-4) : found.secretLast4,
-            lastRefreshedAt: NOW,
             updatedAt: NOW,
-          }),
-        )
+          })
+          return mockOk({
+            ok: true,
+            latencyMs: 142,
+            reasonCode: null,
+            externalAccountLabel: connection.externalAccountLabel,
+            connection,
+            testedAt: NOW,
+          })
+        },
+        failed: ({ params }) => {
+          const found = find(params.connectionId)
+          if (!found) return notFound()
+          const connection = replace({
+            ...found,
+            status: 'error',
+            statusReasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
+            updatedAt: NOW,
+          })
+          return mockOk({
+            ok: false,
+            latencyMs: null,
+            reasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
+            externalAccountLabel: null,
+            connection,
+            testedAt: NOW,
+          })
+        },
       },
-      'provider-rejected': () => failure('CONNECTION_PROVIDER_REJECTED'),
-      'account-mismatch': () => failure('CONNECTION_ACCOUNT_MISMATCH'),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:connectionId/test`,
-    response: okResponse(connectionCheckDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = find(params.connectionId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revokedError()
-        // a connection that works again is active
-        const connection = replace({
-          ...found,
-          status: 'active',
-          statusReasonCode: null,
-          updatedAt: NOW,
-        })
-        return mockOk({
-          ok: true,
-          latencyMs: 142,
-          reasonCode: null,
-          externalAccountLabel: connection.externalAccountLabel,
-          connection,
-          testedAt: NOW,
-        })
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:connectionId/revoke`,
+      response: okResponse(connectionDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = find(params.connectionId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') return revokedError()
+          return mockOk(replace({ ...found, status: 'revoked', revokedAt: NOW, updatedAt: NOW }))
+        },
       },
-      failed: ({ params }) => {
-        const found = find(params.connectionId)
-        if (!found) return notFound()
-        const connection = replace({
-          ...found,
-          status: 'error',
-          statusReasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
-          updatedAt: NOW,
-        })
-        return mockOk({
-          ok: false,
-          latencyMs: null,
-          reasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
-          externalAccountLabel: null,
-          connection,
-          testedAt: NOW,
-        })
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:connectionId/revoke`,
-    response: okResponse(connectionDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = find(params.connectionId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') return revokedError()
-        return mockOk(replace({ ...found, status: 'revoked', revokedAt: NOW, updatedAt: NOW }))
-      },
-    },
-  }),
-])
+    }),
+  ],
+  { isLive: true },
+)
 
 function providers(oauthConfigured: boolean) {
   return BUILT_IN_CONNECTION_PROVIDERS.map((provider) => ({

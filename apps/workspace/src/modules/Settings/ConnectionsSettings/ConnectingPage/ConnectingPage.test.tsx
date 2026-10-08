@@ -77,6 +77,14 @@ describe('ConnectingPage', () => {
     expect(router.replace).not.toHaveBeenCalled()
   })
 
+  it('uses its own words when the app sends only an error code', async () => {
+    const state = await startSignIn()
+    renderCallback(`?state=${state}&error=access_denied`)
+    expect(await screen.findByText("The app didn't finish connecting")).toBeVisible()
+    expect(screen.getByText("The sign-in wasn't completed. Nothing was saved.")).toBeVisible()
+    expect(screen.queryByText('access_denied')).not.toBeInTheDocument()
+  })
+
   it('says when the sign-in took too long', async () => {
     renderCallback('?state=mock-state-unknown&code=abc')
     expect(await screen.findByText('That sign-in took too long')).toBeVisible()

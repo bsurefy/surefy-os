@@ -117,120 +117,130 @@ const notFresh = () =>
   mockError(HTTP_FORBIDDEN, ERROR_CODES.AUTH_SESSION_NOT_FRESH, 'Sign in again')
 
 /**
- * Organization API keys (B6-02's routes; until they exist the handlers serve the screen and
- * `MOCK_DOMAINS=apiKeys` shows its states). The list holds an active key with two agents behind
- * it, an unused one, an expired one (its creator's account is erased) and a revoked one, which
- * only the Revoked filter shows. Scenarios: on a create, `session-not-fresh` asks the person to
- * confirm it's them and `scope-not-allowed` and `expiry-invalid` fail the form; on a revoke,
- * `session-not-fresh`; on the impact, `no-impact`.
+ * Organization API keys (B6-02's routes, live: the real API answers; the handlers stay for
+ * component tests and `MOCK_DOMAINS=apiKeys` shows its states). The list holds an active key with
+ * two agents behind it, an unused one, an expired one (its creator's account is erased) and a
+ * revoked one, which only the Revoked filter shows. Scenarios: on a create, `session-not-fresh`
+ * asks the person to confirm it's them and `scope-not-allowed` and `expiry-invalid` fail the form;
+ * on a revoke, `session-not-fresh`; on the impact, `no-impact`.
  */
-export const apiKeysDomain = defineMockDomain('apiKeys', [
-  defineMockHandler({
-    method: 'get',
-    path,
-    response: pageResponse(apiKeyDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const q = url.searchParams.get('q')?.toLowerCase()
-        const statuses = url.searchParams.getAll('status')
-        const sort = url.searchParams.get('sort') ?? '-createdAt'
-        const desc = sort.startsWith('-')
-        const field = sort.replace(/^-/, '') as 'name' | 'createdAt' | 'lastUsedAt'
-        const items = keys
-          .filter(
-            (key) =>
-              (!q || key.name.toLowerCase().includes(q)) &&
-              (statuses.length === 0 ? key.status === 'active' : statuses.includes(key.status)),
+export const apiKeysDomain = defineMockDomain(
+  'apiKeys',
+  [
+    defineMockHandler({
+      method: 'get',
+      path,
+      response: pageResponse(apiKeyDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const q = url.searchParams.get('q')?.toLowerCase()
+          const statuses = url.searchParams.getAll('status')
+          const sort = url.searchParams.get('sort') ?? '-createdAt'
+          const desc = sort.startsWith('-')
+          const field = sort.replace(/^-/, '') as 'name' | 'createdAt' | 'lastUsedAt'
+          const items = keys
+            .filter(
+              (key) =>
+                (!q || key.name.toLowerCase().includes(q)) &&
+                (statuses.length === 0 ? key.status === 'active' : statuses.includes(key.status)),
+            )
+            .sort((a, b) => (a[field] ?? '').localeCompare(b[field] ?? '') * (desc ? -1 : 1))
+          const limit = Number(url.searchParams.get('limit') ?? PAGE_SIZE.default)
+          const start = Number(url.searchParams.get('cursor') ?? 0)
+          const next = start + limit < items.length ? String(start + limit) : null
+          return mockPage(items.slice(start, start + limit), next)
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path,
+      response: okResponse(apiKeyCreatedDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createApiKeyInputSchema.parse(await request.json())
+          if (!input.scopes.every(isApiKeyScopeAllowed)) {
+            return mockError(
+              HTTP_UNPROCESSABLE,
+              ERROR_CODES.API_KEY_SCOPE_NOT_ALLOWED,
+              'Scope not allowed',
+            )
+          }
+          if (input.expiresAt && Date.parse(input.expiresAt) <= Date.parse(NOW)) {
+            return mockError(
+              HTTP_UNPROCESSABLE,
+              ERROR_CODES.API_KEY_EXPIRY_INVALID,
+              'Expiry in the past',
+            )
+          }
+          const created = apiKeyFactory({
+            name: input.name,
+            scopes: input.scopes,
+            expiresAt: input.expiresAt ?? null,
+            createdBy: MAYA,
+            createdAt: NOW,
+            updatedAt: NOW,
+          })
+          keys = [created, ...keys]
+          return mockOk({ apiKey: created, secret: SECRET }, { status: 201 })
+        },
+        'session-not-fresh': notFresh,
+        'scope-not-allowed': () =>
+          mockError(HTTP_UNPROCESSABLE, ERROR_CODES.API_KEY_SCOPE_NOT_ALLOWED, 'Scope not allowed'),
+        'expiry-invalid': () =>
+          mockError(HTTP_UNPROCESSABLE, ERROR_CODES.API_KEY_EXPIRY_INVALID, 'Expiry in the past'),
+      },
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/:keyId`,
+      response: okResponse(apiKeyDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = find(params.keyId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.API_KEY_REVOKED, 'Revoked')
+          }
+          const input = updateApiKeyInputSchema.parse(await request.json())
+          return mockOk(replace({ ...found, name: input.name, updatedAt: NOW }))
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/:keyId/impact`,
+      response: okResponse(apiKeyImpactDtoSchema),
+      scenarios: {
+        default: ({ params }) =>
+          find(params.keyId) ? mockOk(IMPACTS[String(params.keyId)] ?? NO_IMPACT) : notFound(),
+        'no-impact': () => mockOk(NO_IMPACT),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:keyId/revoke`,
+      response: okResponse(apiKeyDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = find(params.keyId)
+          if (!found) return notFound()
+          if (found.status === 'revoked') {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.API_KEY_REVOKED, 'Already revoked')
+          }
+          return mockOk(
+            replace({
+              ...found,
+              status: 'revoked',
+              revokedAt: NOW,
+              revokedBy: MAYA,
+              updatedAt: NOW,
+            }),
           )
-          .sort((a, b) => (a[field] ?? '').localeCompare(b[field] ?? '') * (desc ? -1 : 1))
-        const limit = Number(url.searchParams.get('limit') ?? PAGE_SIZE.default)
-        const start = Number(url.searchParams.get('cursor') ?? 0)
-        const next = start + limit < items.length ? String(start + limit) : null
-        return mockPage(items.slice(start, start + limit), next)
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path,
-    response: okResponse(apiKeyCreatedDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createApiKeyInputSchema.parse(await request.json())
-        if (!input.scopes.every(isApiKeyScopeAllowed)) {
-          return mockError(
-            HTTP_UNPROCESSABLE,
-            ERROR_CODES.API_KEY_SCOPE_NOT_ALLOWED,
-            'Scope not allowed',
-          )
-        }
-        if (input.expiresAt && Date.parse(input.expiresAt) <= Date.parse(NOW)) {
-          return mockError(
-            HTTP_UNPROCESSABLE,
-            ERROR_CODES.API_KEY_EXPIRY_INVALID,
-            'Expiry in the past',
-          )
-        }
-        const created = apiKeyFactory({
-          name: input.name,
-          scopes: input.scopes,
-          expiresAt: input.expiresAt ?? null,
-          createdBy: MAYA,
-          createdAt: NOW,
-          updatedAt: NOW,
-        })
-        keys = [created, ...keys]
-        return mockOk({ apiKey: created, secret: SECRET }, { status: 201 })
-      },
-      'session-not-fresh': notFresh,
-      'scope-not-allowed': () =>
-        mockError(HTTP_UNPROCESSABLE, ERROR_CODES.API_KEY_SCOPE_NOT_ALLOWED, 'Scope not allowed'),
-      'expiry-invalid': () =>
-        mockError(HTTP_UNPROCESSABLE, ERROR_CODES.API_KEY_EXPIRY_INVALID, 'Expiry in the past'),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/:keyId`,
-    response: okResponse(apiKeyDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = find(params.keyId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.API_KEY_REVOKED, 'Revoked')
-        }
-        const input = updateApiKeyInputSchema.parse(await request.json())
-        return mockOk(replace({ ...found, name: input.name, updatedAt: NOW }))
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:keyId/impact`,
-    response: okResponse(apiKeyImpactDtoSchema),
-    scenarios: {
-      default: ({ params }) =>
-        find(params.keyId) ? mockOk(IMPACTS[String(params.keyId)] ?? NO_IMPACT) : notFound(),
-      'no-impact': () => mockOk(NO_IMPACT),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:keyId/revoke`,
-    response: okResponse(apiKeyDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = find(params.keyId)
-        if (!found) return notFound()
-        if (found.status === 'revoked') {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.API_KEY_REVOKED, 'Already revoked')
-        }
-        return mockOk(
-          replace({ ...found, status: 'revoked', revokedAt: NOW, revokedBy: MAYA, updatedAt: NOW }),
-        )
-      },
-    },
-  }),
-])
+    }),
+  ],
+  { isLive: true },
+)

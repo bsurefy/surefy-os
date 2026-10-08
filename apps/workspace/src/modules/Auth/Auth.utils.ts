@@ -18,17 +18,28 @@ export interface AuthClientError {
 }
 
 /**
- * Where a signed-in person lands when no page was asked for: no organization, the last-used one,
- * the only one, or the picker.
+ * The organization a signed-in person returns to when no page names one: the last-used one, or the
+ * only one. Null with none, or with several and no last-used one.
  */
-export function getPostSignInPath(me: Pick<MeDto, 'memberships' | 'preferences'>): string {
+export function getLastUsedOrganizationSlug(
+  me: Pick<MeDto, 'memberships' | 'preferences'>,
+): string | null {
   const { memberships, preferences } = me
-  if (memberships.length === 0) return ROUTES.auth.noOrganization
   const lastUsed = memberships.find(
     (membership) => membership.organization.id === preferences.lastOrganizationId,
   )
   const target = lastUsed ?? (memberships.length === 1 ? memberships[0] : undefined)
-  return target ? ROUTES.workspace.home(target.organization.slug) : ROUTES.auth.organizations
+  return target?.organization.slug ?? null
+}
+
+/**
+ * Where a signed-in person lands when no page was asked for: no organization, the last-used one,
+ * the only one, or the picker.
+ */
+export function getPostSignInPath(me: Pick<MeDto, 'memberships' | 'preferences'>): string {
+  if (me.memberships.length === 0) return ROUTES.auth.noOrganization
+  const slug = getLastUsedOrganizationSlug(me)
+  return slug === null ? ROUTES.auth.organizations : ROUTES.workspace.home(slug)
 }
 
 /** The `auth.errors` key for a Better Auth error. */

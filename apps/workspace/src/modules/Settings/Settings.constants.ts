@@ -43,14 +43,14 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionEntry[] = [
   {
     id: 'connections',
     section: SETTINGS_SECTION.CONNECTIONS,
-    released: false,
+    released: true,
     // Builders see and manage their own personal connections
     anyPermission: [PERMISSIONS.CONNECTIONS_USE],
   },
   {
     id: 'apiKeys',
     section: SETTINGS_SECTION.API_KEYS,
-    released: false,
+    released: true,
     anyPermission: [PERMISSIONS.API_KEYS_MANAGE],
   },
   {

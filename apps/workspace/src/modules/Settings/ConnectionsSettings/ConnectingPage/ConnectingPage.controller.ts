@@ -35,7 +35,8 @@ function getImmediateFailure({
   errorDescription,
 }: ReturnParams): ConnectingFailure | null {
   if (!state) return { kind: 'expired' }
-  if (error !== null) return { kind: 'declined', message: errorDescription ?? error }
+  // an app that sends only a code (Slack's `access_denied`) gets the page's own words, not the code
+  if (error !== null) return { kind: 'declined', message: errorDescription }
   if (code === null) return { kind: 'expired' }
   return null
 }

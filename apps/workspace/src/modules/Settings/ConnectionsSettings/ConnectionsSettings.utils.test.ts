@@ -248,14 +248,17 @@ describe('building requests', () => {
 })
 
 describe('getReconnectMethod', () => {
-  it('tells an authorization code sign-in from client credentials', () => {
-    expect(getReconnectMethod({ authType: 'oauth2', externalAccountLabel: 'maya@acme.test' })).toBe(
+  it('tells an authorization code sign-in from client credentials by the app', () => {
+    expect(getReconnectMethod({ authType: 'oauth2', providerKey: 'slack' })).toBe(
       SIGN_IN_METHOD.OAUTH,
     )
-    expect(getReconnectMethod({ authType: 'oauth2', externalAccountLabel: null })).toBe(
+    expect(getReconnectMethod({ authType: 'oauth2', providerKey: 'http' })).toBe(
       SIGN_IN_METHOD.CLIENT_CREDENTIALS,
     )
-    expect(getReconnectMethod({ authType: 'bearer', externalAccountLabel: null })).toBe('bearer')
+    expect(getReconnectMethod({ authType: 'oauth2', providerKey: 'mcp' })).toBe(
+      SIGN_IN_METHOD.CLIENT_CREDENTIALS,
+    )
+    expect(getReconnectMethod({ authType: 'bearer', providerKey: 'notion' })).toBe('bearer')
   })
 })
 
