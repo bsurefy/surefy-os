@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { ACCESS_ERROR_CODES } from './access/errors.js'
+import { AGENT_RUNS_ERROR_CODES } from './agentRuns/errors.js'
 import { AGENTS_ERROR_CODES } from './agents/errors.js'
 import { API_KEYS_ERROR_CODES } from './apiKeys/errors.js'
 import { APPROVALS_ERROR_CODES } from './approvals/errors.js'
@@ -42,6 +43,7 @@ export const ERROR_CODES = {
   ...GUARD_ERROR_CODES,
   ...APPROVALS_ERROR_CODES,
   ...AGENTS_ERROR_CODES,
+  ...AGENT_RUNS_ERROR_CODES,
   ...CONNECTIONS_ERROR_CODES,
   ...API_KEYS_ERROR_CODES,
 } as const
@@ -68,6 +70,7 @@ export const ERROR_CODE_SOURCES = {
   guard: GUARD_ERROR_CODES,
   approvals: APPROVALS_ERROR_CODES,
   agents: AGENTS_ERROR_CODES,
+  agentRuns: AGENT_RUNS_ERROR_CODES,
   connections: CONNECTIONS_ERROR_CODES,
   apiKeys: API_KEYS_ERROR_CODES,
 } as const

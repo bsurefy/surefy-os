@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { ACCESS_PERMISSIONS } from './access/permissions.js'
+import { AGENT_RUNS_PERMISSIONS } from './agentRuns/permissions.js'
 import { AGENTS_PERMISSIONS } from './agents/permissions.js'
 import { API_KEYS_PERMISSIONS } from './apiKeys/permissions.js'
 import { APPROVALS_PERMISSIONS } from './approvals/permissions.js'
@@ -44,6 +45,7 @@ export const PERMISSION_DEFINITIONS = {
   ...GUARD_PERMISSIONS,
   ...APPROVALS_PERMISSIONS,
   ...AGENTS_PERMISSIONS,
+  ...AGENT_RUNS_PERMISSIONS,
   ...CONNECTIONS_PERMISSIONS,
   ...API_KEYS_PERMISSIONS,
 } as const satisfies Record<string, PermissionDefinition>
