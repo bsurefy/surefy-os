@@ -47,7 +47,7 @@ export function eventOfCall(record: ModelCallRecord): UsageEvent {
     userId: ctx.userId,
     teamId: ctx.userId === null ? null : ctx.primaryTeamId,
     apiKeyId: ctx.apiKeyId ?? null,
-    sourceModule: SOURCE_MODULE_OF_CALLER[ctx.caller],
+    sourceModule: record.kind === 'decision' ? 'decision' : SOURCE_MODULE_OF_CALLER[ctx.caller],
     subjectType: subject?.type ?? null,
     subjectId: subject?.id ?? null,
     sourceRefId: ctx.meter?.sourceRefId ?? null,

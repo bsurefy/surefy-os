@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
+import { z } from 'zod'
 
 import { ForbiddenError } from '@/core/errors/index.js'
 import { vaultCredentials } from '@/database/tables/index.js'
@@ -333,5 +334,118 @@ describe('the model gateway', () => {
       code: ERROR_CODES.LIMIT_REACHED,
     })
     expect(records.map((r) => r.outcome)).toEqual(['blocked'])
+  })
+
+  describe('decision mode', () => {
+    const answer = (value: unknown, confidencePercent: number, reasoning = 'Because.') =>
+      JSON.stringify({ value, confidencePercent, reasoning })
+
+    it('returns the value, a 0 to 1 confidence and the reasoning, metered as a decision', async () => {
+      const setup = await setupTwoOrgs()
+      const modelKey = await localModel(setup, 'ollama-a.lab.test')
+      const { gateway, records } = gatewayOf(setup)
+      setup.ai.reply = answer('billing', 88, 'It is about an invoice.')
+      const decision = await gateway.decide(await contextOf(setup, 'uma', { caller: 'agent' }), {
+        modelKey,
+        question: 'Which team should handle this message?',
+        options: ['billing', 'support', 'sales'],
+        input: 'My invoice is wrong.',
+      })
+      expect(decision).toMatchObject({
+        value: 'billing',
+        confidence: 0.88,
+        reasoning: 'It is about an invoice.',
+        call: { outcome: 'success', usage: { inputTokens: 12, outputTokens: 6 } },
+      })
+      expect(records).toHaveLength(1)
+      expect(records[0]).toMatchObject({ kind: 'decision', outcome: 'success' })
+      const sent = JSON.stringify(setup.ai.calls.at(-1)?.body)
+      expect(sent).toContain('My invoice is wrong.')
+      expect(sent).toContain('\\"enum\\":[\\"billing\\",\\"support\\",\\"sales\\"]')
+    })
+
+    it('answers yes or no without options, and keeps confidence inside 0 to 1', async () => {
+      const setup = await setupTwoOrgs()
+      const modelKey = await localModel(setup, 'ollama-a.lab.test')
+      const { gateway } = gatewayOf(setup)
+      const ctx = await contextOf(setup, 'uma')
+      setup.ai.reply = answer(true, 140)
+      const sure = await gateway.decide(ctx, {
+        modelKey,
+        question: 'Is this urgent?',
+        input: 'Server is down.',
+      })
+      expect(sure).toMatchObject({ value: true, confidence: 1 })
+      setup.ai.reply = answer(false, -5)
+      const unsure = await gateway.decide(ctx, {
+        modelKey,
+        question: 'Is this urgent?',
+        input: 'Hello.',
+      })
+      expect(unsure).toMatchObject({ value: false, confidence: 0 })
+    })
+
+    it('holds a score to the caller’s schema', async () => {
+      const setup = await setupTwoOrgs()
+      const modelKey = await localModel(setup, 'ollama-a.lab.test')
+      const { gateway } = gatewayOf(setup)
+      const ctx = await contextOf(setup, 'uma')
+      const request = {
+        modelKey,
+        question: 'How risky is this action, 1 to 5?',
+        input: 'Delete all customers.',
+        schema: z.number().int().min(1).max(5),
+      }
+      setup.ai.reply = answer(5, 93)
+      expect(await gateway.decide(ctx, request)).toMatchObject({ value: 5, confidence: 0.93 })
+      setup.ai.reply = answer(9, 93)
+      await expect(gateway.decide(ctx, request)).rejects.toMatchObject({
+        code: ERROR_CODES.MODEL_PROVIDER_UNAVAILABLE,
+      })
+    })
+
+    it('fails, metered with its tokens, when the model does not answer in the format', async () => {
+      const setup = await setupTwoOrgs()
+      const modelKey = await localModel(setup, 'ollama-a.lab.test')
+      const { gateway, records } = gatewayOf(setup)
+      const ctx = await contextOf(setup, 'uma')
+      const request = {
+        modelKey,
+        question: 'Which team?',
+        options: ['billing', 'support'],
+        input: 'Hi',
+      }
+      for (const reply of ['I think billing.', answer('sales', 90)]) {
+        setup.ai.reply = reply
+        await expect(gateway.decide(ctx, request)).rejects.toMatchObject({
+          code: ERROR_CODES.MODEL_PROVIDER_UNAVAILABLE,
+          options: { details: [{ reasonCode: 'DECISION_OUTPUT_INVALID' }] },
+        })
+      }
+      expect(records.map((r) => [r.kind, r.outcome, r.result.usage.inputTokens])).toEqual([
+        ['decision', 'error', 12],
+        ['decision', 'error', 12],
+      ])
+    })
+
+    it('applies the same access rules and guards as any call', async () => {
+      const setup = await setupTwoOrgs()
+      const modelKey = await localModel(setup, 'ollama-a.lab.test')
+      const { gateway, records } = gatewayOf(setup)
+      const ctx = await contextOf(setup, 'uma')
+      const request = { modelKey, question: 'Is this urgent?', input: 'Hello.' }
+      await expect(gateway.decide({ ...ctx, allowedModelIds: [] }, request)).rejects.toMatchObject({
+        code: ERROR_CODES.MODEL_NOT_ALLOWED,
+      })
+      setup.container.hooks.addModelCallGuard({
+        name: 'test-budget',
+        check: () =>
+          Promise.reject(new ForbiddenError(ERROR_CODES.LIMIT_REACHED, 'Budget reached')),
+      })
+      await expect(gateway.decide(ctx, request)).rejects.toMatchObject({
+        code: ERROR_CODES.LIMIT_REACHED,
+      })
+      expect(records.map((r) => [r.kind, r.outcome])).toEqual([['decision', 'blocked']])
+    })
   })
 })

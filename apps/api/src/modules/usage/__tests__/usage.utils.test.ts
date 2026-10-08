@@ -71,6 +71,25 @@ describe('eventOfCall', () => {
     expect(event.dedupeKey).toMatch(/^call:[0-9a-f-]{36}:1$/)
     expect(event.sourceModule).toBe('routing')
   })
+
+  it('meters a decision under the decision module, whoever asked', () => {
+    const base = record()
+    const event = eventOfCall({
+      ...base,
+      kind: 'decision',
+      ctx: {
+        ...base.ctx,
+        caller: 'agent',
+        meter: { key: 'guard:1', subject: { type: 'agent', id: base.ctx.orgId } },
+      },
+    })
+    expect(usageEventSchema.safeParse(event).success).toBe(true)
+    expect(event).toMatchObject({
+      sourceModule: 'decision',
+      kind: 'decision',
+      subjectType: 'agent',
+    })
+  })
 })
 
 describe('usage utils', () => {

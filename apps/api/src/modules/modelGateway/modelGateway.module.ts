@@ -26,9 +26,10 @@ export interface ModelGatewayModuleDeps {
 /** Metering until the usage module exists: one structured log line per call, never content. */
 export function logUsageRecorder(logger: Logger): UsageRecorder {
   return {
-    record({ ctx, result, credentialId, outcome, errorCode }) {
+    record({ ctx, result, kind, credentialId, outcome, errorCode }) {
       logger.info(
         {
+          kind,
           orgId: ctx.orgId,
           userId: ctx.userId,
           caller: ctx.caller,

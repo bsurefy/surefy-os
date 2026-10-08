@@ -81,7 +81,7 @@ export interface ModelCallGuard {
 export interface ModelCallRecord {
   ctx: ModelCallContext
   result: ModelCallResultDto
-  kind: 'generation' | 'embedding'
+  kind: 'generation' | 'embedding' | 'decision'
   /** 0 for the requested model, then one more per fallback attempt. */
   attempt: number
   /** The call start; the usage row's event time. */
