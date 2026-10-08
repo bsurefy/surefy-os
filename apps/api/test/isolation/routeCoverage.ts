@@ -291,6 +291,39 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'GET /api/v1/orgs/:orgId/api-keys/:keyId/impact': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/api-keys/:keyId/revoke': { class: 'orgScoped' },
 
+  // connections
+  'GET /api/v1/orgs/:orgId/connections/providers': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/connections': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/connections': {
+    class: 'orgScoped',
+    payload: () => ({
+      providerKey: 'mcp',
+      authType: 'none',
+      baseUrl: 'https://intruder.test/mcp',
+      scope: 'organization',
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/connections/oauth/start': {
+    class: 'orgScoped',
+    payload: () => ({ providerKey: 'google-drive', scope: 'organization' }),
+  },
+  'POST /api/v1/orgs/:orgId/connections/oauth/complete': {
+    class: 'orgScoped',
+    payload: () => ({ state: 'intruder-state', code: 'intruder-code' }),
+  },
+  'GET /api/v1/orgs/:orgId/connections/:connectionId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/connections/:connectionId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Taken over' }),
+  },
+  'GET /api/v1/orgs/:orgId/connections/:connectionId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/connections/:connectionId/reconnect': {
+    class: 'orgScoped',
+    payload: () => ({ authType: 'api_key', secret: 'intruder-replacement-key' }),
+  },
+  'POST /api/v1/orgs/:orgId/connections/:connectionId/test': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/connections/:connectionId/revoke': { class: 'orgScoped' },
+
   // vault
   'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/vault/credentials': { class: 'orgScoped' },

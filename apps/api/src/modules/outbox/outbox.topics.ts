@@ -11,7 +11,11 @@ const purgedPayload = z.object({ version: z.literal(1), id: z.uuid() })
 /** Knowledge rows cascade to their documents: the event lists the documents collected before the delete. */
 const knowledgePurgedPayload = purgedPayload.extend({ documentIds: z.array(z.uuid()) })
 
+/** A connection's sign-in expired or was revoked by the app (`connections`). */
+const connectionExpiredPayload = z.object({ version: z.literal(1), id: z.uuid() })
+
 export const OUTBOX_PAYLOADS = {
+  'connection.expired': connectionExpiredPayload,
   'chat.purged': purgedPayload,
   'knowledge_base.purged': knowledgePurgedPayload,
   'knowledge_source.purged': knowledgePurgedPayload,

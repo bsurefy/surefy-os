@@ -176,6 +176,20 @@
       "when": 1791456399041,
       "tag": "0024_api-keys-security",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791458618963,
+      "tag": "0025_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791458633734,
+      "tag": "0026_connections-security",
+      "breakpoints": true
     }
   ]
 }

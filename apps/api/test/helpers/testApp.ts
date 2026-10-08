@@ -12,6 +12,7 @@ import { createDatabase, type Database } from '@/core/database/index.js'
 import { onFileTeardown } from './cleanup.js'
 import { getTestDatabase } from './testDatabase.js'
 import { createFakeAi, type FakeAi } from '../fixtures/fakeAi.js'
+import { createFakeHttp, type FakeHttp } from '../fixtures/fakeHttp.js'
 
 import type { MlService } from '@/integrations/ml/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
@@ -25,6 +26,8 @@ export interface TestAppOptions {
   integrations?: Integrations
   /** The fake AI providers; one is created per app by default, so no test reaches a provider. */
   ai?: FakeAi
+  /** The other apps the connections module calls; one is created per app by default. */
+  http?: FakeHttp
   /** Route plugins registered under /api/v1 after the module routes (probe routes in harness tests). */
   routes?: readonly FastifyPluginAsyncZod[]
   /** Extension names to report as loaded; no private package is imported either way. */
@@ -47,6 +50,8 @@ export interface TestApp {
   owner: Database
   /** The fake AI providers behind this app: scripted answers and the calls made. */
   ai: FakeAi
+  /** The fake other apps behind the connections module: scripted answers and the calls made. */
+  http: FakeHttp
   close(): Promise<void>
 }
 
@@ -61,8 +66,10 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const logger = testDatabase.logger
   const db = createDatabase(config, logger)
   const ai = options.ai ?? createFakeAi()
+  const http = options.http ?? createFakeHttp()
   const base = await createContainer(config, {
     ai: ai.providers,
+    connections: { http },
     logger,
     db,
     extensions: options.extensions ?? [],
@@ -89,5 +96,5 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     await container.close()
   }
   onFileTeardown(close)
-  return { app, container, config, db, owner: testDatabase.owner, ai, close }
+  return { app, container, config, db, owner: testDatabase.owner, ai, http, close }
 }

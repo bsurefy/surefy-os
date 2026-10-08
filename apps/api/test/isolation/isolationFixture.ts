@@ -21,6 +21,7 @@ import {
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
   apiKeyCreatedDtoSchema,
+  connectionDtoSchema,
   credentialDtoSchema,
   dataRequestDtoSchema,
   exportDtoSchema,
@@ -143,6 +144,7 @@ export interface IsolationFixture {
 
 const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
+const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
 const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
@@ -247,6 +249,24 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     }),
     201,
     apiKeyCreatedDtoSchema,
+  )
+
+  // A connection of A to a custom API; the check goes to a scripted address, not the network
+  setup.http.on('api.secret-lab.test', { body: {} })
+  const connection = expectData(
+    await request(app, 'POST', `${orgUrl}/connections`, {
+      headers,
+      payload: {
+        providerKey: 'http',
+        authType: 'api_key',
+        secret: CONNECTION_SECRET,
+        baseUrl: 'https://api.secret-lab.test',
+        name: 'Secret CRM Connection',
+        scope: 'organization',
+      },
+    }),
+    201,
+    connectionDtoSchema,
   )
 
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
@@ -402,6 +422,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       dataRequestId: dataRequest.id,
       exportId: dataExport.id,
       credentialId: credential.id,
+      connectionId: connection.id,
       keyId: apiKey.apiKey.id,
       serverId: server.id,
       modelId: model.id,
@@ -434,6 +455,10 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       apiKey.secret,
       apiKey.apiKey.keyPrefix,
       'Secret OpenAI',
+      connection.id,
+      'Secret CRM Connection',
+      CONNECTION_SECRET,
+      'api.secret-lab.test',
       VAULT_SECRET,
       server.id,
       'Secret Ollama',

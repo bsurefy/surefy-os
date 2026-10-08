@@ -24,6 +24,7 @@ import {
   createSignupPolicy,
 } from './modules/auth/index.js'
 import { createChatDocumentParser, createChatsModule } from './modules/chats/index.js'
+import { createConnectionsModule, type OutboundHttp } from './modules/connections/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createFilesModule } from './modules/files/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
@@ -81,6 +82,8 @@ export interface ContainerOverrides {
   queues?: Queues
   /** Skips the dynamic import of the private packages (tests). */
   extensions?: readonly string[]
+  /** The calls the connections module makes to other apps, replaced by a fake in tests. */
+  connections?: { http?: OutboundHttp }
   /** Replaces the access module's effective access in `app.authorize()` (tests). */
   tenants?: TenantAccessResolver
 }
@@ -134,6 +137,21 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     organizations: organizations.service,
     users,
     audit: audit.service,
+    connections: () => connections.service,
+  })
+  // the outbox is built after the modules that handle its events; connections writes through it
+  const connections = createConnectionsModule({
+    config,
+    db,
+    cache,
+    crypto,
+    logger,
+    teams: teams.service,
+    users,
+    notifications: notifications.service,
+    outbox: () => outbox.service,
+    audit: audit.service,
+    ...(overrides.connections?.http === undefined ? {} : { http: overrides.connections.http }),
   })
   // the vault's repository is shared: member removal revokes personal keys through it
   const vaultRepository = new VaultRepository()
@@ -146,7 +164,10 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
     notifications: notifications.service,
     audit: audit.service,
-    removalSteps: [createVaultMemberRemoval({ repository: vaultRepository, audit: audit.service })],
+    removalSteps: [
+      createVaultMemberRemoval({ repository: vaultRepository, audit: audit.service }),
+      connections.memberRemoval,
+    ],
   })
   notifications.onEmailDelivery(members.invitations.onEmailDelivery)
   const install = createInstallModule({
@@ -266,7 +287,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     db,
     queues,
     logger,
-    handlers: [...chats.outboxHandlers, ...knowledge.outboxHandlers],
+    handlers: [...chats.outboxHandlers, ...knowledge.outboxHandlers, ...connections.outboxHandlers],
     hooks,
   })
   const modules = {
@@ -279,6 +300,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     access,
     apiKeys,
     vault,
+    connections,
     modelGateway,
     chats,
     usage,

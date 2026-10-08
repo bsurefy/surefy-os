@@ -42,6 +42,14 @@ export interface TeamMemberships {
 }
 
 /** The organizations module's access version bump, in the caller's transaction. */
+/**
+ * Team-scoped connections (connections module), counted in the deletion dialog. Read when used,
+ * because the connections module is built after teams.
+ */
+export interface TeamConnections {
+  countForTeam(tx: DbExecutor, orgId: string, teamId: string): Promise<number>
+}
+
 export interface TeamOrganizations {
   bumpAccessVersionInTx(tx: DbExecutor, orgId: string): Promise<void>
 }
