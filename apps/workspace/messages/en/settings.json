@@ -725,10 +725,138 @@
   },
   "apiKeys": {
     "title": "API keys",
-    "description": "Keys that let your own software call SurefyOS.",
+    "description": "Keys let your software call SurefyOS. To let SurefyOS call an AI provider, add a key in Vault.",
     "empty": {
       "title": "No API keys yet",
       "description": "Create a key to call your agents from your own software."
+    },
+    "noResults": {
+      "title": "No keys match",
+      "description": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "search": {
+      "label": "Search API keys",
+      "placeholder": "Search by name"
+    },
+    "filters": {
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked"
+    },
+    "loadError": "Couldn't load API keys",
+    "loadMore": "Load more",
+    "tableLabel": "API keys",
+    "columns": {
+      "name": "Name",
+      "key": "Key",
+      "permissions": "Permissions",
+      "createdBy": "Created by",
+      "expires": "Expires",
+      "lastUsed": "Last used",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "moreScopes": "+{count}",
+    "formerMember": "Former member",
+    "never": "Never",
+    "neverUsed": "Never",
+    "expiredTag": "Expired",
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "rename": "Rename",
+      "revoke": "Revoke…"
+    },
+    "scopes": {
+      "agents:invoke": {
+        "name": "Run agents",
+        "description": "Start runs of published agents over the API and read their answers."
+      }
+    },
+    "create": {
+      "open": "Create key",
+      "title": "Create API key",
+      "description": "The key lets your software call SurefyOS with the permissions you choose.",
+      "name": "Name",
+      "namePlaceholder": "Website backend",
+      "nameHelp": "Where the key will be used helps later, for example Zapier.",
+      "permissions": "Permissions",
+      "noPermissions": "You don't hold a permission that API keys can carry, so you can't create a key.",
+      "expires": "Expires",
+      "expiry": {
+        "30d": "30 days",
+        "90d": "90 days",
+        "1y": "1 year",
+        "date": "On a date",
+        "never": "No expiry"
+      },
+      "neverHelp": "Stays valid until you revoke it.",
+      "date": "Expiry date",
+      "cancel": "Cancel",
+      "submit": "Create key"
+    },
+    "created": {
+      "title": "Your new key",
+      "warning": "You won't be able to see this key again. Store it somewhere safe, like your secret manager.",
+      "keyLabel": "API key",
+      "copy": "Copy",
+      "copied": "Copied",
+      "example": "Try it with this call",
+      "copyExample": "Copy call",
+      "done": "Done",
+      "closeWithoutCopying": {
+        "title": "Close without copying?",
+        "description": "You won't be able to see this key again.",
+        "keep": "Keep open",
+        "close": "Close anyway"
+      }
+    },
+    "rename": {
+      "title": "Rename key",
+      "description": "The name is a label for you. Permissions and expiry can't be changed.",
+      "name": "Name",
+      "cancel": "Cancel",
+      "save": "Save",
+      "renamed": "Renamed to {name}"
+    },
+    "revoke": {
+      "title": "Revoke {name}?",
+      "description": "Revoking stops everything that uses this key.",
+      "unused": "Nothing uses this key. Calls with it will fail.",
+      "agents": "{count, plural, one {# agent published over the API stops} other {# agents published over the API stop}} answering calls with this key: {names}{more, plural, =0 {} other { and # more}}",
+      "types": {
+        "flow": "{count, plural, one {# flow uses} other {# flows use}} this key",
+        "other": "{count} {type} use this key"
+      },
+      "immediate": "Calls with this key fail at once. This can't be undone.",
+      "rotate": "To change your software over without a gap, create the new key and deploy it first, then revoke this one.",
+      "impactUnavailable": "Couldn't load what uses this key.",
+      "retry": "Retry",
+      "confirm": "Revoke key",
+      "revoked": "{name} was revoked"
+    },
+    "drawer": {
+      "keyStart": "Starts with {prefix}…",
+      "auditLog": "View audit log",
+      "revoke": "Revoke…",
+      "expired": {
+        "title": "This key has expired",
+        "description": "Calls with it fail. Create a replacement and update your software.",
+        "create": "Create replacement"
+      },
+      "revoked": {
+        "title": "Revoked on {date}",
+        "description": "Calls with this key fail. A revoked key stays listed for 13 months."
+      },
+      "createdByValue": "{name} · {date}",
+      "lastUsedValue": "{when} from {address}",
+      "unknownAddress": "an unknown address",
+      "usedBy": "Used by",
+      "usedByNone": "No agents are published over the API with this key.",
+      "usedByError": "Couldn't load what uses this key.",
+      "retry": "Retry"
     }
   },
   "usage": {
