@@ -115,3 +115,8 @@ export const NOTIFICATIONS_POPOVER_LIMIT = 5
 
 /** The bell's unread count refreshes this often while the page is open. */
 export const UNREAD_COUNT_REFRESH_MS = 60_000
+
+/** The approvals popover shows the oldest items waiting for the person. */
+export const APPROVALS_POPOVER_LIMIT = 5
+/** How often the popover's count refreshes: other people decide while the page is open. */
+export const APPROVALS_REFRESH_MS = 60_000
