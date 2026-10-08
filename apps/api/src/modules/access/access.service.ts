@@ -42,6 +42,7 @@ import type {
   AccessTeams,
   AccessUsers,
   ProviderRules,
+  ProviderRulesSubject,
 } from './access.types.js'
 import type { EntitlementGrant, EntitlementSource } from './entitlements.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
@@ -248,33 +249,47 @@ export class AccessService implements TenantAccessResolver {
    * The provider rules for a person (across their teams), a team, or the organization level:
    * which providers, personal keys and local servers the vault and the gateway allow.
    */
-  async providerRules(
+  async providerRules(orgId: string, subject: ProviderRulesSubject): Promise<ProviderRules> {
+    const grant = await this.deps.entitlements.getEntitlements({ orgId })
+    return this.deps.db.tenant(orgId, (tx) => this.providerRulesFor(tx, orgId, grant, subject))
+  }
+
+  /** Like `providerRules`, for a caller that already holds the organization's transaction. */
+  async providerRulesInTx(
+    tx: DbExecutor,
     orgId: string,
-    subject: { userId: string } | { teamId: string } | null,
+    subject: ProviderRulesSubject,
   ): Promise<ProviderRules> {
     const grant = await this.deps.entitlements.getEntitlements({ orgId })
-    return this.deps.db.tenant(orgId, async (tx) => {
-      const teamIds = await this.subjectTeamIds(tx, orgId, subject)
-      const policies = await this.deps.accessRepository.listForOrgAndTeams(tx, orgId, teamIds)
-      const organization = this.organizationLevel(grant, policyOf(policies, null))
-      const level = unionAcrossTeams(
-        organization,
-        teamIds.map((teamId) =>
-          narrow(organization, policyOf(policies, teamId), { source: 'team', teamId }),
-        ),
-      )
-      return {
-        providersAllowed: level.providersAllowed,
-        personalKeys: level.providerFlags.personalKeys,
-        localModels: level.providerFlags.localModels,
-      }
-    })
+    return this.providerRulesFor(tx, orgId, grant, subject)
+  }
+
+  private async providerRulesFor(
+    tx: DbExecutor,
+    orgId: string,
+    grant: EntitlementGrant,
+    subject: ProviderRulesSubject,
+  ): Promise<ProviderRules> {
+    const teamIds = await this.subjectTeamIds(tx, orgId, subject)
+    const policies = await this.deps.accessRepository.listForOrgAndTeams(tx, orgId, teamIds)
+    const organization = this.organizationLevel(grant, policyOf(policies, null))
+    const level = unionAcrossTeams(
+      organization,
+      teamIds.map((teamId) =>
+        narrow(organization, policyOf(policies, teamId), { source: 'team', teamId }),
+      ),
+    )
+    return {
+      providersAllowed: level.providersAllowed,
+      personalKeys: level.providerFlags.personalKeys,
+      localModels: level.providerFlags.localModels,
+    }
   }
 
   private async subjectTeamIds(
     tx: DbExecutor,
     orgId: string,
-    subject: { userId: string } | { teamId: string } | null,
+    subject: ProviderRulesSubject,
   ): Promise<string[]> {
     if (subject === null) return []
     if ('teamId' in subject) return [subject.teamId]

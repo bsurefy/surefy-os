@@ -319,6 +319,32 @@ export class ApprovalsRepository {
       .limit(page.limit + 1)
   }
 
+  /** Pending approvals per agent, for the Agents list; agents with none are absent. */
+  async pendingCountsByAgent(
+    tx: DbExecutor,
+    orgId: string,
+    agentIds: readonly string[],
+  ): Promise<Map<string, number>> {
+    if (agentIds.length === 0) return new Map()
+    const rows = await tx
+      .select({
+        agentId: a.agentId,
+        count: sql<number>`count(*)`.mapWith(Number),
+      })
+      .from(a)
+      .where(
+        and(
+          eq(a.organizationId, orgId),
+          eq(a.status, 'pending'),
+          inArray(a.agentId, [...agentIds]),
+        ),
+      )
+      .groupBy(a.agentId)
+    return new Map(
+      rows.flatMap((row) => (row.agentId === null ? [] : [[row.agentId, row.count] as const])),
+    )
+  }
+
   /** The badge and the queue header, for the items the viewer sees. */
   async counts(
     tx: DbExecutor,

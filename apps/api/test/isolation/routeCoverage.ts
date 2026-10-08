@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { API_PREFIX } from '@/app.js'
+import { createEmptyAgentDefinition } from '@surefy/contracts'
 
 import { routeKey, type RouteKey, type RouteTableEntry } from './routeTable.js'
 import { testKey } from '../fixtures/fakeAi.js'
@@ -341,6 +342,55 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     payload: () => ({ reason: 'wrong_team' }),
   },
   'POST /api/v1/orgs/:orgId/approvals/:approvalId/cancel': { class: 'orgScoped' },
+
+  // agents and templates
+  'GET /api/v1/orgs/:orgId/agents': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder agent' }),
+  },
+  'GET /api/v1/orgs/:orgId/agents/usable': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/templates': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/agents/:agentId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder agent' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/agents/:agentId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/draft': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/agents/:agentId/draft': {
+    class: 'orgScoped',
+    payload: () => ({ baseRevision: 1, definition: createEmptyAgentDefinition('openai/gpt-4.1') }),
+  },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/impact': {
+    class: 'orgScoped',
+    query: { action: 'delete' },
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/duplicate': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/pause': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/resume': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/archive': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/restore': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/readiness': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/publish': {
+    class: 'orgScoped',
+    payload: () => ({ baseRevision: 1 }),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/rollback': {
+    class: 'orgScoped',
+    payload: (f) => ({ versionId: f.params.versionId }),
+  },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/versions': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/versions/:versionId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/versions/:versionId/diff': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/access': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/agents/:agentId/access': {
+    class: 'orgScoped',
+    payload: () => ({ entries: [] }),
+  },
 
   // guard
   'GET /api/v1/orgs/:orgId/guard/overview': { class: 'orgScoped' },

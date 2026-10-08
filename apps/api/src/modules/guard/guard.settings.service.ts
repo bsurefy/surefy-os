@@ -28,7 +28,7 @@ import type { GuardRefsLoader } from './guard.presenter.js'
 import type { GuardRepository } from './guard.repository.js'
 import type { GuardRuleSets, GuardSettingsValues } from './guard.ruleSet.js'
 import type { GuardContext, GuardOutbox, GuardSubjects } from './guard.types.js'
-import type { Database } from '@/core/database/index.js'
+import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
 
 export interface GuardSettingsServiceDeps {
@@ -229,6 +229,15 @@ export class GuardSettingsService {
   /** The organization's defaults, for readiness checks and the agent editor. */
   async organizationThresholds(orgId: string): Promise<{ autoBp: number; reviewBp: number }> {
     const rules = await this.deps.ruleSets.get(orgId)
+    return { autoBp: rules.settings.autoBp, reviewBp: rules.settings.reviewBp }
+  }
+
+  /** Like `organizationThresholds`, inside the caller's transaction (the agent readiness check). */
+  async organizationThresholdsInTx(
+    tx: DbExecutor,
+    orgId: string,
+  ): Promise<{ autoBp: number; reviewBp: number }> {
+    const rules = await this.deps.ruleSets.getInTx(tx, orgId)
     return { autoBp: rules.settings.autoBp, reviewBp: rules.settings.reviewBp }
   }
 

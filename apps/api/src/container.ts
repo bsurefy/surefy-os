@@ -15,6 +15,7 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import { createAgentsModels, createAgentsModule } from './modules/agents/index.js'
 import { createAgentToolsModule } from './modules/agentTools/index.js'
 import { createApiKeysModule } from './modules/apiKeys/index.js'
 import {
@@ -53,6 +54,7 @@ import { createOrganizationsModule } from './modules/organizations/index.js'
 import { createOutboxModule } from './modules/outbox/index.js'
 import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
+import { createTemplatesModule } from './modules/templates/index.js'
 import { createUsageModule } from './modules/usage/index.js'
 import {
   createModelGrants,
@@ -296,6 +298,25 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     ml: integrations.ml,
     outbox: () => outbox.service,
   })
+  // agents and their templates; channels, dependency edges and runs join as their modules land
+  const agentModels = createAgentsModels({ grants: modelGrants, access: access.service })
+  const templates = createTemplatesModule({ db, models: agentModels })
+  const agents = createAgentsModule({
+    db,
+    teams: teams.service,
+    users,
+    organizations: organizations.service,
+    models: agentModels,
+    connections: connections.service,
+    guard: guard.settings,
+    templates: templates.service,
+    audit: audit.service,
+    outbox: () => outbox.service,
+    approvals: {
+      waitingCounts: (tx, orgId, agentIds) =>
+        approvals.service.waitingCountsByAgent(tx, orgId, agentIds),
+    },
+  })
   const knowledge = createKnowledgeModule({
     db,
     logger,
@@ -364,6 +385,8 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     vault,
     connections,
     agentTools,
+    agents,
+    templates,
     approvals,
     guard,
     modelGateway,

@@ -27,7 +27,14 @@ const approvalPayload = z.object({ version: z.literal(1), id: z.uuid() })
  */
 const guardRulesChangedPayload = z.object({ version: z.literal(1) })
 
+/**
+ * An agent's live version changed (`agents`: a publish or a roll back). Ids only: the handler
+ * drops the cached live definition, which the next run loads again.
+ */
+const agentPublishedPayload = z.object({ version: z.literal(1), id: z.uuid() })
+
 export const OUTBOX_PAYLOADS = {
+  'agent.published': agentPublishedPayload,
   'approval.requested': approvalPayload,
   'approval.decided': approvalPayload,
   'approval.expired': approvalPayload,

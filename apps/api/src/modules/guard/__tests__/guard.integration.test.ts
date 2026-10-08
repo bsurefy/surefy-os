@@ -8,11 +8,17 @@ import type { AgentGuard } from '@surefy/contracts'
 
 import { expectPage, request } from '../../../../test/helpers/request.js'
 import { EMPTY_SUBJECTS } from '../guard.types.js'
-import { approvalRuleBody, makeRule, setupGuard, type GuardSetup } from './guardTestKit.js'
+import {
+  approvalRuleBody,
+  GUARD_AGENT_ID,
+  makeRule,
+  setupGuard,
+  type GuardSetup,
+} from './guardTestKit.js'
 
 import type { GuardCheckInput } from '../guard.types.js'
 
-const AGENT = { id: '0198f3a0-0000-7000-8000-0000000000a9', version: 1 }
+const AGENT = { id: GUARD_AGENT_ID, version: 1 }
 const NO_RULES: AgentGuard = {
   thresholds: null,
   approvalRules: [],

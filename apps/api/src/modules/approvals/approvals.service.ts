@@ -137,6 +137,15 @@ export class ApprovalsService {
     })
   }
 
+  /** Pending approvals per agent, for the Agents list. */
+  waitingCountsByAgent(
+    tx: DbExecutor,
+    orgId: string,
+    agentIds: readonly string[],
+  ): Promise<ReadonlyMap<string, number>> {
+    return this.deps.repository.pendingCountsByAgent(tx, orgId, agentIds)
+  }
+
   /** The badge and the queue header, over the same rows the queue shows. */
   async summary(ctx: ApprovalsContext): Promise<ApprovalSummaryDto> {
     const now = this.now()

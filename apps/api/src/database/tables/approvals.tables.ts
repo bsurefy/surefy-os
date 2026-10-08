@@ -38,6 +38,7 @@ import type {
   OrgRole,
 } from '@surefy/contracts'
 
+import { agents } from './agents.tables.js'
 import { users } from './auth.tables.js'
 import { organizationMembers, organizations } from './organizations.tables.js'
 import { teams } from './teams.tables.js'
@@ -46,9 +47,8 @@ import { currency, id, orgId, timestamps } from '../columns.js'
 import { tenantPolicy } from '../policies.js'
 
 // Approvals (database/guard-and-approvals.md, §4–5): every decision a person must make. FORCE RLS
-// is in the security migration. `agent_id`, `agent_run_id`, `flow_id` and `flow_run_id` are plain
-// uuid columns until the agents and flows tables exist (their foreign keys, `set null`, join with
-// those tables).
+// is in the security migration. `agent_run_id`, `flow_id` and `flow_run_id` are plain uuid columns
+// until the run and flow tables exist (their foreign keys, `set null`, join with those tables).
 
 export const approvals = pgTable(
   'approvals',
@@ -71,8 +71,8 @@ export const approvals = pgTable(
     ruleRef: text(),
     /** Deterministic key of the requesting step: a retried Guard check never creates a second approval. */
     dedupeKey: text(),
-    /** V1: → agents.id (set null). */
-    agentId: uuid(),
+    /** → agents.id (set null). */
+    agentId: uuid().references(() => agents.id, { onDelete: 'set null' }),
     /** V1: → agent_runs.id (set null). */
     agentRunId: uuid(),
     /** V2: → flows.id (set null). */

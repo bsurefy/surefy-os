@@ -4,7 +4,7 @@ import { teamMembers, teams } from '@/database/tables/index.js'
 import { MlInputError } from '@/integrations/ml/index.js'
 import { guardrailDtoSchema } from '@surefy/contracts'
 
-import { addMember, type TestMember } from '../../../../test/factories/index.js'
+import { addMember, seedAgent, type TestMember } from '../../../../test/factories/index.js'
 import { authHeaders } from '../../../../test/helpers/auth.js'
 import { setupTwoOrgs, type TwoOrgSetup } from '../../../../test/helpers/orgSetup.js'
 import { expectData, request } from '../../../../test/helpers/request.js'
@@ -17,6 +17,9 @@ import type { TestAppOptions } from '../../../../test/helpers/testApp.js'
 import type { GuardModelDecider } from '../guard.types.js'
 import type { PiiFinding, PiiInput, MlService } from '@/integrations/ml/index.js'
 import type { sql } from 'drizzle-orm'
+
+/** The agent the checks run for: approvals point at it, so it exists in organization A. */
+export const GUARD_AGENT_ID = '0198f3a0-0000-7000-8000-0000000000a9'
 
 export const guardUrl = (orgId: string, path = '') => `/api/v1/orgs/${orgId}/guard${path}`
 
@@ -165,6 +168,7 @@ export async function setupGuard(options: TestAppOptions = {}): Promise<GuardSet
     if (found === undefined) throw new Error(`unknown member ${who}`)
     return found
   }
+  await seedAgent(setup.container, setup.a.id, { id: GUARD_AGENT_ID, name: 'Refund agent' })
   const repository = new GuardRepository()
   return Object.assign(setup, {
     pii,

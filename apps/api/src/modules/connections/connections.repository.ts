@@ -137,6 +137,15 @@ export class ConnectionsRepository {
     })
   }
 
+  /** Name and status of connections, for the agents that use them; missing ids are left out. */
+  async statusesOf(tx: DbExecutor, orgId: string, ids: readonly string[]) {
+    if (ids.length === 0) return []
+    return tx
+      .select({ id: c.id, name: c.name, status: c.status })
+      .from(c)
+      .where(and(eq(c.organizationId, orgId), inArray(c.id, [...ids])))
+  }
+
   /** `for update`: a refresh and a reconnect of one connection take turns. */
   async lockById(tx: DbExecutor, orgId: string, id: string): Promise<ConnectionRow | undefined> {
     const [row] = await tx

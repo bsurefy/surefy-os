@@ -11,13 +11,14 @@ import {
   approvalRuleBody,
   blockedBody,
   makeRule,
+  GUARD_AGENT_ID,
   setupGuard,
   type GuardSetup,
 } from './guardTestKit.js'
 
 import type { GuardCheckInput, GuardModelDecider } from '../guard.types.js'
 
-const AGENT = { id: '0198f3a0-0000-7000-8000-0000000000a9', version: 3 }
+const AGENT = { id: GUARD_AGENT_ID, version: 3 }
 const NO_RULES: AgentGuard = {
   thresholds: null,
   approvalRules: [],

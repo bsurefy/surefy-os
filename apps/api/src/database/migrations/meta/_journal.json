@@ -218,6 +218,20 @@
       "when": 1791474965960,
       "tag": "0030_guard-security",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791482251461,
+      "tag": "0031_agents",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791482261308,
+      "tag": "0032_agents-security",
+      "breakpoints": true
     }
   ]
 }

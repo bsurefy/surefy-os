@@ -35,6 +35,7 @@ import type {
   PiiType,
 } from '@surefy/contracts'
 
+import { agents } from './agents.tables.js'
 import { users } from './auth.tables.js'
 import { organizations } from './organizations.tables.js'
 import { teams } from './teams.tables.js'
@@ -43,8 +44,7 @@ import { currency, id, orgId, timestamps } from '../columns.js'
 import { tenantPolicy } from '../policies.js'
 
 // Guard (database/guard-and-approvals.md, §1–3; guard_stats_daily in usage-budgets-and-audit.md,
-// §9). FORCE RLS is in the security migration. `pii_filter_rules.agent_id` is a plain uuid column
-// until the agents table exists (its composite foreign key, cascade, joins with that table).
+// §9). FORCE RLS is in the security migration.
 
 const count = () => bigint({ mode: 'number' }).notNull().default(0)
 
@@ -151,7 +151,7 @@ export const piiFilterRules = pgTable(
     action: text().$type<PiiAction>().notNull(),
     scope: text().$type<PiiScope>().notNull().default('organization'),
     teamId: uuid(),
-    /** V1: ⇉ (organization_id, agent_id) → agents (cascade). */
+    /** ⇉ (organization_id, agent_id) → agents (cascade). */
     agentId: uuid(),
     createdByUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
     updatedByUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
@@ -165,6 +165,11 @@ export const piiFilterRules = pgTable(
       name: 'pii_filter_rules_organization_id_team_id_fkey',
       columns: [t.organizationId, t.teamId],
       foreignColumns: [teams.organizationId, teams.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'pii_filter_rules_organization_id_agent_id_fkey',
+      columns: [t.organizationId, t.agentId],
+      foreignColumns: [agents.organizationId, agents.id],
     }).onDelete('cascade'),
     enumCheck('pii_filter_rules_pii_type_check', t.piiType, PII_TYPES),
     enumCheck('pii_filter_rules_action_check', t.action, PII_ACTIONS),

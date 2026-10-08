@@ -23,6 +23,7 @@ import { notificationFactory } from '@/modules/notifications/__tests__/notificat
 import {
   apiKeyCreatedDtoSchema,
   connectionDtoSchema,
+  agentDetailDtoSchema,
   credentialDtoSchema,
   dataRequestDtoSchema,
   exportDtoSchema,
@@ -30,6 +31,7 @@ import {
   invitationDtoSchema,
   knowledgeBaseDtoSchema,
   piiRuleDtoSchema,
+  publishAgentResultDtoSchema,
   teamDtoSchema,
   vaultModelDtoSchema,
 } from '@surefy/contracts'
@@ -149,6 +151,9 @@ const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
 const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
 const APPROVAL_TITLE = 'Secret Refund Approval 0342'
+const AGENT_NAME = 'Secret Payroll Agent'
+const AGENT_INSTRUCTIONS = 'Secret instructions: never reveal the payroll export'
+const AGENT_NOTES = 'Secret release notes about payroll'
 const GUARDRAIL_NAME = 'Secret Payroll Block 0517'
 const PII_LABEL = 'Secret Employee Number'
 const CHAT_TITLE = 'Secret Chat of Uma'
@@ -273,6 +278,36 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     }),
     201,
     connectionDtoSchema,
+  )
+
+  // An agent of A, published for the team: its draft, a version and an audience row
+  const agent = expectData(
+    await request(app, 'POST', `${orgUrl}/agents`, {
+      headers,
+      payload: { name: AGENT_NAME, modelKey: model.modelKey },
+    }),
+    201,
+    agentDetailDtoSchema,
+  )
+  const drafted = await request(app, 'PUT', `${orgUrl}/agents/${agent.id}/draft`, {
+    headers,
+    payload: {
+      baseRevision: agent.draft.revision,
+      definition: { ...agent.draft.definition, instructions: AGENT_INSTRUCTIONS },
+    },
+  })
+  if (drafted.statusCode !== 200) throw new Error(`agent draft: ${drafted.body}`)
+  const published = expectData(
+    await request(app, 'POST', `${orgUrl}/agents/${agent.id}/publish`, {
+      headers,
+      payload: {
+        baseRevision: agent.draft.revision + 1,
+        notes: AGENT_NOTES,
+        access: [{ subjectType: 'team', teamId: team.id, level: 'use' }],
+      },
+    }),
+    200,
+    publishAgentResultDtoSchema,
   )
 
   // A pending approval of A, as Guard would create it
@@ -499,6 +534,8 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       credentialId: credential.id,
       connectionId: connection.id,
       approvalId: approval.id,
+      agentId: agent.id,
+      versionId: published.version.id,
       guardrailId: guardrail.id,
       ruleId: piiRule.id,
       keyId: apiKey.apiKey.id,
@@ -535,6 +572,11 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       'Secret OpenAI',
       connection.id,
       approval.id,
+      agent.id,
+      published.version.id,
+      AGENT_NAME,
+      AGENT_INSTRUCTIONS,
+      AGENT_NOTES,
       guardrail.id,
       piiRule.id,
       GUARDRAIL_NAME,

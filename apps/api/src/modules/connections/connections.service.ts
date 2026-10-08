@@ -14,6 +14,7 @@ import type {
   ConnectionKind,
   ConnectionProviderDto,
   ConnectionSecret,
+  ConnectionStatus,
   ConnectionStatusReasonCode,
   CreateConnectionInput,
   ListConnectionsQuery,
@@ -370,6 +371,18 @@ export class ConnectionsService {
   }
 
   // ── Use (tools, channels, connector syncs) ───────────────────────────────────────────────────
+
+  /** Name and status of connections by id, for the agents that use them (readiness, Needs attention). */
+  async statuses(
+    tx: DbExecutor,
+    orgId: string,
+    ids: readonly string[],
+  ): Promise<ReadonlyMap<string, { name: string; status: ConnectionStatus }>> {
+    const rows = await this.deps.repository.statusesOf(tx, orgId, ids)
+    return new Map(
+      rows.map((row) => [row.id, { name: row.name, status: row.status as ConnectionStatus }]),
+    )
+  }
 
   /**
    * Save-time rule: the person may use this connection and it works. Agents and flows call it

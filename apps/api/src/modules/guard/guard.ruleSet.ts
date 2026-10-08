@@ -129,6 +129,16 @@ export class GuardRuleSets {
     )
   }
 
+  /** Like `get`, for a caller that already holds the organization's transaction. */
+  getInTx(
+    tx: Parameters<GuardRepository['findSettings']>[0],
+    orgId: string,
+  ): Promise<GuardRuleSet> {
+    return this.deps.cache.wrap(rulesCacheKey(orgId), RULES_CACHE_TTL_SECONDS, () =>
+      this.load(tx, orgId),
+    )
+  }
+
   async load(
     tx: Parameters<GuardRepository['findSettings']>[0],
     orgId: string,

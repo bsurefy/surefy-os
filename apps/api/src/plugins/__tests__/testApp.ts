@@ -135,6 +135,8 @@ export async function createTestApp(options: TestAppOptions = {}) {
       connections: { routes: noRoutes },
       approvals: { routes: noRoutes },
       guard: { routes: noRoutes },
+      templates: { routes: noRoutes },
+      agents: { routes: noRoutes },
       chats: { routes: noRoutes },
       usage: { routes: noRoutes },
       knowledge: { routes: noRoutes },

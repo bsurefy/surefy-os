@@ -54,3 +54,6 @@ export interface ProviderRules {
   /** Local model servers may be added and used. */
   localModels: boolean
 }
+
+/** Whose provider rules are read: a person (across their teams), a team, or the organization level. */
+export type ProviderRulesSubject = { userId: string } | { teamId: string } | null
