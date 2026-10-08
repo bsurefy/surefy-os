@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createMlClient, mlErrorCode, ML_RETRYABLE_CODES } from './index.js'
 
-import type { ParsedDocument } from './index.js'
+import type { DetectPiiResponse, MaskPiiResponse, ParsedDocument } from './index.js'
 
 const parsed: ParsedDocument = {
   title: 'Handbook',
@@ -64,6 +64,82 @@ describe('createMlClient', () => {
     expect(response.status).toBe(503)
     expect(mlErrorCode(error)).toBe('ML_BUSY')
     expect(ML_RETRYABLE_CODES.has('ML_BUSY')).toBe(true)
+  })
+})
+
+describe('personal-data endpoints', () => {
+  const orgId = '0190a5c4-0000-7000-8000-000000000000'
+
+  it('sends texts, types and custom patterns to the mask endpoint', async () => {
+    const masked: MaskPiiResponse = {
+      language: 'en',
+      results: [
+        {
+          text: 'Write to [EMAIL]',
+          findings: [{ type: 'email', customLabel: null, start: 9, end: 24, score: 1 }],
+        },
+      ],
+    }
+    const fetch = fakeFetch(200, masked)
+    const ml = createMlClient({ baseUrl: 'https://ml.test', serviceToken: 'secret', fetch })
+
+    const { data } = await ml.POST('/v1/pii/mask', {
+      body: {
+        orgId,
+        texts: ['Write to ana@example.com'],
+        locale: 'en-US',
+        types: ['email'],
+        customPatterns: [{ label: 'Employee ID', pattern: 'EMP-\\d{5}' }],
+      },
+    })
+
+    expect(data?.results[0]?.text).toBe('Write to [EMAIL]')
+    const request = fetch.mock.calls[0]?.[0] as Request
+    expect(request.url).toBe('https://ml.test/v1/pii/mask')
+    expect(await request.json()).toMatchObject({ types: ['email'], locale: 'en-US' })
+  })
+
+  it('leaves optional request fields out and reads detect findings', async () => {
+    const detected: DetectPiiResponse = {
+      language: 'en',
+      results: [{ findings: [] }],
+    }
+    const ml = createMlClient({
+      baseUrl: 'https://ml.test',
+      serviceToken: 'secret',
+      fetch: fakeFetch(200, detected),
+    })
+
+    const { data } = await ml.POST('/v1/pii/detect', { body: { orgId, texts: ['Hello'] } })
+
+    expect(data?.results[0]?.findings).toEqual([])
+  })
+
+  it('treats a pattern the service rejects as a non-retryable validation error', async () => {
+    const envelope = {
+      error: {
+        code: 'ML_VALIDATION_FAILED',
+        message: 'Request validation failed',
+        requestId: 'req_3',
+        details: [
+          {
+            path: 'customPatterns.0.pattern',
+            code: 'pattern_too_slow',
+            message: 'The pattern takes too long to match; simplify it',
+          },
+        ],
+      },
+    }
+    const ml = createMlClient({
+      baseUrl: 'https://ml.test',
+      serviceToken: 'secret',
+      fetch: fakeFetch(422, envelope),
+    })
+
+    const { error } = await ml.POST('/v1/pii/detect', { body: { orgId, texts: ['aaa'] } })
+
+    expect(mlErrorCode(error)).toBe('ML_VALIDATION_FAILED')
+    expect(ML_RETRYABLE_CODES.has('ML_VALIDATION_FAILED')).toBe(false)
   })
 })
 

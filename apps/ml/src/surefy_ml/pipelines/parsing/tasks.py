@@ -11,7 +11,3 @@ def parse_document_task(
     path: Path, mime_type: str, *, ocr: OcrMode, max_pages: int
 ) -> ParsedDocument:
     return worker_registry().document_parser().parse(path, mime_type, ocr=ocr, max_pages=max_pages)
-
-
-def warm_up_task() -> None:
-    worker_registry().document_parser().warm_up()

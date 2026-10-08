@@ -102,7 +102,7 @@ jobs:
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           enable-cache: true
-      - run: uv sync --frozen
+      - run: uv sync --frozen --extra pii
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run pyright
