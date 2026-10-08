@@ -21,12 +21,19 @@ const connectionExpiredPayload = z.object({ version: z.literal(1), id: z.uuid() 
  */
 const approvalPayload = z.object({ version: z.literal(1), id: z.uuid() })
 
+/**
+ * Guard defaults, a guardrail or a personal-data rule changed (`guard`). Ids only: the handler
+ * drops the organization's cached rule set so the next check loads the current one.
+ */
+const guardRulesChangedPayload = z.object({ version: z.literal(1) })
+
 export const OUTBOX_PAYLOADS = {
   'approval.requested': approvalPayload,
   'approval.decided': approvalPayload,
   'approval.expired': approvalPayload,
   'approval.escalated': approvalPayload,
   'connection.expired': connectionExpiredPayload,
+  'guard.rules_changed': guardRulesChangedPayload,
   'chat.purged': purgedPayload,
   'knowledge_base.purged': knowledgePurgedPayload,
   'knowledge_source.purged': knowledgePurgedPayload,

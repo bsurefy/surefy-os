@@ -134,6 +134,7 @@ export async function createTestApp(options: TestAppOptions = {}) {
       vault: { routes: noRoutes },
       connections: { routes: noRoutes },
       approvals: { routes: noRoutes },
+      guard: { routes: noRoutes },
       chats: { routes: noRoutes },
       usage: { routes: noRoutes },
       knowledge: { routes: noRoutes },

@@ -12,6 +12,7 @@ export type SystemScopeReason =
   | 'key-rotation'
   | 'connection-refresh'
   | 'approval-timeouts'
+  | 'guard-stats'
   | 'bridge-catalog-sync'
   | 'access-version'
   | 'knowledge-sync'

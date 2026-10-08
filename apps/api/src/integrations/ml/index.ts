@@ -13,11 +13,18 @@ export {
 } from './ml.errors.js'
 export { HttpMlService, type MlServiceOptions } from './ml.service.js'
 export type {
+  CustomPattern,
+  DetectPiiResponse,
   DocumentSection,
   DocumentTable,
+  MaskPiiResponse,
   MlService,
   ParsedDocument,
   ParseDocumentInput,
+  PiiFinding,
+  PiiFindingType,
+  PiiInput,
+  PiiType,
 } from './ml.types.js'
 
 /** The ML service client. Nothing connects until the first call. */

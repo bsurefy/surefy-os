@@ -95,3 +95,77 @@ describe('HttpMlService.parseDocument', () => {
     await expect(ml.parseDocument(input)).rejects.toBeInstanceOf(MlTimeoutError)
   })
 })
+
+describe('HttpMlService personal data', () => {
+  const request = {
+    orgId: input.orgId,
+    texts: ['Write to ana@acme.test', 'Nothing here'],
+    types: ['email' as const],
+    customPatterns: [{ label: 'Employee ID', pattern: 'EMP-\\d{6}' }],
+    requestId: 'req-2',
+  }
+
+  it('sends the texts, the types and the custom patterns to /v1/pii/detect', async () => {
+    const answer = {
+      language: 'en',
+      results: [
+        { findings: [{ type: 'email', customLabel: null, start: 9, end: 22, score: 0.9 }] },
+        { findings: [] },
+      ],
+    }
+    let seen: Request | undefined
+    const ml = service((req) => {
+      seen = req as Request
+      return Promise.resolve(json(200, answer))
+    })
+    await expect(ml.detectPii(request)).resolves.toEqual(answer)
+    expect(seen?.url).toBe('https://ml.test/v1/pii/detect')
+    expect(seen?.headers.get('authorization')).toBe(`Bearer ${'t'.repeat(32)}`)
+    expect(seen?.headers.get('x-request-id')).toBe('req-2')
+    expect(await seen?.json()).toEqual({
+      orgId: input.orgId,
+      texts: request.texts,
+      types: ['email'],
+      customPatterns: request.customPatterns,
+    })
+  })
+
+  it('masks through /v1/pii/mask and leaves out what the caller did not set', async () => {
+    const answer = { language: 'en', results: [{ text: 'Write to [EMAIL]', findings: [] }] }
+    let seen: Request | undefined
+    const ml = service((req) => {
+      seen = req as Request
+      return Promise.resolve(json(200, answer))
+    })
+    await expect(ml.maskPii({ orgId: input.orgId, texts: ['x'] })).resolves.toEqual(answer)
+    expect(seen?.url).toBe('https://ml.test/v1/pii/mask')
+    expect(await seen?.json()).toEqual({ orgId: input.orgId, texts: ['x'] })
+  })
+
+  it.each([
+    ['ML_VALIDATION_FAILED', MlInputError],
+    ['ML_TIMEOUT', MlTimeoutError],
+    ['ML_BUSY', MlUnavailableError],
+  ])('maps %s to a typed error', async (code, errorClass) => {
+    const ml = service(() => Promise.resolve(failure(code)))
+    await expect(ml.detectPii(request)).rejects.toBeInstanceOf(errorClass)
+    await expect(ml.maskPii(request)).rejects.toBeInstanceOf(errorClass)
+  })
+
+  it('turns an unreachable service into an unavailable error and a slow one into a timeout', async () => {
+    const down = service(() => Promise.reject(new TypeError('fetch failed')))
+    await expect(down.maskPii(request)).rejects.toBeInstanceOf(MlUnavailableError)
+    const slow = new HttpMlService({
+      baseUrl: 'https://ml.test/',
+      serviceToken: 't'.repeat(32),
+      piiTimeoutMs: 5,
+      fetch: (req) =>
+        new Promise((_resolve, reject) => {
+          ;(req as Request).signal.addEventListener('abort', () => {
+            reject(new DOMException('aborted', 'AbortError'))
+          })
+        }),
+    })
+    await expect(slow.detectPii(request)).rejects.toBeInstanceOf(MlTimeoutError)
+  })
+})

@@ -33,6 +33,11 @@ import { createChatDocumentParser, createChatsModule } from './modules/chats/ind
 import { createConnectionsModule, type OutboundHttp } from './modules/connections/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createFilesModule } from './modules/files/index.js'
+import {
+  createGuardApprovalsPort,
+  createGuardModule,
+  type GuardSubjects,
+} from './modules/guard/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
 import {
   createKnowledgeFiles,
@@ -90,6 +95,8 @@ export interface ContainerOverrides {
   extensions?: readonly string[]
   /** What the guard, agents and flows modules provide to approvals, replaced by fakes in tests. */
   approvals?: { guard?: ApprovalsGuard; subjects?: ApprovalSubjects }
+  /** What the agents, flows and run modules tell Guard, replaced by fakes in tests. */
+  guard?: { subjects?: GuardSubjects }
   /** The calls the connections module makes to other apps, replaced by a fake in tests. */
   connections?: { http?: OutboundHttp }
   /** Replaces the access module's effective access in `app.authorize()` (tests). */
@@ -167,6 +174,8 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     connections: connections.service,
     http: connections.http,
   })
+  // Guard creates approvals, so it is built after them; the settings it provides to them first
+  const guardPort = createGuardApprovalsPort(overrides.guard?.subjects)
   // fresh-session checks come from the access module, which is built after the modules below
   const approvals = createApprovalsModule({
     db,
@@ -181,7 +190,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     outbox: () => outbox.service,
     audit: audit.service,
-    ...(overrides.approvals?.guard === undefined ? {} : { guard: overrides.approvals.guard }),
+    guard: overrides.approvals?.guard ?? guardPort.approvalsGuard,
     ...(overrides.approvals?.subjects === undefined
       ? {}
       : { subjects: overrides.approvals.subjects }),
@@ -274,6 +283,19 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     hooks,
     usage: usage.meter,
   })
+  const guard = createGuardModule({
+    db,
+    cache,
+    logger,
+    port: guardPort,
+    teams: teams.service,
+    users,
+    audit: audit.service,
+    approvals: approvals.service,
+    decider: modelGateway.service,
+    ml: integrations.ml,
+    outbox: () => outbox.service,
+  })
   const knowledge = createKnowledgeModule({
     db,
     logger,
@@ -326,6 +348,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       ...knowledge.outboxHandlers,
       ...connections.outboxHandlers,
       ...approvals.outboxHandlers,
+      ...guard.outboxHandlers,
     ],
     hooks,
   })
@@ -342,6 +365,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     connections,
     agentTools,
     approvals,
+    guard,
     modelGateway,
     chats,
     usage,

@@ -30,6 +30,8 @@ export interface TestAppOptions {
   http?: FakeHttp
   /** What Guard, agents and flows would provide to approvals (limits, names, access). */
   approvals?: NonNullable<ContainerOverrides['approvals']>
+  /** What the agents, flows and run modules would tell Guard (rule rows, impact, samples). */
+  guard?: NonNullable<ContainerOverrides['guard']>
   /** Route plugins registered under /api/v1 after the module routes (probe routes in harness tests). */
   routes?: readonly FastifyPluginAsyncZod[]
   /** Extension names to report as loaded; no private package is imported either way. */
@@ -73,6 +75,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     ai: ai.providers,
     connections: { http },
     ...(options.approvals === undefined ? {} : { approvals: options.approvals }),
+    ...(options.guard === undefined ? {} : { guard: options.guard }),
     logger,
     db,
     extensions: options.extensions ?? [],

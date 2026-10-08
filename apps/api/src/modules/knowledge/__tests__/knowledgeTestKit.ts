@@ -83,6 +83,8 @@ export function createFakeMl(
         return Promise.reject(error instanceof Error ? error : new Error('ml failed'))
       }
     },
+    detectPii: () => Promise.reject(new Error('not used by knowledge')),
+    maskPii: () => Promise.reject(new Error('not used by knowledge')),
   }
 }
 

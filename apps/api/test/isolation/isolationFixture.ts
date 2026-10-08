@@ -11,6 +11,7 @@ import {
   chatMessageFeedback,
   chatMessages,
   chats,
+  guardStatsDaily,
   knowledgeChunks,
   knowledgeDocuments,
   knowledgeSources,
@@ -25,8 +26,10 @@ import {
   credentialDtoSchema,
   dataRequestDtoSchema,
   exportDtoSchema,
+  guardrailDtoSchema,
   invitationDtoSchema,
   knowledgeBaseDtoSchema,
+  piiRuleDtoSchema,
   teamDtoSchema,
   vaultModelDtoSchema,
 } from '@surefy/contracts'
@@ -146,6 +149,8 @@ const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
 const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
 const APPROVAL_TITLE = 'Secret Refund Approval 0342'
+const GUARDRAIL_NAME = 'Secret Payroll Block 0517'
+const PII_LABEL = 'Secret Employee Number'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
 const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
@@ -289,6 +294,54 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
         assignees: [{ type: 'user', id: adam.id }],
       },
     ),
+  )
+
+  // Guard of A: its own defaults, a guardrail, a custom personal-data type and one day of statistics
+  const defaults = await request(app, 'PUT', `${orgUrl}/guard/defaults`, {
+    headers,
+    payload: {
+      autoThresholdBp: 9200,
+      reviewThresholdBp: 6500,
+      quickApproveMaxAmountMicros: 0,
+      quickApproveMaxRisk: 'low',
+      stepUpAmountMicros: 1_000_000_000,
+      targetDecisionMinutes: 45,
+      reason: 'Isolation fixture',
+    },
+  })
+  if (defaults.statusCode !== 200) throw new Error(`guard defaults: ${defaults.body}`)
+  const guardrail = expectData(
+    await request(app, 'POST', `${orgUrl}/guard/guardrails`, {
+      headers,
+      payload: {
+        name: GUARDRAIL_NAME,
+        scope: 'organization',
+        definition: {
+          version: 1,
+          kind: 'blocked_action',
+          match: { action: 'secret.payroll.export' },
+        },
+      },
+    }),
+    201,
+    guardrailDtoSchema,
+  )
+  const piiRule = expectData(
+    await request(app, 'POST', `${orgUrl}/guard/pii-rules`, {
+      headers,
+      payload: {
+        piiType: 'custom',
+        customLabel: PII_LABEL,
+        customPattern: 'SECRETEMP-\\d{6}',
+        action: 'mask',
+        scope: 'organization',
+      },
+    }),
+    201,
+    piiRuleDtoSchema,
+  )
+  await setup.db.tenant(a.id, (tx) =>
+    tx.insert(guardStatsDaily).values({ organizationId: a.id, day: '2026-10-01', actionsAuto: 7 }),
   )
 
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
@@ -446,6 +499,8 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       credentialId: credential.id,
       connectionId: connection.id,
       approvalId: approval.id,
+      guardrailId: guardrail.id,
+      ruleId: piiRule.id,
       keyId: apiKey.apiKey.id,
       serverId: server.id,
       modelId: model.id,
@@ -480,6 +535,12 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       'Secret OpenAI',
       connection.id,
       approval.id,
+      guardrail.id,
+      piiRule.id,
+      GUARDRAIL_NAME,
+      PII_LABEL,
+      'SECRETEMP',
+      'secret.payroll.export',
       APPROVAL_TITLE,
       'secret-order-1182',
       'Secret CRM Connection',

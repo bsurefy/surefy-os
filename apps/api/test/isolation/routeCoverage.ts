@@ -342,6 +342,72 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   },
   'POST /api/v1/orgs/:orgId/approvals/:approvalId/cancel': { class: 'orgScoped' },
 
+  // guard
+  'GET /api/v1/orgs/:orgId/guard/overview': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/guard/defaults': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/guard/defaults': {
+    class: 'orgScoped',
+    payload: () => ({
+      autoThresholdBp: 5000,
+      reviewThresholdBp: 1000,
+      quickApproveMaxAmountMicros: 999_000_000,
+      quickApproveMaxRisk: 'medium',
+      stepUpAmountMicros: null,
+      targetDecisionMinutes: 1,
+      reason: 'Intruder',
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/guard/defaults/impact': {
+    class: 'orgScoped',
+    query: { autoThresholdBp: '9000', reviewThresholdBp: '6000' },
+  },
+  'GET /api/v1/orgs/:orgId/guard/guardrails': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/guard/guardrails': {
+    class: 'orgScoped',
+    payload: () => ({
+      name: 'Intruder rule',
+      scope: 'organization',
+      definition: { version: 1, kind: 'blocked_action', match: { action: 'anything' } },
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/guard/guardrails/:guardrailId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/guard/guardrails/:guardrailId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Taken over', isEnabled: false, reason: 'Intruder' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/guard/guardrails/:guardrailId': {
+    class: 'orgScoped',
+    query: { reason: 'Intruder' },
+  },
+  'GET /api/v1/orgs/:orgId/guard/guardrails/:guardrailId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/guard/guardrails/:guardrailId/lock': {
+    class: 'orgScoped',
+    payload: () => ({ reason: 'Intruder' }),
+  },
+  'POST /api/v1/orgs/:orgId/guard/guardrails/:guardrailId/unlock': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/guard/data-filters': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/guard/data-filters/test': {
+    class: 'orgScoped',
+    payload: () => ({ text: 'Intruder text' }),
+  },
+  'POST /api/v1/orgs/:orgId/guard/pii-rules': {
+    class: 'orgScoped',
+    payload: () => ({
+      piiType: 'email',
+      action: 'detect',
+      scope: 'organization',
+      reason: 'Intruder',
+    }),
+  },
+  'PATCH /api/v1/orgs/:orgId/guard/pii-rules/:ruleId': {
+    class: 'orgScoped',
+    payload: () => ({ action: 'detect', reason: 'Intruder' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/guard/pii-rules/:ruleId': {
+    class: 'orgScoped',
+    query: { reason: 'Intruder' },
+  },
+
   // vault
   'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/vault/credentials': { class: 'orgScoped' },

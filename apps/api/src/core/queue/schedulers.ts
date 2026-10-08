@@ -13,6 +13,7 @@ import {
   REFRESH_EVERY_MS as CONNECTIONS_REFRESH_EVERY_MS,
 } from '@/modules/connections/connections.constants.js'
 import { DATA_CONTROL_JOBS } from '@/modules/dataControl/dataControl.constants.js'
+import { GUARD_JOBS } from '@/modules/guard/guard.constants.js'
 import { KNOWLEDGE_SCHEDULER } from '@/modules/knowledge/knowledge.constants.js'
 import { OUTBOX_SCHEDULER } from '@/modules/outbox/outbox.constants.js'
 import { USAGE_JOBS } from '@/modules/usage/usage.constants.js'
@@ -147,6 +148,18 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     queue: QUEUES.MAINTENANCE,
     repeat: { every: TIMEOUTS_EVERY_MS },
     job: { name: APPROVALS_JOBS.TIMEOUTS },
+  },
+  {
+    id: 'guard-stats-hourly',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '10 * * * *' },
+    job: { name: GUARD_JOBS.STATS_ROLLUP, data: { mode: 'hourly' } },
+  },
+  {
+    id: 'guard-stats-nightly',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { pattern: '20 3 * * *' },
+    job: { name: GUARD_JOBS.STATS_ROLLUP, data: { mode: 'nightly' } },
   },
   KNOWLEDGE_SCHEDULER,
   OUTBOX_SCHEDULER,
