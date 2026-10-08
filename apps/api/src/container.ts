@@ -16,6 +16,11 @@ import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
 import { createApiKeysModule } from './modules/apiKeys/index.js'
+import {
+  createApprovalsModule,
+  type ApprovalSubjects,
+  type ApprovalsGuard,
+} from './modules/approvals/index.js'
 import { createAuditModule, createInstallAudit } from './modules/audit/index.js'
 import {
   createAuthEmails,
@@ -82,6 +87,8 @@ export interface ContainerOverrides {
   queues?: Queues
   /** Skips the dynamic import of the private packages (tests). */
   extensions?: readonly string[]
+  /** What the guard, agents and flows modules provide to approvals, replaced by fakes in tests. */
+  approvals?: { guard?: ApprovalsGuard; subjects?: ApprovalSubjects }
   /** The calls the connections module makes to other apps, replaced by a fake in tests. */
   connections?: { http?: OutboundHttp }
   /** Replaces the access module's effective access in `app.authorize()` (tests). */
@@ -138,6 +145,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
     audit: audit.service,
     connections: () => connections.service,
+    deletionSteps: () => [approvals.teamDeletion],
   })
   // the outbox is built after the modules that handle its events; connections writes through it
   const connections = createConnectionsModule({
@@ -153,6 +161,25 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     audit: audit.service,
     ...(overrides.connections?.http === undefined ? {} : { http: overrides.connections.http }),
   })
+  // fresh-session checks come from the access module, which is built after the modules below
+  const approvals = createApprovalsModule({
+    db,
+    logger,
+    access: {
+      assertFreshSession: (ctx) => {
+        access.service.assertFreshSession(ctx)
+      },
+    },
+    teams: teams.service,
+    users,
+    notifications: notifications.service,
+    outbox: () => outbox.service,
+    audit: audit.service,
+    ...(overrides.approvals?.guard === undefined ? {} : { guard: overrides.approvals.guard }),
+    ...(overrides.approvals?.subjects === undefined
+      ? {}
+      : { subjects: overrides.approvals.subjects }),
+  })
   // the vault's repository is shared: member removal revokes personal keys through it
   const vaultRepository = new VaultRepository()
   const members = createMembersModule({
@@ -167,6 +194,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     removalSteps: [
       createVaultMemberRemoval({ repository: vaultRepository, audit: audit.service }),
       connections.memberRemoval,
+      approvals.memberRemoval,
     ],
   })
   notifications.onEmailDelivery(members.invitations.onEmailDelivery)
@@ -287,7 +315,12 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     db,
     queues,
     logger,
-    handlers: [...chats.outboxHandlers, ...knowledge.outboxHandlers, ...connections.outboxHandlers],
+    handlers: [
+      ...chats.outboxHandlers,
+      ...knowledge.outboxHandlers,
+      ...connections.outboxHandlers,
+      ...approvals.outboxHandlers,
+    ],
     hooks,
   })
   const modules = {
@@ -301,6 +334,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     apiKeys,
     vault,
     connections,
+    approvals,
     modelGateway,
     chats,
     usage,

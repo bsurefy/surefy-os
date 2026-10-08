@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { QUEUES, type QueueName } from '@/constants/queues.js'
 import { API_KEYS_JOBS, LAST_USED_FLUSH_EVERY_MS } from '@/modules/apiKeys/apiKeys.constants.js'
+import { APPROVALS_JOBS, TIMEOUTS_EVERY_MS } from '@/modules/approvals/approvals.constants.js'
 import {
   SEAL_AUDIT_LOG_JOB_NAME,
   VERIFY_AUDIT_LOG_JOB_NAME,
@@ -140,6 +141,12 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     queue: QUEUES.MAINTENANCE,
     repeat: { pattern: '30 4 * * *' },
     job: { name: CONNECTIONS_JOBS.CLEANUP },
+  },
+  {
+    id: 'approval-timeouts',
+    queue: QUEUES.MAINTENANCE,
+    repeat: { every: TIMEOUTS_EVERY_MS },
+    job: { name: APPROVALS_JOBS.TIMEOUTS },
   },
   KNOWLEDGE_SCHEDULER,
   OUTBOX_SCHEDULER,

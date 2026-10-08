@@ -133,6 +133,7 @@ export async function createTestApp(options: TestAppOptions = {}) {
       apiKeys: { routes: noRoutes, authenticator: { resolve: () => Promise.resolve(null) } },
       vault: { routes: noRoutes },
       connections: { routes: noRoutes },
+      approvals: { routes: noRoutes },
       chats: { routes: noRoutes },
       usage: { routes: noRoutes },
       knowledge: { routes: noRoutes },

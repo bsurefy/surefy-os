@@ -324,6 +324,24 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'POST /api/v1/orgs/:orgId/connections/:connectionId/test': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/connections/:connectionId/revoke': { class: 'orgScoped' },
 
+  // approvals
+  'GET /api/v1/orgs/:orgId/approvals': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/approvals/summary': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/approvals/bulk-decide': {
+    class: 'orgScoped',
+    payload: (f) => ({ ids: [f.params.approvalId], decision: 'approve' }),
+  },
+  'GET /api/v1/orgs/:orgId/approvals/:approvalId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/approvals/:approvalId/approve': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/approvals/:approvalId/reject': {
+    class: 'orgScoped',
+    payload: () => ({ reason: 'wrong_team' }),
+  },
+  'POST /api/v1/orgs/:orgId/approvals/:approvalId/cancel': { class: 'orgScoped' },
+
   // vault
   'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/vault/credentials': { class: 'orgScoped' },

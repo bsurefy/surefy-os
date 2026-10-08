@@ -190,6 +190,20 @@
       "when": 1791458633734,
       "tag": "0026_connections-security",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791464007837,
+      "tag": "0027_approvals",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791464009186,
+      "tag": "0028_approvals-security",
+      "breakpoints": true
     }
   ]
 }

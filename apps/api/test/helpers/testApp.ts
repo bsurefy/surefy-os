@@ -28,6 +28,8 @@ export interface TestAppOptions {
   ai?: FakeAi
   /** The other apps the connections module calls; one is created per app by default. */
   http?: FakeHttp
+  /** What Guard, agents and flows would provide to approvals (limits, names, access). */
+  approvals?: NonNullable<ContainerOverrides['approvals']>
   /** Route plugins registered under /api/v1 after the module routes (probe routes in harness tests). */
   routes?: readonly FastifyPluginAsyncZod[]
   /** Extension names to report as loaded; no private package is imported either way. */
@@ -70,6 +72,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const base = await createContainer(config, {
     ai: ai.providers,
     connections: { http },
+    ...(options.approvals === undefined ? {} : { approvals: options.approvals }),
     logger,
     db,
     extensions: options.extensions ?? [],

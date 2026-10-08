@@ -14,7 +14,18 @@ const knowledgePurgedPayload = purgedPayload.extend({ documentIds: z.array(z.uui
 /** A connection's sign-in expired or was revoked by the app (`connections`). */
 const connectionExpiredPayload = z.object({ version: z.literal(1), id: z.uuid() })
 
+/**
+ * An approval changed state (`approvals`): created, decided by a person, expired (the timeout
+ * rejected or continued) or escalated. Ids only: handlers load the current row. The run and flow
+ * modules continue their runs from `approval.decided` and `approval.expired`.
+ */
+const approvalPayload = z.object({ version: z.literal(1), id: z.uuid() })
+
 export const OUTBOX_PAYLOADS = {
+  'approval.requested': approvalPayload,
+  'approval.decided': approvalPayload,
+  'approval.expired': approvalPayload,
+  'approval.escalated': approvalPayload,
   'connection.expired': connectionExpiredPayload,
   'chat.purged': purgedPayload,
   'knowledge_base.purged': knowledgePurgedPayload,

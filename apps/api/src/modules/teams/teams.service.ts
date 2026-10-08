@@ -27,6 +27,7 @@ import { teamSort, type TeamRow, type TeamsRepository } from './teams.repository
 
 import type {
   TeamConnections,
+  TeamDeletionStep,
   TeamMemberships,
   TeamOrganizations,
   TeamsContext,
@@ -42,6 +43,7 @@ export interface TeamsServiceDeps {
   users: TeamUserRefs
   audit: AuditRecorder
   connections?: () => TeamConnections
+  deletionSteps?: () => readonly TeamDeletionStep[]
 }
 
 const UNIQUE_VIOLATION = '23505'
@@ -163,6 +165,9 @@ export class TeamsService {
    */
   async delete(ctx: TeamsContext, teamId: string): Promise<void> {
     await this.deps.db.tenant(ctx.orgId, async (tx) => {
+      for (const step of this.deps.deletionSteps?.() ?? []) {
+        await step.onDeleteInTx(tx, ctx.orgId, teamId)
+      }
       if (!(await this.deps.teamsRepository.delete(tx, ctx.orgId, teamId))) {
         throw new TeamNotFoundError()
       }

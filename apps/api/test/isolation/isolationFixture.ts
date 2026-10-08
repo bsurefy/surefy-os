@@ -145,6 +145,7 @@ export interface IsolationFixture {
 const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
 const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
+const APPROVAL_TITLE = 'Secret Refund Approval 0342'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
 const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
@@ -267,6 +268,27 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     }),
     201,
     connectionDtoSchema,
+  )
+
+  // A pending approval of A, as Guard would create it
+  const approval = await setup.db.tenant(a.id, (tx) =>
+    setup.container.modules.approvals.service.create(
+      tx,
+      { orgId: a.id, userId: null, via: 'system', teamIds: [], access: { permissions: [] } },
+      {
+        kind: 'ai_action',
+        title: APPROVAL_TITLE,
+        payload: {
+          version: 1,
+          kind: 'ai_action',
+          action: { name: 'payments.refund', input: { orderId: 'secret-order-1182' } },
+          reasoning: [],
+          sources: [],
+          stepRef: { seq: 1 },
+        },
+        assignees: [{ type: 'user', id: adam.id }],
+      },
+    ),
   )
 
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
@@ -423,6 +445,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       exportId: dataExport.id,
       credentialId: credential.id,
       connectionId: connection.id,
+      approvalId: approval.id,
       keyId: apiKey.apiKey.id,
       serverId: server.id,
       modelId: model.id,
@@ -456,6 +479,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       apiKey.apiKey.keyPrefix,
       'Secret OpenAI',
       connection.id,
+      approval.id,
+      APPROVAL_TITLE,
+      'secret-order-1182',
       'Secret CRM Connection',
       CONNECTION_SECRET,
       'api.secret-lab.test',
