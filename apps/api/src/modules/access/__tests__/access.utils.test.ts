@@ -7,6 +7,7 @@ import {
   entitlementLevel,
   exceedsParent,
   filterPermissions,
+  isSessionFresh,
   narrow,
   policyChanges,
   unionAcrossTeams,
@@ -95,5 +96,23 @@ describe('the access chain', () => {
       { field: 'modules', from: ['chat'], to: null },
       { field: 'tools', from: null, to: { mcp: false } },
     ])
+  })
+})
+
+describe('a fresh session', () => {
+  const now = Date.parse('2026-10-08T12:00:00Z')
+  const signedIn = (minutesAgo: number) => ({ createdAt: new Date(now - minutesAgo * 60_000) })
+
+  it('is one created within the allowed age, boundary included', () => {
+    expect(isSessionFresh(signedIn(0), 600, now)).toBe(true)
+    expect(isSessionFresh(signedIn(10), 600, now)).toBe(true)
+  })
+
+  it('is stale after the allowed age', () => {
+    expect(isSessionFresh(signedIn(11), 600, now)).toBe(false)
+  })
+
+  it('does not exist without a session, as with an API key', () => {
+    expect(isSessionFresh(undefined, 600, now)).toBe(false)
   })
 })

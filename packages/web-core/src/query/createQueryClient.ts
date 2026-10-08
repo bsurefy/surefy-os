@@ -25,6 +25,11 @@ export function createQueryClient(handlers?: QueryClientHandlers): QueryClient {
       handlers?.onUnauthenticated()
       return
     }
+    if (isApiError(error) && error.code === ERROR_CODES.AUTH_SESSION_NOT_FRESH) {
+      // the confirmation dialog is the one message for this failure; nothing was changed
+      handlers?.onSessionNotFresh()
+      return
+    }
     if (isApiError(error) && error.code === ERROR_CODES.FEATURE_NOT_AVAILABLE)
       handlers?.onFeatureUnavailable()
     if (notify) handlers?.showError(error)

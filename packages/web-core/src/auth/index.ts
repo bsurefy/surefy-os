@@ -4,7 +4,13 @@
 export { getSafeRedirect, REDIRECT_PARAM } from './redirects'
 export { SessionExpiredDialog } from './SessionExpiredDialog'
 export type {
+  SessionDialogMode,
   SessionExpiredDialogProps,
   SessionSignInSlotProps,
 } from './SessionExpiredDialog.types'
-export { closeSessionExpired, openSessionExpired, useIsSessionExpired } from './sessionExpiredStore'
+export {
+  closeSessionExpired,
+  openConfirmIdentity,
+  openSessionExpired,
+  useSessionDialogMode,
+} from './sessionExpiredStore'

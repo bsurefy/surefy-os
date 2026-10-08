@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { SESSION_TTL } from '@/core/auth/index.js'
 import { orgScope, versionedKey, type Cache } from '@/core/cache/index.js'
 import { TeamNotFoundError } from '@/modules/teams/index.js'
 import {
@@ -17,6 +18,7 @@ import {
   AccessExceedsParentError,
   AccessMemberNotFoundError,
   OrganizationSuspendedError,
+  SessionNotFreshError,
   TwoFactorRequiredError,
 } from './access.errors.js'
 import { toAccessPolicyDto } from './access.mapper.js'
@@ -24,6 +26,7 @@ import {
   entitlementLevel,
   exceedsParent,
   filterPermissions,
+  isSessionFresh,
   narrow,
   policyChanges,
   unionAcrossTeams,
@@ -44,7 +47,7 @@ import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { ExtensionRegistry } from '@/core/extensions/index.js'
 import type { AuditContext, AuditRecorder } from '@/modules/audit/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
-import type { ActorContext, EffectiveAccess } from '@/types/context.js'
+import type { ActorContext, ActorSession, EffectiveAccess } from '@/types/context.js'
 
 export interface AccessServiceDeps {
   db: Database
@@ -114,6 +117,15 @@ export class AccessService implements TenantAccessResolver {
     )
     if (header === undefined || header.status === 'suspended') return null
     return this.cached(orgId, userId, header.accessVersion)
+  }
+
+  /**
+   * Sensitive actions (an API key, an approval above the step-up amount, a deletion request) need
+   * a sign-in within `session.freshAge`. Throws `403 AUTH_SESSION_NOT_FRESH` before any work starts;
+   * a request without a session (an API key) is never fresh.
+   */
+  assertFreshSession(ctx: { session?: Pick<ActorSession, 'createdAt'> }, now = Date.now()): void {
+    if (!isSessionFresh(ctx.session, SESSION_TTL.freshAge, now)) throw new SessionNotFreshError()
   }
 
   /**

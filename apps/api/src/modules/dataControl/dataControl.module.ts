@@ -31,7 +31,7 @@ export interface DataControlModuleDeps {
   organizations: DataControlOrganizations
   users: DataControlUsers
   notifications: DataControlNotifications
-  access: DataControlAccess & Pick<AccessService, 'hasFeature'>
+  access: DataControlAccess & Pick<AccessService, 'assertFreshSession' | 'hasFeature'>
   audit: AuditRecorder
   /** The producing modules' exports (usage CSV…), next to the core ones. */
   producers?: readonly ExportProducer[]
@@ -55,6 +55,9 @@ export function createDataControlModule(deps: DataControlModuleDeps) {
     users: deps.users,
     notifications: deps.notifications,
     audit: deps.audit,
+    assertFreshSession: (ctx) => {
+      deps.access.assertFreshSession(ctx)
+    },
     hasFeature: (ctx, feature) => deps.access.hasFeature(ctx, feature),
     prepareDataExportJob: () => jobs.prepareDataExport,
   })

@@ -3,6 +3,8 @@
 export interface QueryClientHandlers {
   /** Opens the session-expired dialog. */
   onUnauthenticated: () => void
+  /** Opens the "Confirm it's you" dialog; the person repeats the action afterwards. */
+  onSessionNotFresh: () => void
   /** Invalidates effective access, so the screen shows the upgrade card. */
   onFeatureUnavailable: () => void
   /** Shows the translated error toast. */

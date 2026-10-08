@@ -36,6 +36,9 @@ export function createTestQueryClient(options: TestQueryClientOptions = {}): Que
     onUnauthenticated: () => {
       // no session dialog in tests; pass a spy to assert on it
     },
+    onSessionNotFresh: () => {
+      // no confirmation dialog in tests; pass a spy to assert on it
+    },
     onFeatureUnavailable: () => {
       // no effective-access cache in tests; pass a spy to assert on it
     },

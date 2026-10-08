@@ -334,3 +334,12 @@ export function policyChanges(
       return JSON.stringify(from) === JSON.stringify(to) ? [] : [{ field, from, to }]
     })
 }
+
+/** Whether a session was created within `maxAgeSeconds` (the sliding session extension never counts). */
+export function isSessionFresh(
+  session: { createdAt: Date } | undefined,
+  maxAgeSeconds: number,
+  now = Date.now(),
+): boolean {
+  return session !== undefined && now - session.createdAt.getTime() <= maxAgeSeconds * 1000
+}

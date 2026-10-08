@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 export { createAccessModule, type AccessModule } from './access.module.js'
 export { COMPARE_EDITIONS_URL } from './access.constants.js'
+export { SessionNotFreshError } from './access.errors.js'
 export {
   COMMUNITY_INSTALL_CAPABILITIES,
   CommunityEntitlements,

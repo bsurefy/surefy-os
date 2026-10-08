@@ -12,7 +12,12 @@ import { ApiError } from '../http/ApiError'
 import type { QueryClientHandlers } from './query.types'
 
 function createHandlers(): QueryClientHandlers {
-  return { onUnauthenticated: vi.fn(), onFeatureUnavailable: vi.fn(), showError: vi.fn() }
+  return {
+    onUnauthenticated: vi.fn(),
+    onSessionNotFresh: vi.fn(),
+    onFeatureUnavailable: vi.fn(),
+    showError: vi.fn(),
+  }
 }
 
 function ClientProbe() {

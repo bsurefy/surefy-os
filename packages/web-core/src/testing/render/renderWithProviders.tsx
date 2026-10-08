@@ -27,7 +27,7 @@ export interface ProviderOptions extends Pick<TestProvidersProps, 'searchParams'
   timeZone?: string
   /** A prepared client, for example to seed the cache; a fresh one with retries off otherwise. */
   queryClient?: QueryClient
-  /** Spies for the global error handlers (`onUnauthenticated`, `onFeatureUnavailable`, `showError`). */
+  /** Spies for the global error handlers (`onUnauthenticated`, `onSessionNotFresh`, `onFeatureUnavailable`, `showError`). */
   handlers?: Partial<QueryClientHandlers>
   /** Wraps the UI in `OrgScopeProvider`, as the workspace's `[orgSlug]` layout does. */
   orgId?: string

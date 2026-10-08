@@ -24,6 +24,9 @@ export function getQueryClient(handlers?: QueryClientHandlers): QueryClient {
     onUnauthenticated: () => {
       browserHandlers?.onUnauthenticated()
     },
+    onSessionNotFresh: () => {
+      browserHandlers?.onSessionNotFresh()
+    },
     onFeatureUnavailable: () => {
       browserHandlers?.onFeatureUnavailable()
     },

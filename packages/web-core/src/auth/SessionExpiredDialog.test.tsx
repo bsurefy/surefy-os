@@ -4,13 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { renderWithProviders } from '../testing'
 import { SessionExpiredDialog } from './SessionExpiredDialog'
-import { closeSessionExpired, openSessionExpired } from './sessionExpiredStore'
+import { closeSessionExpired, openConfirmIdentity, openSessionExpired } from './sessionExpiredStore'
 
 import type { SessionSignInSlotProps } from './SessionExpiredDialog.types'
 
-function SignInForm({ onSignedIn }: Readonly<SessionSignInSlotProps>) {
+function SignInForm({ mode, onSignedIn }: Readonly<SessionSignInSlotProps>) {
   return (
-    <button type="button" onClick={onSignedIn}>
+    <button type="button" data-mode={mode} onClick={onSignedIn}>
       Sign in
     </button>
   )
@@ -91,6 +91,70 @@ describe('SessionExpiredDialog', () => {
     expect(onSignOut).toHaveBeenCalledOnce()
     await waitFor(() => {
       expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('in confirm mode', () => {
+    it('asks to confirm it is the same person and tells the form the mode', () => {
+      renderDialog()
+      act(() => {
+        openConfirmIdentity()
+      })
+
+      expect(screen.getByRole('alertdialog', { name: "Confirm it's you" })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Sign in' })).toHaveAttribute(
+        'data-mode',
+        'confirm',
+      )
+      expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument()
+    })
+
+    it('closes with Cancel or Esc without signing out or refetching', async () => {
+      const { user, queryClient, onSignOut } = renderDialog()
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+      act(() => {
+        openConfirmIdentity()
+      })
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      })
+
+      act(() => {
+        openConfirmIdentity()
+      })
+      await user.keyboard('{Escape}')
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      })
+
+      expect(onSignOut).not.toHaveBeenCalled()
+      expect(invalidate).not.toHaveBeenCalled()
+    })
+
+    it('closes after signing in again', async () => {
+      const { user } = renderDialog()
+      act(() => {
+        openConfirmIdentity()
+      })
+
+      await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+      })
+    })
+
+    it('does not replace an open session-expired dialog', () => {
+      renderDialog()
+      act(() => {
+        openSessionExpired()
+        openConfirmIdentity()
+      })
+
+      expect(
+        screen.getByRole('alertdialog', { name: "You've been signed out" }),
+      ).toBeInTheDocument()
     })
   })
 })

@@ -3,7 +3,7 @@
 
 import { TooltipProvider } from '@surefy/ui/primitives/tooltip'
 import { allAccessQueries } from '@surefy/web-core/api/access'
-import { openSessionExpired } from '@surefy/web-core/auth'
+import { openConfirmIdentity, openSessionExpired } from '@surefy/web-core/auth'
 import { TimeZoneSync } from '@surefy/web-core/i18n'
 import { CoreProviders } from '@surefy/web-core/providers'
 import type { CoreErrorHandlers, CoreProvidersProps } from '@surefy/web-core/providers'
@@ -16,6 +16,8 @@ export type AppProvidersProps = Omit<CoreProvidersProps, 'handlers'>
 /** The workspace's side effects of the global error handlers (error-handling.md §3). */
 const handlers: CoreErrorHandlers = {
   onUnauthenticated: openSessionExpired,
+  // AUTH_SESSION_NOT_FRESH: ask the person to sign in again, then repeat the action
+  onSessionNotFresh: openConfirmIdentity,
   // FEATURE_NOT_AVAILABLE: refresh effective access, so the screen shows the upgrade card
   onFeatureUnavailable: () => {
     void getQueryClient().invalidateQueries(allAccessQueries)
