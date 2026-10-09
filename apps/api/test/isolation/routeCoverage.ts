@@ -400,6 +400,23 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     class: 'orgScoped',
     payload: () => ({ serverUrl: 'https://mcp.intruder.test/mcp', connectionId: null }),
   },
+  // agent runs and the API channel
+  'GET /api/v1/orgs/:orgId/runs': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/runs': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/runs': {
+    class: 'orgScoped',
+    payload: () => ({ input: 'Intruder question' }),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/test-runs': {
+    class: 'orgScoped',
+    payload: () => ({ messages: [{ role: 'user', text: 'Intruder question' }] }),
+  },
+  'GET /api/v1/orgs/:orgId/runs/:runId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/runs/:runId/steps': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/runs/:runId/steps/:seq': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/runs/:runId/events': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/runs/:runId/cancel': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/runs/:runId/retry': { class: 'orgScoped', payload: () => ({}) },
   'GET /api/v1/orgs/:orgId/agents/:agentId/access': { class: 'orgScoped' },
   'PUT /api/v1/orgs/:orgId/agents/:agentId/access': {
     class: 'orgScoped',

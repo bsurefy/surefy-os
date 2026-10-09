@@ -320,7 +320,10 @@ describe('publishing', () => {
       liveVersion: 1,
       hasUnpublishedChanges: false,
     })
-    expect(result.channels).toEqual([])
+    // SurefyOS chat is on with the first publish
+    expect(result.channels.map((channel) => [channel.type, channel.status])).toEqual([
+      ['workspace_chat', 'active'],
+    ])
     expect(result.widgetTokens).toEqual({})
 
     const row = await rowOf(setup, agent.id)

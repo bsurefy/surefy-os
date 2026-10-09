@@ -56,6 +56,8 @@ export const agentRunInputSchema = z.object({
   channelId: z.uuid().nullable(),
   /** The channel's own reference (a Slack message, a WhatsApp message id), for replies and deduplication. */
   externalRef: z.string().max(200).nullable(),
+  /** The API caller's own references, echoed back on the run and never sent to the model. */
+  metadata: z.record(z.string().min(1).max(50), z.string().max(500)).optional(),
   definitionSnapshot: agentDefinitionSchema.nullable(),
   retryOf: z.object({ runId: z.uuid(), seq: z.number().int().positive().nullable() }).nullable(),
 })

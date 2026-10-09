@@ -274,6 +274,8 @@ export async function setupRuns(options: TestAppOptions = {}): Promise<RunsSetup
     logger: container.logger,
     agents: createAgentRunsAgents(container.modules.agents.repository),
     people: createAgentRunsPeople(container.modules.access.service),
+    users: { findUserRefs: () => Promise.resolve(new Map()) },
+    models: { refs: () => Promise.resolve(new Map()) },
     guard: container.modules.guard.engine,
     gateway,
     tools,

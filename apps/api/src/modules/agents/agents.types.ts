@@ -140,8 +140,8 @@ export interface AgentRef {
 }
 
 /**
- * The agent's channels (`agentPublishing`). Until it lands an agent has none: SurefyOS chat is
- * implied by the live version, and a requested external channel is refused.
+ * The agent's channels (`agentPublishing`). `NO_CHANNELS` stands in where that module is not
+ * wired: SurefyOS chat is implied by the live version, and a requested external channel is refused.
  */
 export interface AgentChannels {
   /** Channels per agent; agents without any are absent. */
@@ -214,7 +214,7 @@ export interface AgentApprovals {
   ): Promise<ReadonlyMap<string, number>>
 }
 
-/** No channel module yet: SurefyOS chat is implied, and an external channel cannot be created. */
+/** Without the channels module: SurefyOS chat is implied, and an external channel cannot be created. */
 export const NO_CHANNELS: AgentChannels = {
   list: () => Promise.resolve(new Map()),
   publish: (_tx, _ctx, _agent, request) =>

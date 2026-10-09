@@ -15,6 +15,13 @@ export class AgentRunNotFoundError extends NotFoundError {
   }
 }
 
+/** No such step, or its details passed the 90-day retention. */
+export class AgentRunStepNotFoundError extends NotFoundError {
+  constructor() {
+    super(AGENT_RUNS_ERROR_CODES.AGENT_RUN_STEP_NOT_FOUND, 'Step not found')
+  }
+}
+
 /** The run is still going, or "from the failed step" has no failed tool step to start from. */
 export class AgentRunNotRetryableError extends ConflictError {
   constructor(reason: 'active' | 'succeeded' | 'no_failed_step' | 'not_a_test' | 'expired') {

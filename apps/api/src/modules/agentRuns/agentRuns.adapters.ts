@@ -8,6 +8,7 @@ import type { AccessService } from '@/modules/access/index.js'
 export function createAgentRunsAgents(repository: AgentsRepository): AgentRunsAgents {
   const runnable = (
     row: NonNullable<Awaited<ReturnType<AgentsRepository['findById']>>>,
+    canEdit: boolean,
   ): RunnableAgent => ({
     id: row.id,
     name: row.name,
@@ -16,15 +17,16 @@ export function createAgentRunsAgents(repository: AgentsRepository): AgentRunsAg
     liveVersionId: row.liveVersionId,
     draftDefinition: row.draftDefinition,
     deletedAt: row.deletedAt,
+    canEdit,
   })
   return {
     async findUsable(tx, ctx, agentId) {
       const found = await repository.findVisible(tx, ctx.orgId, agentId, viewerOf(ctx))
-      return found === undefined ? undefined : runnable(found.agent)
+      return found === undefined ? undefined : runnable(found.agent, found.canEdit)
     },
     async findById(tx, orgId, agentId) {
       const row = await repository.findById(tx, orgId, agentId)
-      return row === undefined ? undefined : runnable(row)
+      return row === undefined ? undefined : runnable(row, false)
     },
     async findVersion(tx, orgId, agentId, versionId) {
       const row = await repository.findVersion(tx, orgId, agentId, versionId)

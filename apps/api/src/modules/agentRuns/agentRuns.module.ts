@@ -1,14 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { CallMoves } from './agentRuns.calls.js'
+import { AgentRunsController } from './agentRuns.controller.js'
 import { RedisRunEvents } from './agentRuns.events.js'
+import { RunEventStream } from './agentRuns.eventStream.js'
 import { AgentRunExecutor } from './agentRuns.executor.js'
 import { createExecuteJob, createSweepJob } from './agentRuns.jobs.js'
 import { RunLifecycle } from './agentRuns.lifecycle.js'
 import { createAgentRunHandlers } from './agentRuns.outbox.js'
+import { AgentRunsQueries } from './agentRuns.queries.js'
+import { AgentRunsReads } from './agentRuns.reads.js'
 import { StepRecorder } from './agentRuns.recorder.js'
 import { AgentRunsRepository } from './agentRuns.repository.js'
 import { RunResumer } from './agentRuns.resume.js'
+import { agentRunsRoutes } from './agentRuns.routes.js'
 import { AgentRunsService } from './agentRuns.service.js'
+import { RunStreamer } from './agentRuns.streamer.js'
 import { AgentRunSweeper } from './agentRuns.sweeper.js'
 import { ModelTurns } from './agentRuns.turns.js'
 
@@ -21,9 +27,11 @@ import type {
   AgentRunsGateway,
   AgentRunsGuard,
   AgentRunsKnowledge,
+  AgentRunsModels,
   AgentRunsOutbox,
   AgentRunsPeople,
   AgentRunsTools,
+  AgentRunsUsers,
 } from './agentRuns.types.js'
 import type { Cache } from '@/core/cache/index.js'
 import type { Database } from '@/core/database/index.js'
@@ -39,6 +47,9 @@ export interface AgentRunsModuleDeps {
   /** The agents module's rows, and the access module's view of a member. */
   agents: AgentRunsAgents
   people: AgentRunsPeople
+  /** Display data for the run list: people and models. */
+  users: AgentRunsUsers
+  models: AgentRunsModels
   guard: AgentRunsGuard
   gateway: AgentRunsGateway
   tools: AgentRunsTools
@@ -51,6 +62,8 @@ export interface AgentRunsModuleDeps {
   events?: AgentRunsEvents
   /** The heartbeat interval; tests shorten it. */
   heartbeatMs?: number
+  /** The event stream's timings; tests shorten them. */
+  stream?: { keepAliveMs?: number; waitingMs?: number }
 }
 
 /**
@@ -147,9 +160,30 @@ export function createAgentRunsModule(deps: AgentRunsModuleDeps) {
     audit: deps.audit,
   })
 
+  const reads = new AgentRunsReads()
+  const queries = new AgentRunsQueries({
+    db: deps.db,
+    reads,
+    agents: deps.agents,
+    users: deps.users,
+    models: deps.models,
+    approvals: deps.approvals,
+  })
+  const stream = new RunEventStream({
+    cache: deps.cache,
+    logger: deps.logger,
+    ...(deps.stream ?? {}),
+  })
+  const streamer = new RunStreamer(stream, queries)
+  const controller = new AgentRunsController({ service, queries, streamer })
+
   return {
     /** Starters (Chat, the Test tab, the API channel, the widget, Slack, WhatsApp) call `service.start`. */
     service,
+    queries,
+    stream,
+    streamer,
+    routes: agentRunsRoutes(controller),
     executor,
     resumer,
     sweeper,

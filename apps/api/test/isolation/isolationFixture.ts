@@ -154,6 +154,7 @@ const APPROVAL_TITLE = 'Secret Refund Approval 0342'
 const AGENT_NAME = 'Secret Payroll Agent'
 const AGENT_INSTRUCTIONS = 'Secret instructions: never reveal the payroll export'
 const AGENT_NOTES = 'Secret release notes about payroll'
+const RUN_INPUT = 'Where is secret order 1182?'
 const GUARDRAIL_NAME = 'Secret Payroll Block 0517'
 const PII_LABEL = 'Secret Employee Number'
 const CHAT_TITLE = 'Secret Chat of Uma'
@@ -311,7 +312,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
   )
 
   // A test run of A's agent with its first step, as the editor's Test tab starts one
-  await setup.container.modules.agentRuns.service.start(
+  const run = await setup.container.modules.agentRuns.service.start(
     {
       orgId: a.id,
       userId: adam.id,
@@ -325,7 +326,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     {
       agentId: agent.id,
       trigger: 'test',
-      input: { messages: [{ role: 'user', text: 'Where is order 1182?' }] },
+      input: { messages: [{ role: 'user', text: RUN_INPUT }] },
     },
   )
 
@@ -555,6 +556,8 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       approvalId: approval.id,
       agentId: agent.id,
       versionId: published.version.id,
+      runId: run.id,
+      seq: '1',
       guardrailId: guardrail.id,
       ruleId: piiRule.id,
       keyId: apiKey.apiKey.id,
@@ -596,6 +599,8 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       AGENT_NAME,
       AGENT_INSTRUCTIONS,
       AGENT_NOTES,
+      run.id,
+      RUN_INPUT,
       guardrail.id,
       piiRule.id,
       GUARDRAIL_NAME,

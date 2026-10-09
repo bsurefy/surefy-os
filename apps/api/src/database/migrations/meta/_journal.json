@@ -246,6 +246,20 @@
       "when": 1791520066010,
       "tag": "0034_agent-runs-security",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791526042751,
+      "tag": "0035_agent-channels",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791526052871,
+      "tag": "0036_agent-channels-security",
+      "breakpoints": true
     }
   ]
 }

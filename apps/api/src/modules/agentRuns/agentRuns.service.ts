@@ -73,14 +73,7 @@ export class AgentRunsService {
    * step it persists, so at most the step in flight completes.
    */
   async cancel(ctx: AgentRunsContext, runId: string): Promise<RunRow> {
-    const run = await this.deps.db.tenant(ctx.orgId, async (tx) => {
-      const found = await this.deps.repository.findRun(tx, ctx.orgId, runId)
-      if (found === undefined) throw new AgentRunNotFoundError()
-      if ((await this.deps.agents.findUsable(tx, ctx, found.agentId)) === undefined) {
-        throw new AgentRunNotFoundError()
-      }
-      return found
-    })
+    const run = await this.deps.db.tenant(ctx.orgId, (tx) => this.steerable(tx, ctx, runId))
     const ended = await this.deps.lifecycle.end({
       orgId: ctx.orgId,
       runId: run.id,
@@ -103,11 +96,7 @@ export class AgentRunsService {
   async retry(ctx: AgentRunsContext, runId: string, request: RetryAgentRunInput): Promise<RunRow> {
     const starter = await this.starterOf(ctx)
     const run = await this.deps.db.tenant(ctx.orgId, async (tx) => {
-      const original = await this.deps.repository.findRun(tx, ctx.orgId, runId)
-      if (original === undefined) throw new AgentRunNotFoundError()
-      if ((await this.deps.agents.findUsable(tx, ctx, original.agentId)) === undefined) {
-        throw new AgentRunNotFoundError()
-      }
+      const original = await this.steerable(tx, ctx, runId)
       if (
         !(FINISHED as readonly string[]).includes(original.status) &&
         !(original.isTest && original.status === 'succeeded')
@@ -137,7 +126,11 @@ export class AgentRunsService {
         {
           agentId: original.agentId,
           trigger: original.trigger,
-          input: { messages: earlier.messages, externalRef: earlier.externalRef },
+          input: {
+            messages: earlier.messages,
+            externalRef: earlier.externalRef,
+            ...(earlier.metadata === undefined ? {} : { metadata: earlier.metadata }),
+          },
           channelId: original.channelId,
           chatId: original.chatId,
           retryOf: { runId: original.id, seq: failed?.seq ?? null },
@@ -157,6 +150,23 @@ export class AgentRunsService {
   }
 
   // ---- Private ------------------------------------------------------------------------------
+
+  /**
+   * The run if the caller may steer it: an API key its own runs; a person the runs they started
+   * and the runs of agents they can edit. Anyone else gets the same 404 as for a missing run.
+   */
+  private async steerable(tx: DbExecutor, ctx: AgentRunsContext, runId: string): Promise<RunRow> {
+    const run = await this.deps.repository.findRun(tx, ctx.orgId, runId)
+    if (run === undefined) throw new AgentRunNotFoundError()
+    if (ctx.apiKey !== undefined) {
+      if (run.apiKeyId !== ctx.apiKey.id) throw new AgentRunNotFoundError()
+      return run
+    }
+    const agent = await this.deps.agents.findUsable(tx, ctx, run.agentId)
+    const own = ctx.userId !== null && run.startedByUserId === ctx.userId
+    if (agent === undefined || !(agent.canEdit || own)) throw new AgentRunNotFoundError()
+    return run
+  }
 
   /** Enqueues the executor; the job id makes a second enqueue for the same run a no-op. */
   private dispatch(run: RunRow): Promise<void> {
@@ -179,8 +189,8 @@ export class AgentRunsService {
     const { orgId } = ctx
     if (input.input.messages.length === 0) throw new AgentRunInvalidInputError('messages')
     const isTest = input.trigger === 'test'
-    const agent = await this.deps.agents.findUsable(tx, ctx, input.agentId)
-    if (agent === undefined) throw new AgentRunAgentNotFoundError()
+    const anonymous = (AGENT_RUN_ANONYMOUS_TRIGGERS as readonly string[]).includes(input.trigger)
+    const agent = await this.agentFor(tx, ctx, input.agentId, { isTest, anonymous })
     this.assertStartable(agent, isTest)
     await this.assertRoomForAnother(tx, ctx)
 
@@ -192,7 +202,6 @@ export class AgentRunsService {
       versionId = version.id
     }
 
-    const anonymous = (AGENT_RUN_ANONYMOUS_TRIGGERS as readonly string[]).includes(input.trigger)
     const run = await this.deps.repository.insertRun(tx, {
       organizationId: orgId,
       agentId: agent.id,
@@ -211,6 +220,7 @@ export class AgentRunsService {
       messages: [...input.input.messages],
       channelId: input.channelId ?? null,
       externalRef: input.input.externalRef ?? null,
+      ...(input.input.metadata === undefined ? {} : { metadata: input.input.metadata }),
       definitionSnapshot: isTest ? agent.draftDefinition : null,
       retryOf: input.retryOf ?? null,
     }
@@ -227,6 +237,25 @@ export class AgentRunsService {
       })
     }
     return run
+  }
+
+  /**
+   * The agent a run starts for. A channel answers for the organization (who may use the agent is
+   * the channel's rule, checked by its adapter); a test runs the draft, which only people who can
+   * edit the agent see.
+   */
+  private async agentFor(
+    tx: DbExecutor,
+    ctx: AgentRunsContext,
+    agentId: string,
+    kind: { isTest: boolean; anonymous: boolean },
+  ): Promise<RunnableAgent> {
+    const agent = kind.anonymous
+      ? await this.deps.agents.findById(tx, ctx.orgId, agentId)
+      : await this.deps.agents.findUsable(tx, ctx, agentId)
+    if (agent?.deletedAt !== null) throw new AgentRunAgentNotFoundError()
+    if (kind.isTest && !agent.canEdit) throw new AgentRunAgentNotFoundError()
+    return agent
   }
 
   private assertStartable(agent: RunnableAgent, isTest: boolean): void {

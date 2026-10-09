@@ -7,7 +7,9 @@ import type {
   AgentRunTrigger,
   EffectiveAccessDto,
   GuardCheckResult,
+  ModelRefDto,
   OrgRole,
+  UserRefDto,
 } from '@surefy/contracts'
 
 import type { DbExecutor } from '@/core/database/index.js'
@@ -56,6 +58,8 @@ export interface RunnableAgent {
   liveVersionId: string | null
   draftDefinition: AgentDefinition
   deletedAt: Date | null
+  /** The caller may edit it (test runs need it); false when no caller is known. */
+  canEdit: boolean
 }
 
 export interface RunnableVersion {
@@ -92,6 +96,20 @@ export interface RunPerson {
 export interface AgentRunsPeople {
   /** Null for a person who is not an active member. */
   forMember(orgId: string, userId: string): Promise<RunPerson | null>
+}
+
+/** People's display data (auth module). */
+export interface AgentRunsUsers {
+  findUserRefs(userIds: readonly string[]): Promise<ReadonlyMap<string, UserRefDto>>
+}
+
+/** Display data of models by key (the Vault's models, through the agents module's port). */
+export interface AgentRunsModels {
+  refs(
+    tx: DbExecutor,
+    orgId: string,
+    modelKeys: readonly string[],
+  ): Promise<ReadonlyMap<string, ModelRefDto>>
 }
 
 /** `guard.check` (guard module). */
@@ -168,7 +186,7 @@ export interface AgentRunsDispatcher {
 export interface StartRunInput {
   agentId: string
   trigger: AgentRunTrigger
-  input: Pick<AgentRunInput, 'messages'> & Partial<Pick<AgentRunInput, 'externalRef'>>
+  input: Pick<AgentRunInput, 'messages'> & Partial<Pick<AgentRunInput, 'externalRef' | 'metadata'>>
   channelId?: string | null
   chatId?: string | null
   /** Retry of an earlier run: where it came from and, for "Retry step", the steps to reuse. */

@@ -13,4 +13,5 @@ export type {
 } from './agents.types.js'
 export type { AgentsService } from './agents.service.js'
 export { viewerOf } from './agents.access.js'
-export type { AgentsRepository } from './agents.repository.js'
+export { canEditSql } from './agents.repository.js'
+export type { AgentsRepository, Viewer } from './agents.repository.js'

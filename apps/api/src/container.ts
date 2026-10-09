@@ -15,10 +15,12 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import { createAgentPublishingModule, createChannelStore } from './modules/agentPublishing/index.js'
 import {
   createAgentRunsAgents,
   createAgentRunsModule,
   createAgentRunsPeople,
+  createAgentRunSummaries,
 } from './modules/agentRuns/index.js'
 import { createAgentsModels, createAgentsModule } from './modules/agents/index.js'
 import { createAgentToolsModule } from './modules/agentTools/index.js'
@@ -306,6 +308,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   // agents and their templates; channels, dependency edges and runs join as their modules land
   const agentModels = createAgentsModels({ grants: modelGrants, access: access.service })
   const templates = createTemplatesModule({ db, models: agentModels })
+  const channelStore = createChannelStore(users)
   const agents = createAgentsModule({
     db,
     teams: teams.service,
@@ -322,6 +325,8 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       waitingCounts: (tx, orgId, agentIds) =>
         approvals.service.waitingCountsByAgent(tx, orgId, agentIds),
     },
+    channels: channelStore.channels,
+    runs: createAgentRunSummaries(),
   })
   const knowledge = createKnowledgeModule({
     db,
@@ -347,6 +352,8 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     logger,
     agents: createAgentRunsAgents(agents.repository),
     people: createAgentRunsPeople(access.service),
+    users,
+    models: agentModels,
     guard: guard.engine,
     gateway: modelGateway.service,
     tools: agentTools.service,
@@ -354,6 +361,13 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     approvals: approvals.service,
     audit: audit.service,
     outbox: () => outbox.service,
+  })
+  const agentPublishing = createAgentPublishingModule({
+    db,
+    cache,
+    store: channelStore,
+    agents: createAgentRunsAgents(agents.repository),
+    runs: agentRuns,
   })
   const chats = createChatsModule({
     db,
@@ -410,6 +424,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     agentTools,
     agents,
     agentRuns,
+    agentPublishing,
     templates,
     approvals,
     guard,
