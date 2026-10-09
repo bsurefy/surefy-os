@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { screen, waitFor, within } from '@testing-library/react'
+import { delay, http } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { appMessages } from '@/test/messages'
@@ -196,6 +197,22 @@ describe('AgentsList', () => {
     expect(await within(dialog).findByText('Shared with 1 team.')).toBeVisible()
     await user.click(within(dialog).getByRole('button', { name: 'Pause agent' }))
     expect(await screen.findByText('Support triage is paused')).toBeVisible()
+    expect(await within(await cardOf('Support triage')).findByText('Paused')).toBeVisible()
+  })
+
+  it('waits for the consequences when pausing is confirmed before they arrived', async () => {
+    // a slow answer, then the mock's own
+    server.use(
+      http.get('*/agents/:agentId/impact', async () => {
+        await delay(300)
+      }),
+    )
+    const { user } = renderList()
+    await user.click(await menuOf('Support triage'))
+    await user.click(await screen.findByRole('menuitem', { name: 'Pause' }))
+    const dialog = await screen.findByRole('alertdialog', { name: 'Pause Support triage?' })
+    // no wait for "Shared with 1 team.": the person is quicker than the answer
+    await user.click(within(dialog).getByRole('button', { name: 'Pause agent' }))
     expect(await within(await cardOf('Support triage')).findByText('Paused')).toBeVisible()
   })
 

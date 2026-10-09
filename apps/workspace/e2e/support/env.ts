@@ -53,6 +53,8 @@ export const e2e = {
   mlPort: Number(read('ML_STUB_PORT', String(Number(read('API_PORT', '4000')) + 8))),
   /** The stub OAuth app (`oauthServer.ts`), which a custom API connection signs in to. */
   oauthPort: Number(read('OAUTH_STUB_PORT', String(Number(read('API_PORT', '4000')) + 6))),
+  /** The stub MCP server (`mcpServer.ts`), which an agent's MCP tool connects to. */
+  mcpPort: Number(read('MCP_STUB_PORT', String(Number(read('API_PORT', '4000')) + 5))),
   /** The health port of the worker that the knowledge spec starts for itself. */
   workerPort: Number(read('API_PORT', '4000')) + 7,
 }
@@ -62,6 +64,8 @@ export const apiUrl = `http://localhost:${String(e2e.apiPort)}`
 export const modelServerUrl = `http://127.0.0.1:${String(e2e.modelPort)}`
 export const mlServerUrl = `http://127.0.0.1:${String(e2e.mlPort)}`
 export const oauthServerUrl = `http://127.0.0.1:${String(e2e.oauthPort)}`
+/** The stub MCP server's endpoint and its list of calls. */
+export const mcpServerUrl = `http://127.0.0.1:${String(e2e.mcpPort)}`
 /** The stub's embedding model has its own address, so the chat model's listing stays one model. */
 export const embedServerUrl = `${modelServerUrl}/embed`
 

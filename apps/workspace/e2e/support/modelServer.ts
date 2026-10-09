@@ -58,6 +58,8 @@ function stubAnswer(messages: ChatMessage[]): string {
 
 /** An agent's question the stub answers with a call: "Refund order 1182 for $340". */
 const REFUND_REQUEST = /^Refund order (\d+) for \$(\d+)/
+/** Or with a call of the MCP server's lookup action: "Look up order 1182". */
+const LOOKUP_REQUEST = /^Look up order (\d+)/
 
 /**
  * What an agent run's model does (agents with tools offer them in `tools`): a refund request
@@ -73,14 +75,19 @@ function stubToolTurn(
   if (last?.role === 'tool') return { text: `Tool result: ${textOf(last.content)}` }
   const question = textOf(messages.filter((message) => message.role === 'user').at(-1)?.content)
   const refund = REFUND_REQUEST.exec(question)
-  const tool = tools.find((entry) => entry.function.name.includes('refund'))
-  if (refund === null || tool === undefined) return null
-  return {
-    call: {
-      name: tool.function.name,
-      arguments: { orderId: refund[1], amount: Number(refund[2]) },
-    },
+  const refundTool = tools.find((entry) => entry.function.name.includes('refund'))
+  if (refund !== null && refundTool !== undefined) {
+    return {
+      call: {
+        name: refundTool.function.name,
+        arguments: { orderId: refund[1], amount: Number(refund[2]) },
+      },
+    }
   }
+  const lookup = LOOKUP_REQUEST.exec(question)
+  const lookupTool = tools.find((entry) => entry.function.name.includes('lookup_order'))
+  if (lookup === null || lookupTool === undefined) return null
+  return { call: { name: lookupTool.function.name, arguments: { orderId: lookup[1] } } }
 }
 
 /** The decision mode's system prompt starts like this (`modelGateway.decision.ts`). */

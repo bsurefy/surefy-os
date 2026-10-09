@@ -841,180 +841,184 @@ const agentNotFound = () =>
  * or "arrive" fails a tool call (Retry step then reuses the earlier steps), anything else answers.
  * Scenarios: `error` fails a read or a start.
  */
-export const agentRunsDomain = defineMockDomain('agentRuns', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/agents/:agentId/runs`,
-    response: pageResponse(agentRunDtoSchema),
-    scenarios: {
-      default: ({ params, request }) => {
-        if (!lookupAgent(String(params.agentId))) return agentNotFound()
-        const query = listAgentRunsQuerySchema.parse(
-          Object.fromEntries(new URL(request.url).searchParams),
-        )
-        const wanted = [...allRuns().values()]
-          .map(({ run }) => run)
-          .filter((run) => run.agent?.id === params.agentId)
-          .filter((run) => (query.isTest ? run.isTest : !run.isTest))
-          .filter((run) => (query.status ? query.status.includes(run.status) : true))
-          .filter((run) => (query.neededHuman ? run.neededHuman : true))
-          .filter((run) => {
-            const needle = query.q?.toLowerCase()
-            return needle
-              ? run.id.includes(needle) ||
-                  (run.startedBy?.name.toLowerCase().includes(needle) ?? false)
-              : true
+export const agentRunsDomain = defineMockDomain(
+  'agentRuns',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/agents/:agentId/runs`,
+      response: pageResponse(agentRunDtoSchema),
+      scenarios: {
+        default: ({ params, request }) => {
+          if (!lookupAgent(String(params.agentId))) return agentNotFound()
+          const query = listAgentRunsQuerySchema.parse(
+            Object.fromEntries(new URL(request.url).searchParams),
+          )
+          const wanted = [...allRuns().values()]
+            .map(({ run }) => run)
+            .filter((run) => run.agent?.id === params.agentId)
+            .filter((run) => (query.isTest ? run.isTest : !run.isTest))
+            .filter((run) => (query.status ? query.status.includes(run.status) : true))
+            .filter((run) => (query.neededHuman ? run.neededHuman : true))
+            .filter((run) => {
+              const needle = query.q?.toLowerCase()
+              return needle
+                ? run.id.includes(needle) ||
+                    (run.startedBy?.name.toLowerCase().includes(needle) ?? false)
+                : true
+            })
+            .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
+          const start = Number(query.cursor ?? 0)
+          const { limit } = query
+          const next = start + limit < wanted.length ? String(start + limit) : null
+          return mockPage(
+            wanted.slice(start, start + limit).map((run) => agentRunDtoSchema.parse(run)),
+            next,
+          )
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/agents/:agentId/test-runs`,
+      response: okResponse(agentRunDetailDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const agent = lookupAgent(String(params.agentId))
+          if (!agent) return agentNotFound()
+          const { messages } = startTestRunInputSchema.parse(await request.json())
+          const plan = planOf(messages)
+          const specs = specsFor(plan)
+          const run = newRun(agent, {})
+          const stored = save({
+            run,
+            steps: [],
+            plan,
+            specs,
+            messages,
+            approvalId: null,
           })
-          .toSorted((a, b) => b.createdAt.localeCompare(a.createdAt))
-        const start = Number(query.cursor ?? 0)
-        const { limit } = query
-        const next = start + limit < wanted.length ? String(start + limit) : null
-        return mockPage(
-          wanted.slice(start, start + limit).map((run) => agentRunDtoSchema.parse(run)),
-          next,
-        )
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/agents/:agentId/test-runs`,
-    response: okResponse(agentRunDetailDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const agent = lookupAgent(String(params.agentId))
-        if (!agent) return agentNotFound()
-        const { messages } = startTestRunInputSchema.parse(await request.json())
-        const plan = planOf(messages)
-        const specs = specsFor(plan)
-        const run = newRun(agent, {})
-        const stored = save({
-          run,
-          steps: [],
-          plan,
-          specs,
-          messages,
-          approvalId: null,
-        })
-        const wantsStream = new URL(request.url).searchParams.get('stream') === 'true'
-        if (!wantsStream) return mockOk(detailOf(stored))
-        return sseResponse(request.signal, (write, isAborted) =>
-          drive(run.id, write, isAborted, false),
-        )
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/runs/:runId`,
-    response: okResponse(agentRunDetailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const stored = allRuns().get(String(params.runId))
-        return stored ? mockOk(detailOf(stored)) : runNotFound()
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/runs/:runId/steps`,
-    response: okResponse(agentRunStepsDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const stored = allRuns().get(String(params.runId))
-        if (!stored) return runNotFound()
-        return mockOk({
-          items: stored.steps.map(({ input: _input, output: _output, ...row }) => row),
-          stepsExpired: false,
-        })
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/runs/:runId/steps/:seq`,
-    response: okResponse(agentRunStepDetailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const stored = allRuns().get(String(params.runId))
-        if (!stored) return runNotFound()
-        const step = stored.steps.find(({ seq }) => seq === Number(params.seq))
-        return step
-          ? mockOk(step)
-          : mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_RUN_STEP_NOT_FOUND, 'Step not found')
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/runs/:runId/events`,
-    response: okResponse(agentRunDetailDtoSchema),
-    scenarios: {
-      default: ({ params, request }) => {
-        const stored = allRuns().get(String(params.runId))
-        if (!stored) return runNotFound()
-        return sseResponse(request.signal, (write, isAborted) =>
-          drive(stored.run.id, write, isAborted, true),
-        )
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/runs/:runId/cancel`,
-    response: okResponse(agentRunDetailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const stored = allRuns().get(String(params.runId))
-        if (!stored) return runNotFound()
-        if (!stored.run.canCancel) {
-          return mockError(
-            HTTP_CONFLICT,
-            ERROR_CODES.AGENT_RUN_NOT_RETRYABLE,
-            'The run already ended',
+          const wantsStream = new URL(request.url).searchParams.get('stream') === 'true'
+          if (!wantsStream) return mockOk(detailOf(stored))
+          return sseResponse(request.signal, (write, isAborted) =>
+            drive(run.id, write, isAborted, false),
           )
-        }
-        return mockOk(detailOf(setStatus(stored, 'canceled')))
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/runs/:runId/retry`,
-    response: okResponse(agentRunDetailDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const earlier = allRuns().get(String(params.runId))
-        if (!earlier) return runNotFound()
-        const input = retryAgentRunInputSchema.parse(await request.json())
-        const failed = earlier.steps.find(
-          (step) => step.status === 'failed' && step.type === 'tool',
-        )
-        if (!earlier.run.canRetry || (input.fromFailedStep && (!failed || !earlier.run.isTest))) {
-          return mockError(
-            HTTP_CONFLICT,
-            ERROR_CODES.AGENT_RUN_NOT_RETRYABLE,
-            'This run cannot be retried',
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs/:runId`,
+      response: okResponse(agentRunDetailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const stored = allRuns().get(String(params.runId))
+          return stored ? mockOk(detailOf(stored)) : runNotFound()
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs/:runId/steps`,
+      response: okResponse(agentRunStepsDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const stored = allRuns().get(String(params.runId))
+          if (!stored) return runNotFound()
+          return mockOk({
+            items: stored.steps.map(({ input: _input, output: _output, ...row }) => row),
+            stepsExpired: false,
+          })
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs/:runId/steps/:seq`,
+      response: okResponse(agentRunStepDetailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const stored = allRuns().get(String(params.runId))
+          if (!stored) return runNotFound()
+          const step = stored.steps.find(({ seq }) => seq === Number(params.seq))
+          return step
+            ? mockOk(step)
+            : mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_RUN_STEP_NOT_FOUND, 'Step not found')
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs/:runId/events`,
+      response: okResponse(agentRunDetailDtoSchema),
+      scenarios: {
+        default: ({ params, request }) => {
+          const stored = allRuns().get(String(params.runId))
+          if (!stored) return runNotFound()
+          return sseResponse(request.signal, (write, isAborted) =>
+            drive(stored.run.id, write, isAborted, true),
           )
-        }
-        const agent = earlier.run.agent && lookupAgent(earlier.run.agent.id)
-        if (!agent) return agentNotFound()
-        const skipBefore = input.fromFailedStep && failed ? failed.seq - 1 : 0
-        const retried = save({
-          run: newRun(agent, {
-            isTest: earlier.run.isTest,
-            trigger: earlier.run.trigger,
-            agentVersion: earlier.run.agentVersion,
-            retryOf: { runId: earlier.run.id, seq: failed?.seq ?? null },
-          }),
-          steps: [],
-          plan: earlier.plan,
-          specs: specsFor(earlier.plan, { fails: false, skipBefore }),
-          messages: earlier.messages,
-          approvalId: null,
-        })
-        return mockOk(detailOf(retried))
+        },
       },
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/runs/:runId/cancel`,
+      response: okResponse(agentRunDetailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const stored = allRuns().get(String(params.runId))
+          if (!stored) return runNotFound()
+          if (!stored.run.canCancel) {
+            return mockError(
+              HTTP_CONFLICT,
+              ERROR_CODES.AGENT_RUN_NOT_RETRYABLE,
+              'The run already ended',
+            )
+          }
+          return mockOk(detailOf(setStatus(stored, 'canceled')))
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/runs/:runId/retry`,
+      response: okResponse(agentRunDetailDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const earlier = allRuns().get(String(params.runId))
+          if (!earlier) return runNotFound()
+          const input = retryAgentRunInputSchema.parse(await request.json())
+          const failed = earlier.steps.find(
+            (step) => step.status === 'failed' && step.type === 'tool',
+          )
+          if (!earlier.run.canRetry || (input.fromFailedStep && (!failed || !earlier.run.isTest))) {
+            return mockError(
+              HTTP_CONFLICT,
+              ERROR_CODES.AGENT_RUN_NOT_RETRYABLE,
+              'This run cannot be retried',
+            )
+          }
+          const agent = earlier.run.agent && lookupAgent(earlier.run.agent.id)
+          if (!agent) return agentNotFound()
+          const skipBefore = input.fromFailedStep && failed ? failed.seq - 1 : 0
+          const retried = save({
+            run: newRun(agent, {
+              isTest: earlier.run.isTest,
+              trigger: earlier.run.trigger,
+              agentVersion: earlier.run.agentVersion,
+              retryOf: { runId: earlier.run.id, seq: failed?.seq ?? null },
+            }),
+            steps: [],
+            plan: earlier.plan,
+            specs: specsFor(earlier.plan, { fails: false, skipBefore }),
+            messages: earlier.messages,
+            approvalId: null,
+          })
+          return mockOk(detailOf(retried))
+        },
+      },
+    }),
+  ],
+  { isLive: true },
+)

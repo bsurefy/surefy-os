@@ -54,7 +54,7 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     group: 'build',
     icon: Bot,
     href: (orgSlug) => ROUTES.workspace.agents(orgSlug),
-    released: false,
+    released: true,
     module: 'agents',
     // Builders and above; Users reach shared agents from Chat
     anyPermission: [PERMISSIONS.AGENTS_READ],

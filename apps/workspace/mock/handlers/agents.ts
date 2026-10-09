@@ -219,99 +219,103 @@ const store = {
  * Scenarios: on a draft save, `conflict` answers that someone else changed the draft first (the
  * agent then holds their newer revision) and `error` fails the save.
  */
-export const agentsDomain = defineMockDomain('agents', [
-  // before `/:agentId`, which would take `templates` for an id
-  ...agentListHandlers(store),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:agentId`,
-    response: okResponse(agentDetailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = find(params.agentId)
-        return found ? mockOk(found) : notFound()
+export const agentsDomain = defineMockDomain(
+  'agents',
+  [
+    // before `/:agentId`, which would take `templates` for an id
+    ...agentListHandlers(store),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/:agentId`,
+      response: okResponse(agentDetailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = find(params.agentId)
+          return found ? mockOk(found) : notFound()
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/:agentId`,
-    response: okResponse(agentDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = find(params.agentId)
-        if (!found) return notFound()
-        const input = updateAgentInputSchema.parse(await request.json())
-        const updated = {
-          ...found,
-          ...input,
-          description: input.description === undefined ? found.description : input.description,
-          updatedAt: NOW,
-        }
-        agents = agents.map((agent) => (agent.id === updated.id ? updated : agent))
-        // the schema drops the draft and the channels, which `PATCH` does not answer with
-        return mockOk(agentDtoSchema.parse(updated))
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/:agentId`,
+      response: okResponse(agentDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = find(params.agentId)
+          if (!found) return notFound()
+          const input = updateAgentInputSchema.parse(await request.json())
+          const updated = {
+            ...found,
+            ...input,
+            description: input.description === undefined ? found.description : input.description,
+            updatedAt: NOW,
+          }
+          agents = agents.map((agent) => (agent.id === updated.id ? updated : agent))
+          // the schema drops the draft and the channels, which `PATCH` does not answer with
+          return mockOk(agentDtoSchema.parse(updated))
+        },
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'put',
-    path: `${path}/:agentId/draft`,
-    response: okResponse(saveAgentDraftDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = find(params.agentId)
-        if (!found) return notFound()
-        if (found.status === 'archived') {
-          return mockError(
-            HTTP_CONFLICT,
-            ERROR_CODES.AGENT_NOT_EDITABLE,
-            'Archived agents are read-only',
-          )
-        }
-        const input = saveAgentDraftInputSchema.parse(await request.json())
-        if (input.baseRevision !== found.draft.revision) {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.AGENT_EDIT_CONFLICT, 'The draft changed')
-        }
-        const draft = {
-          ...found.draft,
-          definition: input.definition,
-          revision: found.draft.revision + 1,
-          updatedAt: NOW,
-          updatedBy: MAYA,
-        }
-        const hasUnpublishedChanges = found.liveVersion !== null
-        agents = agents.map((agent) =>
-          agent.id === found.id ? { ...found, draft, hasUnpublishedChanges } : agent,
-        )
-        return mockOk({ revision: draft.revision, updatedAt: NOW, hasUnpublishedChanges })
-      },
-      conflict: ({ params }) => {
-        const found = find(params.agentId)
-        if (!found) return notFound()
-        if (!revisionBumped) {
-          revisionBumped = true
+    }),
+    defineMockHandler({
+      method: 'put',
+      path: `${path}/:agentId/draft`,
+      response: okResponse(saveAgentDraftDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = find(params.agentId)
+          if (!found) return notFound()
+          if (found.status === 'archived') {
+            return mockError(
+              HTTP_CONFLICT,
+              ERROR_CODES.AGENT_NOT_EDITABLE,
+              'Archived agents are read-only',
+            )
+          }
+          const input = saveAgentDraftInputSchema.parse(await request.json())
+          if (input.baseRevision !== found.draft.revision) {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.AGENT_EDIT_CONFLICT, 'The draft changed')
+          }
+          const draft = {
+            ...found.draft,
+            definition: input.definition,
+            revision: found.draft.revision + 1,
+            updatedAt: NOW,
+            updatedBy: MAYA,
+          }
+          const hasUnpublishedChanges = found.liveVersion !== null
           agents = agents.map((agent) =>
-            agent.id === found.id
-              ? {
-                  ...found,
-                  liveVersion: (found.liveVersion ?? 0) + 1,
-                  draft: {
-                    ...found.draft,
-                    revision: found.draft.revision + 1,
-                    updatedBy: OMAR,
-                    updatedAt: NOW,
-                  },
-                }
-              : agent,
+            agent.id === found.id ? { ...found, draft, hasUnpublishedChanges } : agent,
           )
-        }
-        return mockError(HTTP_CONFLICT, ERROR_CODES.AGENT_EDIT_CONFLICT, 'The draft changed')
+          return mockOk({ revision: draft.revision, updatedAt: NOW, hasUnpublishedChanges })
+        },
+        conflict: ({ params }) => {
+          const found = find(params.agentId)
+          if (!found) return notFound()
+          if (!revisionBumped) {
+            revisionBumped = true
+            agents = agents.map((agent) =>
+              agent.id === found.id
+                ? {
+                    ...found,
+                    liveVersion: (found.liveVersion ?? 0) + 1,
+                    draft: {
+                      ...found.draft,
+                      revision: found.draft.revision + 1,
+                      updatedBy: OMAR,
+                      updatedAt: NOW,
+                    },
+                  }
+                : agent,
+            )
+          }
+          return mockError(HTTP_CONFLICT, ERROR_CODES.AGENT_EDIT_CONFLICT, 'The draft changed')
+        },
+        error: () =>
+          mockError(HTTP_SERVER_ERROR, ERROR_CODES.INTERNAL_ERROR, 'The draft could not be saved'),
       },
-      error: () =>
-        mockError(HTTP_SERVER_ERROR, ERROR_CODES.INTERNAL_ERROR, 'The draft could not be saved'),
-    },
-  }),
-  ...agentPublishingHandlers(store),
-  ...agentToolHandlers(store),
-])
+    }),
+    ...agentPublishingHandlers(store),
+    ...agentToolHandlers(store),
+  ],
+  { isLive: true },
+)

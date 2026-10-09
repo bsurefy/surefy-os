@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
 import {
   apiEnv,
   apiUrl,
+  mcpServerUrl,
   mlServerUrl,
   modelServerUrl,
   oauthServerUrl,
@@ -65,6 +66,13 @@ export default defineConfig({
       name: 'oauth',
       command: 'pnpm exec tsx e2e/support/oauthServer.ts',
       url: `${oauthServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'mcp',
+      command: 'pnpm exec tsx e2e/support/mcpServer.ts',
+      url: `${mcpServerUrl}/health/live`,
       timeout: SERVER_START_MS,
       reuseExistingServer: false,
     },

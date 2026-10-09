@@ -87,8 +87,10 @@ export default function AgentActionDialog({
       confirmationText={isDelete ? agent.name : undefined}
       error={error}
       onConfirm={async ({ reason }) => {
-        // the consequences named above must be the ones at the moment of confirming
-        if (!impact.data) throw new Error('The consequences are not loaded yet')
+        // the consequences named above must be the ones at the moment of confirming: a confirm
+        // that comes before they arrived waits for them
+        const consequences = impact.data ?? (await impact.refetch()).data
+        if (!consequences) throw new Error('The consequences could not be loaded')
         if (isDelete) {
           await remove.mutateAsync({ agentId: agent.id, confirmName: agent.name, reason })
         } else {
