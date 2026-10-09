@@ -8,13 +8,7 @@ import { renderWithProviders } from '@surefy/web-core/testing'
 
 import GuardTabs from './GuardTabs'
 
-import type * as GuardTabsConstants from './GuardTabs.constants'
-
 vi.mock('next/navigation', () => ({ useParams: () => ({ orgSlug: 'acme' }) }))
-vi.mock('./GuardTabs.constants', async (importOriginal) => {
-  const original = await importOriginal<typeof GuardTabsConstants>()
-  return { ...original, GUARD_TABS: original.GUARD_TABS.map((tab) => ({ ...tab, released: true })) }
-})
 
 function renderTabs(role: 'owner' | 'admin' | 'builder') {
   return renderWithProviders(<GuardTabs active="defaults" />, {

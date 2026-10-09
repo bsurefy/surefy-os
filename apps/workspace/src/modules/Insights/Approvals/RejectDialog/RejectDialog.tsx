@@ -38,7 +38,7 @@ export default function RejectDialog({
   const t = useTranslations('insights.approvals.reject')
   const ui = useUiLabels()
   const noteId = useId()
-  const [reason, setReason] = useState<ApprovalDecisionReason | undefined>()
+  const [reason, setReason] = useState<ApprovalDecisionReason | ''>('')
   const [note, setNote] = useState('')
   const [errors, setErrors] = useState<{ reason?: string; note?: string }>({})
   const [isPending, setIsPending] = useState(false)
@@ -46,7 +46,7 @@ export default function RejectDialog({
   const handleOpenChange = (next: boolean) => {
     if (isPending) return
     if (!next) {
-      setReason(undefined)
+      setReason('')
       setNote('')
       setErrors({})
     }

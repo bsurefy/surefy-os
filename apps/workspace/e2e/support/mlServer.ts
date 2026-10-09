@@ -2,6 +2,8 @@
 // A stand-in for the document parser (`apps/ml`) in the end-to-end run, started by Playwright next
 // to the API. It answers `POST /v1/documents/parse` for plain text and Markdown: it downloads the
 // file from the signed URL it is given and returns it as sections, one per heading or paragraph.
+// It also answers `POST /v1/pii/detect` and `/v1/pii/mask` for emails, phone numbers and payment
+// cards (and a custom pattern), the types the specs use; the real service finds more.
 import { createServer } from 'node:http'
 
 import { e2e } from './env'
@@ -48,10 +50,90 @@ export function sectionsOf(text: string): { title: string | null; sections: Sect
   return { title, sections }
 }
 
-async function readJson(request: IncomingMessage): Promise<{ fileUrl?: string }> {
+interface PiiBody {
+  texts?: string[]
+  types?: string[] | null
+  customPatterns?: { label: string; pattern: string }[]
+}
+
+interface Finding {
+  type: string
+  customLabel: string | null
+  start: number
+  end: number
+  score: number
+}
+
+/** The built-in types the stub can find; a type the request leaves out is not looked for. */
+const PII_PATTERNS: Record<string, RegExp> = {
+  email: /\b[\w.+-]{1,64}@[\w-]{1,63}(?:\.[\w-]{1,63}){1,4}\b/g,
+  payment_card: /\b(?:\d[ -]?){13,16}\b/g,
+  phone: /\+\d[\d ()-]{7,}\d/g,
+}
+
+/** The placeholder the real service writes for a finding: `[EMAIL]`, `[EMPLOYEE_ID]`. */
+const placeholderOf = (finding: Finding) =>
+  `[${(finding.customLabel ?? finding.type).toUpperCase().replaceAll(/\s+/g, '_')}]`
+
+function findIn(text: string, body: PiiBody): Finding[] {
+  const found: Finding[] = []
+  const wanted = body.types ?? Object.keys(PII_PATTERNS)
+  for (const [type, pattern] of Object.entries(PII_PATTERNS)) {
+    if (!wanted.includes(type)) continue
+    for (const match of text.matchAll(pattern))
+      found.push({
+        type,
+        customLabel: null,
+        start: match.index,
+        end: match.index + match[0].length,
+        score: 0.9,
+      })
+  }
+  for (const custom of body.customPatterns ?? []) {
+    for (const match of text.matchAll(new RegExp(custom.pattern, 'g')))
+      found.push({
+        type: 'custom',
+        customLabel: custom.label,
+        start: match.index,
+        end: match.index + match[0].length,
+        score: 1,
+      })
+  }
+  return found.sort((a, b) => a.start - b.start)
+}
+
+/** Findings that do not overlap an earlier one, in text order. */
+function withoutOverlap(findings: Finding[]): Finding[] {
+  const kept: Finding[] = []
+  for (const finding of findings) {
+    if (finding.start >= (kept.at(-1)?.end ?? 0)) kept.push(finding)
+  }
+  return kept
+}
+
+function maskText(text: string, findings: Finding[]): string {
+  let out = ''
+  let at = 0
+  for (const finding of findings) {
+    out += text.slice(at, finding.start) + placeholderOf(finding)
+    at = finding.end
+  }
+  return out + text.slice(at)
+}
+
+async function readJson<T extends object>(request: IncomingMessage): Promise<T> {
   const chunks: Buffer[] = []
   for await (const chunk of request) chunks.push(chunk as Buffer)
-  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as { fileUrl?: string }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as T
+}
+
+async function pii(request: IncomingMessage, response: ServerResponse, mask: boolean) {
+  const body = await readJson<PiiBody>(request)
+  const results = (body.texts ?? []).map((text) => {
+    const findings = withoutOverlap(findIn(text, body))
+    return mask ? { findings, text: maskText(text, findings) } : { findings }
+  })
+  send(response, 200, { language: 'en', results })
 }
 
 const send = (response: ServerResponse, status: number, body: unknown) => {
@@ -60,7 +142,7 @@ const send = (response: ServerResponse, status: number, body: unknown) => {
 }
 
 async function parse(request: IncomingMessage, response: ServerResponse) {
-  const { fileUrl } = await readJson(request)
+  const { fileUrl } = await readJson<{ fileUrl?: string }>(request)
   if (fileUrl === undefined) {
     send(response, 422, { error: 'fileUrl is required' })
     return
@@ -85,6 +167,10 @@ const server = createServer((request, response) => {
   const path = new URL(request.url ?? '/', 'http://localhost').pathname
   if (request.method === 'GET' && path === '/health/live') {
     send(response, 200, { ok: true })
+  } else if (request.method === 'POST' && (path === '/v1/pii/detect' || path === '/v1/pii/mask')) {
+    pii(request, response, path.endsWith('mask')).catch((error: unknown) => {
+      send(response, 500, { error: String(error) })
+    })
   } else if (request.method === 'POST' && path === '/v1/documents/parse') {
     parse(request, response).catch((error: unknown) => {
       send(response, 500, { error: String(error) })

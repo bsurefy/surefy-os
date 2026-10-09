@@ -7,11 +7,14 @@ import type { ChildProcess } from 'node:child_process'
 
 const START_TIMEOUT_MS = 90_000
 
+/** `E2E_WORKER_LOGS=1` shows the worker's own log, at debug level, while a spec is being fixed. */
+const showLogs = process.env.E2E_WORKER_LOGS === '1'
+
 const launch = (command: string, args: string[]) =>
   spawn(command, args, {
     cwd: REPO_ROOT,
-    env: { ...process.env, ...workerEnv() },
-    stdio: 'ignore',
+    env: { ...process.env, ...workerEnv(), ...(showLogs ? { LOG_LEVEL: 'debug' } : {}) },
+    stdio: showLogs ? 'inherit' : 'ignore',
     detached: true,
   })
 

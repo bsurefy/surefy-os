@@ -26,6 +26,9 @@ import {
 import { dataControlDomain, resetDataControlMock } from '../../../../mock/handlers/dataControl'
 import { membersDomain, resetMembersMock } from '../../../../mock/handlers/members'
 
+// the Guard tab bar reads the organization from the address
+vi.mock('next/navigation', () => ({ useParams: () => ({ orgSlug: 'acme' }) }))
+
 /** The export dialog polls every 3 seconds while the file is prepared; room for a slow machine. */
 const POLL_WAIT_MS = 8000
 

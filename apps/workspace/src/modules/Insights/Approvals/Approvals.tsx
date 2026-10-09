@@ -16,6 +16,7 @@ import { PageHeader } from '@surefy/ui/components/Layout'
 import { FilterChips, LoadMore } from '@surefy/ui/components/Navigation'
 import { Button } from '@surefy/ui/primitives/button'
 
+import InsightsTabs from '../InsightsTabs'
 import { ANY, APPROVAL_VIEWS } from './Approvals.constants'
 import { useApprovalsController } from './Approvals.controller'
 import { useApprovalLabels } from './Approvals.hooks'
@@ -51,7 +52,11 @@ export default function Approvals() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('title')} description={t('description')} />
+      <PageHeader
+        title={t('title')}
+        description={t('description')}
+        tabs={<InsightsTabs active="approvals" />}
+      />
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <FilterChips
           label={t('views.label')}

@@ -13,6 +13,7 @@ import { Combobox, Field } from '@surefy/ui/components/Forms'
 import { PageHeader } from '@surefy/ui/components/Layout'
 import { Button } from '@surefy/ui/primitives/button'
 
+import InsightsTabs from '../InsightsTabs'
 import CostBreakdown from './CostBreakdown'
 import InsightsExportDialog from './InsightsExportDialog'
 import { ANY } from './InsightsOverview.constants'
@@ -90,6 +91,7 @@ export default function InsightsOverview() {
       <PageHeader
         title={t('title')}
         description={t('description')}
+        tabs={<InsightsTabs active="overview" />}
         actions={
           <>
             <RangePicker

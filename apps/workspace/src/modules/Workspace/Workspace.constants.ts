@@ -85,11 +85,11 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     key: 'guard',
     group: 'operate',
     icon: Shield,
-    // The audit log is Guard's only tab in the MVP
-    href: (orgSlug) => ROUTES.workspace.guard(orgSlug, 'audit-log'),
+    // The index page opens the first tab the person may read
+    href: (orgSlug) => ROUTES.workspace.guard(orgSlug),
     released: true,
     module: 'guard',
-    anyPermission: [PERMISSIONS.AUDIT_READ],
+    anyPermission: [PERMISSIONS.GUARD_READ, PERMISSIONS.AUDIT_READ],
   },
   {
     key: 'settings',

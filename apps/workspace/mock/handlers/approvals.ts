@@ -177,143 +177,151 @@ function pageOf(items: ApprovalDto[], url: URL) {
  * `already-decided` lets Omar decide first and `expired` is a timed-out item; on an approve with
  * edited fields, `edit-invalid` fails the amount field.
  */
-export const approvalsDomain = defineMockDomain('approvals', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/summary`,
-    response: okResponse(approvalSummaryDtoSchema),
-    scenarios: { default: () => mockOk(toSummary(approvals)) },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path,
-    response: pageResponse(approvalDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const query = listApprovalsQuerySchema.parse(Object.fromEntries(url.searchParams))
-        return pageOf(filtered(query), url)
+export const approvalsDomain = defineMockDomain(
+  'approvals',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/summary`,
+      response: okResponse(approvalSummaryDtoSchema),
+      scenarios: { default: () => mockOk(toSummary(approvals)) },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path,
+      response: pageResponse(approvalDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const query = listApprovalsQuerySchema.parse(Object.fromEntries(url.searchParams))
+          return pageOf(filtered(query), url)
+        },
+        empty: () => mockPage([]),
       },
-      empty: () => mockPage([]),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/bulk-decide`,
-    response: okResponse(bulkDecideResultDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = bulkDecideInputSchema.parse(await request.json())
-        const rules = new Set(input.ids.map((id) => find(id)?.ruleRef ?? null))
-        const results = input.ids.map((id) => {
-          const item = find(id)
-          if (!item)
-            return { id, outcome: 'skipped' as const, errorCode: ERROR_CODES.APPROVAL_NOT_FOUND }
-          if (item.status !== 'pending') {
-            return {
-              id,
-              outcome: 'skipped' as const,
-              errorCode:
-                item.status === 'expired'
-                  ? ERROR_CODES.APPROVAL_EXPIRED
-                  : ERROR_CODES.APPROVAL_ALREADY_DECIDED,
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/bulk-decide`,
+      response: okResponse(bulkDecideResultDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = bulkDecideInputSchema.parse(await request.json())
+          const rules = new Set(input.ids.map((id) => find(id)?.ruleRef ?? null))
+          const results = input.ids.map((id) => {
+            const item = find(id)
+            if (!item)
+              return { id, outcome: 'skipped' as const, errorCode: ERROR_CODES.APPROVAL_NOT_FOUND }
+            if (item.status !== 'pending') {
+              return {
+                id,
+                outcome: 'skipped' as const,
+                errorCode:
+                  item.status === 'expired'
+                    ? ERROR_CODES.APPROVAL_EXPIRED
+                    : ERROR_CODES.APPROVAL_ALREADY_DECIDED,
+              }
             }
-          }
-          if (!item.canDecide)
-            return { id, outcome: 'skipped' as const, errorCode: ERROR_CODES.APPROVAL_NOT_ASSIGNED }
-          if (!item.quickApprovable || rules.size > 1) {
-            return {
-              id,
-              outcome: 'skipped' as const,
-              errorCode: ERROR_CODES.APPROVAL_NOT_QUICK_APPROVABLE,
+            if (!item.canDecide)
+              return {
+                id,
+                outcome: 'skipped' as const,
+                errorCode: ERROR_CODES.APPROVAL_NOT_ASSIGNED,
+              }
+            if (!item.quickApprovable || rules.size > 1) {
+              return {
+                id,
+                outcome: 'skipped' as const,
+                errorCode: ERROR_CODES.APPROVAL_NOT_QUICK_APPROVABLE,
+              }
             }
-          }
-          decide(
-            item,
-            input.decision === 'approve' ? 'approved' : 'rejected',
-            input.decision === 'reject'
-              ? { decisionReason: input.reason ?? null, decisionNote: input.note ?? null }
-              : {},
-          )
-          return { id, outcome: 'decided' as const, errorCode: null }
-        })
-        return mockOk({ results })
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/:approvalId`,
-    response: okResponse(approvalDetailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const item = find(params.approvalId)
-        return item ? mockOk(toDetail(item, edits.get(item.id) ?? null)) : notFound()
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:approvalId/approve`,
-    response: okResponse(approvalDetailDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const item = find(params.approvalId)
-        if (!item) return notFound()
-        if (item.status !== 'pending') return alreadyDecided(item)
-        if (!item.canDecide) return notAssigned()
-        const { editedInput } = approveApprovalInputSchema.parse(await request.json())
-        if (editedInput && (item.kind === 'ai_action' || item.kind === 'flow_step')) {
-          edits.set(item.id, editedInput)
-        }
-        const decided = decide(item, 'approved')
-        return mockOk(toDetail(decided, edits.get(item.id) ?? null))
-      },
-      'session-not-fresh': () => notFresh(),
-      'already-decided': ({ params }) => {
-        const item = find(params.approvalId)
-        return item ? alreadyDecided(decideAsOmar(item)) : notFound()
-      },
-      expired: ({ params }) => {
-        const item = find(params.approvalId)
-        return item
-          ? alreadyDecided(
-              replace({
-                ...item,
-                status: 'expired',
-                resolvedBy: 'timeout',
-                decidedAt: APPROVALS_NOW,
-              }),
+            decide(
+              item,
+              input.decision === 'approve' ? 'approved' : 'rejected',
+              input.decision === 'reject'
+                ? { decisionReason: input.reason ?? null, decisionNote: input.note ?? null }
+                : {},
             )
-          : notFound()
+            return { id, outcome: 'decided' as const, errorCode: null }
+          })
+          return mockOk({ results })
+        },
       },
-      'edit-invalid': () =>
-        mockError(HTTP_UNPROCESSABLE, ERROR_CODES.VALIDATION_FAILED, 'Check the fields', {
-          details: [{ path: 'amount', code: 'invalid', message: 'Enter an amount above 0' }],
-        }),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/:approvalId/reject`,
-    response: okResponse(approvalDetailDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const item = find(params.approvalId)
-        if (!item) return notFound()
-        if (item.status !== 'pending') return alreadyDecided(item)
-        if (!item.canDecide) return notAssigned()
-        const input = rejectApprovalInputSchema.parse(await request.json())
-        const decided = decide(item, 'rejected', {
-          decisionReason: input.reason,
-          decisionNote: input.note ?? null,
-        })
-        return mockOk(toDetail(decided, null))
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/:approvalId`,
+      response: okResponse(approvalDetailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const item = find(params.approvalId)
+          return item ? mockOk(toDetail(item, edits.get(item.id) ?? null)) : notFound()
+        },
       },
-      'already-decided': ({ params }) => {
-        const item = find(params.approvalId)
-        return item ? alreadyDecided(decideAsOmar(item)) : notFound()
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:approvalId/approve`,
+      response: okResponse(approvalDetailDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const item = find(params.approvalId)
+          if (!item) return notFound()
+          if (item.status !== 'pending') return alreadyDecided(item)
+          if (!item.canDecide) return notAssigned()
+          const { editedInput } = approveApprovalInputSchema.parse(await request.json())
+          if (editedInput && (item.kind === 'ai_action' || item.kind === 'flow_step')) {
+            edits.set(item.id, editedInput)
+          }
+          const decided = decide(item, 'approved')
+          return mockOk(toDetail(decided, edits.get(item.id) ?? null))
+        },
+        'session-not-fresh': () => notFresh(),
+        'already-decided': ({ params }) => {
+          const item = find(params.approvalId)
+          return item ? alreadyDecided(decideAsOmar(item)) : notFound()
+        },
+        expired: ({ params }) => {
+          const item = find(params.approvalId)
+          return item
+            ? alreadyDecided(
+                replace({
+                  ...item,
+                  status: 'expired',
+                  resolvedBy: 'timeout',
+                  decidedAt: APPROVALS_NOW,
+                }),
+              )
+            : notFound()
+        },
+        'edit-invalid': () =>
+          mockError(HTTP_UNPROCESSABLE, ERROR_CODES.VALIDATION_FAILED, 'Check the fields', {
+            details: [{ path: 'amount', code: 'invalid', message: 'Enter an amount above 0' }],
+          }),
       },
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/:approvalId/reject`,
+      response: okResponse(approvalDetailDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const item = find(params.approvalId)
+          if (!item) return notFound()
+          if (item.status !== 'pending') return alreadyDecided(item)
+          if (!item.canDecide) return notAssigned()
+          const input = rejectApprovalInputSchema.parse(await request.json())
+          const decided = decide(item, 'rejected', {
+            decisionReason: input.reason,
+            decisionNote: input.note ?? null,
+          })
+          return mockOk(toDetail(decided, null))
+        },
+        'already-decided': ({ params }) => {
+          const item = find(params.approvalId)
+          return item ? alreadyDecided(decideAsOmar(item)) : notFound()
+        },
+      },
+    }),
+  ],
+  { isLive: true },
+)

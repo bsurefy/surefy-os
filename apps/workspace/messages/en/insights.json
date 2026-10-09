@@ -1,4 +1,10 @@
 {
+  "tabs": {
+    "label": "Insights sections",
+    "overview": "Overview",
+    "runs": "Runs",
+    "approvals": "Approvals"
+  },
   "overview": {
     "title": "Insights",
     "description": "AI usage and cost in your organization, by team, person and model.",

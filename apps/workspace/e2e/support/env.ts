@@ -39,8 +39,12 @@ export const e2e = {
   apiPort: Number(read('API_PORT', '4000')),
   /** Its own database, recreated on every run, next to the worktree's development one. */
   database: `${read('DATABASE_NAME', 'surefy')}_e2e`,
-  /** Its own Redis database, so rate limits of earlier runs never carry over. */
-  redisDatabase: 1 + (slot % (REDIS_DATABASES - 1)),
+  /**
+   * Its own Redis database, so rate limits of earlier runs never carry over. `E2E_REDIS_DATABASE`
+   * picks another when a development API or worker already uses this one: it would take the run's
+   * jobs and run them against its own database.
+   */
+  redisDatabase: Number(read('E2E_REDIS_DATABASE', String(1 + (slot % (REDIS_DATABASES - 1))))),
   postgresPort,
   redisPort,
   /** The stub OpenAI-compatible model server (`modelServer.ts`), next to the worktree's ports. */

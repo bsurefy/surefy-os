@@ -4,6 +4,8 @@ import { EMBED_MODEL_ID, embedServerUrl, modelServerUrl, STUB_MODEL_ID } from '.
 
 import type { Page } from '@playwright/test'
 
+const STUB_SERVER_NAME = 'E2E model server'
+
 interface VaultModel {
   id: string
   modelKey: string
@@ -24,7 +26,7 @@ export async function connectStubModel(page: Page): Promise<string> {
   if (!model) {
     await callApi(page, 'POST', `${vault}/local-servers`, {
       scope: 'organization',
-      name: 'E2E model server',
+      name: STUB_SERVER_NAME,
       providerKey: 'openai_compatible',
       baseUrl: `${modelServerUrl}/v1`,
     })
@@ -61,4 +63,21 @@ export async function connectStubEmbedding(page: Page): Promise<string> {
     await callApi(page, 'PATCH', `${vault}/models/${model.id}`, { isEnabled: true })
   await callApi(page, 'PUT', `${vault}/settings`, { embeddingModelId: model.id })
   return model.modelKey
+}
+
+/**
+ * Removes the local server `connectStubModel` added, as an Admin would in the Vault. A spec that
+ * connected the stub model calls it when it is done, so the specs that expect an organization
+ * without a model (Chat, Vault) find it as setup left it.
+ */
+export async function removeStubModel(page: Page): Promise<void> {
+  const orgId = await currentOrgId(page)
+  const vault = `/orgs/${orgId}/vault`
+  const servers = await callApi<{ id: string; name: string }[]>(
+    page,
+    'GET',
+    `${vault}/local-servers`,
+  )
+  const server = servers.find((entry) => entry.name === STUB_SERVER_NAME)
+  if (server) await callApi(page, 'DELETE', `${vault}/local-servers/${server.id}`)
 }

@@ -142,344 +142,351 @@ function testFilter(text: string): TestDataFilterResultDto {
  * `locked`; on a name, `name-taken`; on a defaults save, `thresholds-invalid`; on the data filters,
  * `pattern-invalid`.
  */
-export const guardDomain = defineMockDomain('guard', [
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/overview`,
-    response: okResponse(guardOverviewDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const range = new URL(request.url).searchParams.get('range') === '30d' ? '30d' : '7d'
-        return mockOk({ ...OVERVIEW, range })
+export const guardDomain = defineMockDomain(
+  'guard',
+  [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/overview`,
+      response: okResponse(guardOverviewDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const range = new URL(request.url).searchParams.get('range') === '30d' ? '30d' : '7d'
+          return mockOk({ ...OVERVIEW, range })
+        },
+        empty: () => mockOk(EMPTY_OVERVIEW),
       },
-      empty: () => mockOk(EMPTY_OVERVIEW),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/defaults`,
-    response: okResponse(guardSettingsDtoSchema),
-    scenarios: { default: () => mockOk(settings) },
-  }),
-  defineMockHandler({
-    method: 'put',
-    path: `${path}/defaults`,
-    response: okResponse(guardSettingsDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const { reason, ...values } = updateGuardSettingsInputSchema.parse(await request.json())
-        if (guardDefaultsLoosened(settings, values) && !reason) return reasonRequired()
-        settings = { ...settings, ...values, isCustomized: true, updatedBy: MAYA, updatedAt: NOW }
-        return mockOk(settings)
-      },
-      'thresholds-invalid': () =>
-        mockError(
-          HTTP_UNPROCESSABLE,
-          ERROR_CODES.GUARD_THRESHOLDS_INVALID,
-          'The review threshold must be below the automatic one',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/defaults/impact`,
-    response: okResponse(guardImpactPreviewDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const query = guardImpactPreviewQuerySchema.parse(
-          Object.fromEntries(new URL(request.url).searchParams),
-        )
-        return mockOk(previewImpact(query.autoThresholdBp, query.reviewThresholdBp))
-      },
-      empty: () => mockOk({ sampleSize: 0, auto: 0, doubleCheck: 0, human: 0 }),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/guardrails`,
-    response: pageResponse(guardRuleRowDtoSchema),
-    scenarios: {
-      default: ({ request }) => {
-        const url = new URL(request.url)
-        const q = url.searchParams.get('q')?.toLowerCase()
-        const scopes = url.searchParams.get('scope')?.split(',')
-        const types = url.searchParams.get('type')?.split(',')
-        const enabled = url.searchParams.get('isEnabled')
-        const sort = url.searchParams.get('sort') ?? 'name'
-        const field = sort.replace(/^-/, '')
-        const direction = sort.startsWith('-') ? -1 : 1
-        const rows = allRows()
-          .filter(
-            (rule) =>
-              (!q || rule.name.toLowerCase().includes(q)) &&
-              (!scopes || scopes.includes(rule.scope)) &&
-              (!types || types.includes(rule.type)) &&
-              (enabled === null || String(rule.isEnabled) === enabled),
-          )
-          .sort((a, b) =>
-            field === 'triggeredThisWeek'
-              ? (a.triggeredThisWeek - b.triggeredThisWeek) * direction
-              : a.name.localeCompare(b.name) * direction,
-          )
-        return pageOf(rows, url)
-      },
-      empty: () => mockPage([]),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/guardrails`,
-    response: okResponse(guardrailDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createGuardrailInputSchema.parse(await request.json())
-        if (guardrails.some((rule) => rule.name.toLowerCase() === input.name.toLowerCase())) {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken')
-        }
-        const blocking = guardrails.find(
-          (rule) =>
-            rule.isEnabled &&
-            rule.definition.kind === 'blocked_action' &&
-            rule.definition.match.action === input.definition.match.action,
-        )
-        const created: GuardrailDto = {
-          id: globalThis.crypto.randomUUID(),
-          name: input.name,
-          type: input.definition.kind,
-          scope: input.scope,
-          team: input.teamId
-            ? { id: input.teamId, name: input.teamId === MAYA.id ? 'Team' : 'Sales' }
-            : null,
-          definition: input.definition,
-          isEnabled: input.isEnabled,
-          isLocked: false,
-          lockedBy: null,
-          lockedReason: null,
-          conflictsWith: blocking ? { id: blocking.id, name: blocking.name } : null,
-          createdBy: MAYA,
-          updatedBy: MAYA,
-          createdAt: NOW,
-          updatedAt: NOW,
-        }
-        guardrails = [...guardrails, created]
-        return mockOk(created, { status: 201 })
-      },
-      'name-taken': () => mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken'),
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/guardrails/:guardrailId`,
-    response: okResponse(guardrailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findGuardrail(params.guardrailId)
-        return found ? mockOk(found) : ruleNotFound()
-      },
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/guardrails/:guardrailId`,
-    response: okResponse(guardrailDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findGuardrail(params.guardrailId)
-        if (!found) return ruleNotFound()
-        const { reason, ...input } = updateGuardrailInputSchema.parse(await request.json())
-        if (input.definition && input.definition.kind !== found.type) {
-          return mockError(
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/defaults`,
+      response: okResponse(guardSettingsDtoSchema),
+      scenarios: { default: () => mockOk(settings) },
+    }),
+    defineMockHandler({
+      method: 'put',
+      path: `${path}/defaults`,
+      response: okResponse(guardSettingsDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const { reason, ...values } = updateGuardSettingsInputSchema.parse(await request.json())
+          if (guardDefaultsLoosened(settings, values) && !reason) return reasonRequired()
+          settings = { ...settings, ...values, isCustomized: true, updatedBy: MAYA, updatedAt: NOW }
+          return mockOk(settings)
+        },
+        'thresholds-invalid': () =>
+          mockError(
             HTTP_UNPROCESSABLE,
-            ERROR_CODES.GUARD_RULE_TYPE_IMMUTABLE,
-            'A rule keeps its type',
+            ERROR_CODES.GUARD_THRESHOLDS_INVALID,
+            'The review threshold must be below the automatic one',
+          ),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/defaults/impact`,
+      response: okResponse(guardImpactPreviewDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const query = guardImpactPreviewQuerySchema.parse(
+            Object.fromEntries(new URL(request.url).searchParams),
           )
-        }
-        const isTurnedOff = input.isEnabled === false && found.isEnabled
-        if (isTurnedOff && !reason) return reasonRequired()
-        if (
-          input.name &&
-          guardrails.some(
-            (rule) => rule.id !== found.id && rule.name.toLowerCase() === input.name?.toLowerCase(),
+          return mockOk(previewImpact(query.autoThresholdBp, query.reviewThresholdBp))
+        },
+        empty: () => mockOk({ sampleSize: 0, auto: 0, doubleCheck: 0, human: 0 }),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/guardrails`,
+      response: pageResponse(guardRuleRowDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const url = new URL(request.url)
+          const q = url.searchParams.get('q')?.toLowerCase()
+          const scopes = url.searchParams.get('scope')?.split(',')
+          const types = url.searchParams.get('type')?.split(',')
+          const enabled = url.searchParams.get('isEnabled')
+          const sort = url.searchParams.get('sort') ?? 'name'
+          const field = sort.replace(/^-/, '')
+          const direction = sort.startsWith('-') ? -1 : 1
+          const rows = allRows()
+            .filter(
+              (rule) =>
+                (!q || rule.name.toLowerCase().includes(q)) &&
+                (!scopes || scopes.includes(rule.scope)) &&
+                (!types || types.includes(rule.type)) &&
+                (enabled === null || String(rule.isEnabled) === enabled),
+            )
+            .sort((a, b) =>
+              field === 'triggeredThisWeek'
+                ? (a.triggeredThisWeek - b.triggeredThisWeek) * direction
+                : a.name.localeCompare(b.name) * direction,
+            )
+          return pageOf(rows, url)
+        },
+        empty: () => mockPage([]),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/guardrails`,
+      response: okResponse(guardrailDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createGuardrailInputSchema.parse(await request.json())
+          if (guardrails.some((rule) => rule.name.toLowerCase() === input.name.toLowerCase())) {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken')
+          }
+          const blocking = guardrails.find(
+            (rule) =>
+              rule.isEnabled &&
+              rule.definition.kind === 'blocked_action' &&
+              rule.definition.match.action === input.definition.match.action,
           )
-        ) {
-          return mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken')
-        }
-        return mockOk(replaceGuardrail({ ...found, ...input, updatedBy: MAYA, updatedAt: NOW }))
+          const created: GuardrailDto = {
+            id: globalThis.crypto.randomUUID(),
+            name: input.name,
+            type: input.definition.kind,
+            scope: input.scope,
+            team: input.teamId
+              ? { id: input.teamId, name: input.teamId === MAYA.id ? 'Team' : 'Sales' }
+              : null,
+            definition: input.definition,
+            isEnabled: input.isEnabled,
+            isLocked: false,
+            lockedBy: null,
+            lockedReason: null,
+            conflictsWith: blocking ? { id: blocking.id, name: blocking.name } : null,
+            createdBy: MAYA,
+            updatedBy: MAYA,
+            createdAt: NOW,
+            updatedAt: NOW,
+          }
+          guardrails = [...guardrails, created]
+          return mockOk(created, { status: 201 })
+        },
+        'name-taken': () =>
+          mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken'),
       },
-      locked,
-      'name-taken': () => mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken'),
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: `${path}/guardrails/:guardrailId`,
-    response: okResponse(z.null()),
-    scenarios: {
-      default: ({ params, request }) => {
-        const found = findGuardrail(params.guardrailId)
-        if (!found) return ruleNotFound()
-        if (found.isEnabled && !new URL(request.url).searchParams.get('reason')) {
-          return reasonRequired()
-        }
-        guardrails = guardrails.filter((rule) => rule.id !== found.id)
-        return noContent()
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/guardrails/:guardrailId`,
+      response: okResponse(guardrailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findGuardrail(params.guardrailId)
+          return found ? mockOk(found) : ruleNotFound()
+        },
       },
-      locked,
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/guardrails/:guardrailId/impact`,
-    response: okResponse(guardrailImpactDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findGuardrail(params.guardrailId)
-        if (!found) return ruleNotFound()
-        const count = RULE_USAGE[found.id]?.usedBy ?? 0
-        return mockOk({
-          dependents: count > 0 ? [{ type: 'agent', count }] : [],
-          listed: [],
-        })
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/guardrails/:guardrailId`,
+      response: okResponse(guardrailDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findGuardrail(params.guardrailId)
+          if (!found) return ruleNotFound()
+          const { reason, ...input } = updateGuardrailInputSchema.parse(await request.json())
+          if (input.definition && input.definition.kind !== found.type) {
+            return mockError(
+              HTTP_UNPROCESSABLE,
+              ERROR_CODES.GUARD_RULE_TYPE_IMMUTABLE,
+              'A rule keeps its type',
+            )
+          }
+          const isTurnedOff = input.isEnabled === false && found.isEnabled
+          if (isTurnedOff && !reason) return reasonRequired()
+          if (
+            input.name &&
+            guardrails.some(
+              (rule) =>
+                rule.id !== found.id && rule.name.toLowerCase() === input.name?.toLowerCase(),
+            )
+          ) {
+            return mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken')
+          }
+          return mockOk(replaceGuardrail({ ...found, ...input, updatedBy: MAYA, updatedAt: NOW }))
+        },
+        locked,
+        'name-taken': () =>
+          mockError(HTTP_CONFLICT, ERROR_CODES.GUARD_RULE_NAME_TAKEN, 'Name taken'),
       },
-      'no-impact': () => mockOk({ dependents: [], listed: [] }),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/guardrails/:guardrailId/lock`,
-    response: okResponse(guardrailDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findGuardrail(params.guardrailId)
-        if (!found) return ruleNotFound()
-        const input = lockGuardrailInputSchema.parse(await request.json())
-        return mockOk(
-          replaceGuardrail({
-            ...found,
-            isLocked: true,
-            lockedBy: MAYA,
-            lockedReason: input.reason,
-          }),
-        )
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: `${path}/guardrails/:guardrailId`,
+      response: okResponse(z.null()),
+      scenarios: {
+        default: ({ params, request }) => {
+          const found = findGuardrail(params.guardrailId)
+          if (!found) return ruleNotFound()
+          if (found.isEnabled && !new URL(request.url).searchParams.get('reason')) {
+            return reasonRequired()
+          }
+          guardrails = guardrails.filter((rule) => rule.id !== found.id)
+          return noContent()
+        },
+        locked,
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/guardrails/:guardrailId/unlock`,
-    response: okResponse(guardrailDtoSchema),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findGuardrail(params.guardrailId)
-        if (!found) return ruleNotFound()
-        return mockOk(
-          replaceGuardrail({ ...found, isLocked: false, lockedBy: null, lockedReason: null }),
-        )
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/guardrails/:guardrailId/impact`,
+      response: okResponse(guardrailImpactDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findGuardrail(params.guardrailId)
+          if (!found) return ruleNotFound()
+          const count = RULE_USAGE[found.id]?.usedBy ?? 0
+          return mockOk({
+            dependents: count > 0 ? [{ type: 'agent', count }] : [],
+            listed: [],
+          })
+        },
+        'no-impact': () => mockOk({ dependents: [], listed: [] }),
       },
-    },
-  }),
-  defineMockHandler({
-    method: 'get',
-    path: `${path}/data-filters`,
-    response: okResponse(dataFiltersDtoSchema),
-    scenarios: { default: () => mockOk({ items: toDataFilterTypes(piiRules) }) },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/data-filters/test`,
-    response: okResponse(testDataFilterResultDtoSchema),
-    scenarios: {
-      default: async ({ request }) =>
-        mockOk(testFilter(testDataFilterInputSchema.parse(await request.json()).text)),
-      'pattern-invalid': () =>
-        mockError(
-          HTTP_UNPROCESSABLE,
-          ERROR_CODES.GUARD_PII_PATTERN_INVALID,
-          'The pattern does not compile',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'post',
-    path: `${path}/pii-rules`,
-    response: okResponse(piiRuleDtoSchema),
-    scenarios: {
-      default: async ({ request }) => {
-        const input = createPiiRuleInputSchema.parse(await request.json())
-        const duplicate = piiRules.some(
-          (rule) =>
-            rule.scope === input.scope &&
-            rule.piiType === input.piiType &&
-            rule.customLabel === (input.customLabel ?? null) &&
-            (rule.team?.id ?? null) === (input.teamId ?? null),
-        )
-        if (duplicate) {
-          return mockError(
-            HTTP_CONFLICT,
-            ERROR_CODES.GUARD_PII_RULE_DUPLICATE,
-            'Already has a rule',
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/guardrails/:guardrailId/lock`,
+      response: okResponse(guardrailDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findGuardrail(params.guardrailId)
+          if (!found) return ruleNotFound()
+          const input = lockGuardrailInputSchema.parse(await request.json())
+          return mockOk(
+            replaceGuardrail({
+              ...found,
+              isLocked: true,
+              lockedBy: MAYA,
+              lockedReason: input.reason,
+            }),
           )
-        }
-        const created: PiiRuleDto = {
-          id: globalThis.crypto.randomUUID(),
-          piiType: input.piiType,
-          customLabel: input.customLabel ?? null,
-          customPattern: input.customPattern ?? null,
-          action: input.action,
-          scope: input.scope,
-          team: input.teamId ? { id: input.teamId, name: 'Sales' } : null,
-          agent: input.agentId ? { id: input.agentId, name: 'Support triage' } : null,
-          createdBy: MAYA,
-          updatedBy: MAYA,
-          createdAt: NOW,
-          updatedAt: NOW,
-        }
-        piiRules = [...piiRules, created]
-        return mockOk(created, { status: 201 })
+        },
       },
-      'pattern-invalid': () =>
-        mockError(
-          HTTP_UNPROCESSABLE,
-          ERROR_CODES.GUARD_PII_PATTERN_INVALID,
-          'The pattern does not compile',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'patch',
-    path: `${path}/pii-rules/:ruleId`,
-    response: okResponse(piiRuleDtoSchema),
-    scenarios: {
-      default: async ({ params, request }) => {
-        const found = findPiiRule(params.ruleId)
-        if (!found) return piiNotFound()
-        const { reason, ...input } = updatePiiRuleInputSchema.parse(await request.json())
-        if (input.action && piiActionLoosened(found.action, input.action) && !reason) {
-          return reasonRequired()
-        }
-        const updated = { ...found, ...input, updatedBy: MAYA, updatedAt: NOW }
-        piiRules = piiRules.map((rule) => (rule.id === updated.id ? updated : rule))
-        return mockOk(updated)
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/guardrails/:guardrailId/unlock`,
+      response: okResponse(guardrailDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findGuardrail(params.guardrailId)
+          if (!found) return ruleNotFound()
+          return mockOk(
+            replaceGuardrail({ ...found, isLocked: false, lockedBy: null, lockedReason: null }),
+          )
+        },
       },
-      'pattern-invalid': () =>
-        mockError(
-          HTTP_UNPROCESSABLE,
-          ERROR_CODES.GUARD_PII_PATTERN_INVALID,
-          'The pattern does not compile',
-        ),
-    },
-  }),
-  defineMockHandler({
-    method: 'delete',
-    path: `${path}/pii-rules/:ruleId`,
-    response: okResponse(z.null()),
-    scenarios: {
-      default: ({ params }) => {
-        const found = findPiiRule(params.ruleId)
-        if (!found) return piiNotFound()
-        piiRules = piiRules.filter((rule) => rule.id !== found.id)
-        return noContent()
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/data-filters`,
+      response: okResponse(dataFiltersDtoSchema),
+      scenarios: { default: () => mockOk({ items: toDataFilterTypes(piiRules) }) },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/data-filters/test`,
+      response: okResponse(testDataFilterResultDtoSchema),
+      scenarios: {
+        default: async ({ request }) =>
+          mockOk(testFilter(testDataFilterInputSchema.parse(await request.json()).text)),
+        'pattern-invalid': () =>
+          mockError(
+            HTTP_UNPROCESSABLE,
+            ERROR_CODES.GUARD_PII_PATTERN_INVALID,
+            'The pattern does not compile',
+          ),
       },
-    },
-  }),
-])
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/pii-rules`,
+      response: okResponse(piiRuleDtoSchema),
+      scenarios: {
+        default: async ({ request }) => {
+          const input = createPiiRuleInputSchema.parse(await request.json())
+          const duplicate = piiRules.some(
+            (rule) =>
+              rule.scope === input.scope &&
+              rule.piiType === input.piiType &&
+              rule.customLabel === (input.customLabel ?? null) &&
+              (rule.team?.id ?? null) === (input.teamId ?? null),
+          )
+          if (duplicate) {
+            return mockError(
+              HTTP_CONFLICT,
+              ERROR_CODES.GUARD_PII_RULE_DUPLICATE,
+              'Already has a rule',
+            )
+          }
+          const created: PiiRuleDto = {
+            id: globalThis.crypto.randomUUID(),
+            piiType: input.piiType,
+            customLabel: input.customLabel ?? null,
+            customPattern: input.customPattern ?? null,
+            action: input.action,
+            scope: input.scope,
+            team: input.teamId ? { id: input.teamId, name: 'Sales' } : null,
+            agent: input.agentId ? { id: input.agentId, name: 'Support triage' } : null,
+            createdBy: MAYA,
+            updatedBy: MAYA,
+            createdAt: NOW,
+            updatedAt: NOW,
+          }
+          piiRules = [...piiRules, created]
+          return mockOk(created, { status: 201 })
+        },
+        'pattern-invalid': () =>
+          mockError(
+            HTTP_UNPROCESSABLE,
+            ERROR_CODES.GUARD_PII_PATTERN_INVALID,
+            'The pattern does not compile',
+          ),
+      },
+    }),
+    defineMockHandler({
+      method: 'patch',
+      path: `${path}/pii-rules/:ruleId`,
+      response: okResponse(piiRuleDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findPiiRule(params.ruleId)
+          if (!found) return piiNotFound()
+          const { reason, ...input } = updatePiiRuleInputSchema.parse(await request.json())
+          if (input.action && piiActionLoosened(found.action, input.action) && !reason) {
+            return reasonRequired()
+          }
+          const updated = { ...found, ...input, updatedBy: MAYA, updatedAt: NOW }
+          piiRules = piiRules.map((rule) => (rule.id === updated.id ? updated : rule))
+          return mockOk(updated)
+        },
+        'pattern-invalid': () =>
+          mockError(
+            HTTP_UNPROCESSABLE,
+            ERROR_CODES.GUARD_PII_PATTERN_INVALID,
+            'The pattern does not compile',
+          ),
+      },
+    }),
+    defineMockHandler({
+      method: 'delete',
+      path: `${path}/pii-rules/:ruleId`,
+      response: okResponse(z.null()),
+      scenarios: {
+        default: ({ params }) => {
+          const found = findPiiRule(params.ruleId)
+          if (!found) return piiNotFound()
+          piiRules = piiRules.filter((rule) => rule.id !== found.id)
+          return noContent()
+        },
+      },
+    }),
+  ],
+  { isLive: true },
+)

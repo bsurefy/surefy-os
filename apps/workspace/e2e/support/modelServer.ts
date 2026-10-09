@@ -25,7 +25,18 @@ interface ChatMessage {
   content: string | { type: string; text?: string }[] | null
 }
 
-const textOf = (content: ChatMessage['content']) =>
+interface ToolDefinition {
+  type: string
+  function: { name: string; description?: string }
+}
+
+/** One function call the stub asks for, in place of an answer. */
+interface ToolCall {
+  name: string
+  arguments: Record<string, unknown>
+}
+
+const textOf = (content: ChatMessage['content'] | undefined) =>
   typeof content === 'string'
     ? content
     : (content ?? []).map((part) => (part.type === 'text' ? (part.text ?? '') : '')).join('')
@@ -44,6 +55,43 @@ function stubAnswer(messages: ChatMessage[]): string {
     return Array.from({ length: LONG_ANSWER_WORDS }, (_, i) => `word${String(i)}`).join(' ')
   return `Echo: ${question}`
 }
+
+/** An agent's question the stub answers with a call: "Refund order 1182 for $340". */
+const REFUND_REQUEST = /^Refund order (\d+) for \$(\d+)/
+
+/**
+ * What an agent run's model does (agents with tools offer them in `tools`): a refund request
+ * calls the refund tool with the order and amount, and once a tool answered ("tool" message) the
+ * stub says what the tool returned. Null when the request is not an agent's.
+ */
+function stubToolTurn(
+  messages: ChatMessage[],
+  tools: ToolDefinition[] | undefined,
+): { call: ToolCall } | { text: string } | null {
+  if (tools === undefined || tools.length === 0) return null
+  const last = messages.at(-1)
+  if (last?.role === 'tool') return { text: `Tool result: ${textOf(last.content)}` }
+  const question = textOf(messages.filter((message) => message.role === 'user').at(-1)?.content)
+  const refund = REFUND_REQUEST.exec(question)
+  const tool = tools.find((entry) => entry.function.name.includes('refund'))
+  if (refund === null || tool === undefined) return null
+  return {
+    call: {
+      name: tool.function.name,
+      arguments: { orderId: refund[1], amount: Number(refund[2]) },
+    },
+  }
+}
+
+/** The decision mode's system prompt starts like this (`modelGateway.decision.ts`). */
+const DECISION_SYSTEM_PREFIX = 'You make one decision'
+
+/** A confident "yes", which is what lets a `can_act` call reach the approval rules. */
+const DECISION_ANSWER = JSON.stringify({
+  value: true,
+  confidencePercent: 95,
+  reasoning: 'The request matches the agent instructions.',
+})
 
 async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = []
@@ -71,13 +119,34 @@ const sleep = (ms: number) =>
     setTimeout(resolve, ms)
   })
 
+/** Opens an event stream and returns the writers for its data events and chunks. */
+function openStream(response: ServerResponse, base: object) {
+  response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
+  const event = (data: unknown) => response.write(`data: ${JSON.stringify(data)}\n\n`)
+  const chunk = (delta: object, finishReason: string | null) => ({
+    ...base,
+    object: 'chat.completion.chunk',
+    choices: [{ index: 0, delta, finish_reason: finishReason }],
+  })
+  return { event, chunk }
+}
+
 async function completions(request: IncomingMessage, response: ServerResponse) {
   const body = (await readJson(request)) as {
     model: string
     stream?: boolean
     messages: ChatMessage[]
+    tools?: ToolDefinition[]
   }
-  const answer = stubAnswer(body.messages)
+  const system = textOf(body.messages.find((message) => message.role === 'system')?.content)
+  const turn = system.startsWith(DECISION_SYSTEM_PREFIX)
+    ? { text: DECISION_ANSWER }
+    : stubToolTurn(body.messages, body.tools)
+  if (turn !== null && 'call' in turn) {
+    await toolCall(response, body, turn.call)
+    return
+  }
+  const answer = turn === null ? stubAnswer(body.messages) : turn.text
   const usage = usageOf(body.messages.map((message) => textOf(message.content)).join(' '), answer)
   const base = {
     id: `chatcmpl-${String(Date.now())}`,
@@ -97,13 +166,7 @@ async function completions(request: IncomingMessage, response: ServerResponse) {
     return
   }
 
-  response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
-  const event = (data: unknown) => response.write(`data: ${JSON.stringify(data)}\n\n`)
-  const chunk = (delta: object, finishReason: string | null) => ({
-    ...base,
-    object: 'chat.completion.chunk',
-    choices: [{ index: 0, delta, finish_reason: finishReason }],
-  })
+  const { event, chunk } = openStream(response, base)
 
   event(chunk({ role: 'assistant', content: '' }, null))
   const words = answer.split(' ')
@@ -114,6 +177,50 @@ async function completions(request: IncomingMessage, response: ServerResponse) {
     event(chunk({ content: index === 0 ? word : ` ${word}` }, null))
   }
   event(chunk({}, 'stop'))
+  event({ ...base, object: 'chat.completion.chunk', choices: [], usage })
+  response.end('data: [DONE]\n\n')
+}
+
+/** Answers with one function call instead of text, streamed or not. */
+async function toolCall(
+  response: ServerResponse,
+  body: { model: string; stream?: boolean; messages: ChatMessage[] },
+  call: ToolCall,
+) {
+  const base = {
+    id: `chatcmpl-${String(Date.now())}`,
+    created: Math.floor(Date.now() / 1000),
+    model: body.model,
+  }
+  const usage = usageOf(
+    body.messages.map((message) => textOf(message.content)).join(' '),
+    call.name,
+  )
+  const call0 = {
+    id: 'call_1',
+    type: 'function',
+    function: { name: call.name, arguments: JSON.stringify(call.arguments) },
+  }
+  if (body.stream !== true) {
+    send(response, 200, {
+      ...base,
+      object: 'chat.completion',
+      choices: [
+        {
+          index: 0,
+          message: { role: 'assistant', content: null, tool_calls: [call0] },
+          finish_reason: 'tool_calls',
+        },
+      ],
+      usage,
+    })
+    return
+  }
+  const { event, chunk } = openStream(response, base)
+  event(chunk({ role: 'assistant', content: null }, null))
+  await sleep(WORD_DELAY_MS)
+  event(chunk({ tool_calls: [{ index: 0, ...call0 }] }, null))
+  event(chunk({}, 'tool_calls'))
   event({ ...base, object: 'chat.completion.chunk', choices: [], usage })
   response.end('data: [DONE]\n\n')
 }

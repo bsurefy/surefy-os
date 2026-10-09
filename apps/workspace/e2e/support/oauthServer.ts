@@ -4,6 +4,8 @@
 // trades the client ID and secret for an access token, and `GET /api` accepts only a token it
 // issued. `POST /control/revoke` makes every token issued so far stop working, as an app that
 // expired a sign-in does; `GET /control/stats` counts what was issued and checked.
+// It is also the target of an agent's API tool: `POST /api/refunds` records the refund it is asked
+// for and `GET /control/refunds` lists them, so a spec can tell whether a call really went out.
 import { createServer } from 'node:http'
 
 import { e2e, OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET } from './env'
@@ -16,6 +18,7 @@ const valid = new Set<string>()
 let issued = 0
 let accepted = 0
 let rejected = 0
+const refunds: unknown[] = []
 
 function send(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { 'content-type': 'application/json' })
@@ -75,6 +78,14 @@ function checkToken(request: IncomingMessage, response: ServerResponse) {
   }
 }
 
+async function refund(request: IncomingMessage, response: ServerResponse) {
+  const chunks: Buffer[] = []
+  for await (const chunk of request) chunks.push(chunk as Buffer)
+  const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as object
+  refunds.push(body)
+  send(response, 200, { refunded: true, ...body })
+}
+
 const server = createServer((request, response) => {
   const path = new URL(request.url ?? '/', 'http://localhost').pathname
   if (request.method === 'GET' && path === '/health/live') {
@@ -85,6 +96,12 @@ const server = createServer((request, response) => {
     })
   } else if (request.method === 'GET' && path === '/api') {
     checkToken(request, response)
+  } else if (request.method === 'POST' && path === '/api/refunds') {
+    refund(request, response).catch((error: unknown) => {
+      send(response, 500, { error: String(error) })
+    })
+  } else if (request.method === 'GET' && path === '/control/refunds') {
+    send(response, 200, refunds)
   } else if (request.method === 'POST' && path === '/control/revoke') {
     valid.clear()
     send(response, 200, { ok: true })

@@ -23,9 +23,7 @@ export default function GuardTabs({ active }: Readonly<{ active: GuardTabValue }
   const params = useParams<{ orgSlug: string }>()
   const { data: access } = useEffectiveAccess()
 
-  const visible = GUARD_TABS.filter(
-    (tab) => tab.released && access && hasPermission(access, tab.permission),
-  )
+  const visible = GUARD_TABS.filter((tab) => access && hasPermission(access, tab.permission))
   // a single tab is no navigation
   if (visible.length < 2) return null
 
