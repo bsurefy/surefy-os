@@ -44,6 +44,7 @@ import { createFilesModule } from './modules/files/index.js'
 import {
   createGuardApprovalsPort,
   createGuardModule,
+  createGuardSubjects,
   type GuardSubjects,
 } from './modules/guard/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
@@ -184,7 +185,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     http: connections.http,
   })
   // Guard creates approvals, so it is built after them; the settings it provides to them first
-  const guardPort = createGuardApprovalsPort(overrides.guard?.subjects)
+  const guardPort = createGuardApprovalsPort(overrides.guard?.subjects ?? createGuardSubjects())
   // fresh-session checks come from the access module, which is built after the modules below
   const approvals = createApprovalsModule({
     db,

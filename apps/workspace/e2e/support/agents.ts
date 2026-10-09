@@ -21,6 +21,8 @@ interface AgentDraft {
 export interface RefundAgent {
   orgId: string
   agentId: string
+  /** Deleting a published agent asks for its name. */
+  name: string
   ruleId: string
   /** The approval rule's name, which an approval shows as the rule that asked. */
   ruleName: string
@@ -86,7 +88,32 @@ export async function arrangeRefundAgent(
       risk: 'medium',
     },
   })
-  return { orgId, agentId: agent.id, ruleId: rule.id, ruleName }
+  return { orgId, agentId: agent.id, name: options.name, ruleId: rule.id, ruleName }
+}
+
+/**
+ * Gives the arranged agent its own Guard rules (a blocked action and thresholds equal to the
+ * defaults) and publishes it, as a Builder would from the Guard and Publish tabs.
+ */
+export async function publishWithOwnRules(page: Page, agent: RefundAgent): Promise<void> {
+  const draftPath = `/orgs/${agent.orgId}/agents/${agent.agentId}/draft`
+  const draft = await callApi<AgentDraft>(page, 'GET', draftPath)
+  const definition = draft.definition as { guard: Record<string, unknown> }
+  await callApi(page, 'PUT', draftPath, {
+    baseRevision: draft.revision,
+    definition: {
+      ...draft.definition,
+      guard: {
+        ...definition.guard,
+        thresholds: { autoBp: 9000, reviewBp: 6000 },
+        blockedActions: [{ id: 'no-delete', match: { action: 'records.delete' } }],
+      },
+    },
+  })
+  const current = await callApi<AgentDraft>(page, 'GET', draftPath)
+  await callApi(page, 'POST', `/orgs/${agent.orgId}/agents/${agent.agentId}/publish`, {
+    baseRevision: current.revision,
+  })
 }
 
 interface RunDto {
@@ -124,7 +151,11 @@ export async function cleanUp(browser: Browser, agent: RefundAgent | undefined):
   try {
     const page = await context.newPage()
     await page.goto(`/${ORGANIZATION.slug}/chat`)
-    if (agent) await callApi(page, 'DELETE', `/orgs/${agent.orgId}/agents/${agent.agentId}`)
+    if (agent) {
+      // a published agent is deleted with its name and a reason; a draft ignores both
+      const confirm = `confirmName=${encodeURIComponent(agent.name)}&reason=cleanup`
+      await callApi(page, 'DELETE', `/orgs/${agent.orgId}/agents/${agent.agentId}?${confirm}`)
+    }
     await removeStubModel(page)
   } finally {
     await context.close()

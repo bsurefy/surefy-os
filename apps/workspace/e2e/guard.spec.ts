@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { expect, test } from '@playwright/test'
 
-import { arrangeRefundAgent, cleanUp, readRun, refundsSoFar, startTestRun } from './support/agents'
+import {
+  arrangeRefundAgent,
+  cleanUp,
+  publishWithOwnRules,
+  readRun,
+  refundsSoFar,
+  startTestRun,
+} from './support/agents'
+import { callApi } from './support/api'
 import { ORGANIZATION } from './support/env'
 import { connectStubModel } from './support/models'
 import { startWorker, stopWorker } from './support/worker'
@@ -13,6 +21,7 @@ import type { ChildProcess } from 'node:child_process'
 const stamp = String(Date.now())
 const GUARD = `/${ORGANIZATION.slug}/guard`
 const RULE = `No refunds ${stamp}`
+const AGENT_NAME = `Guarded refunds ${stamp}`
 
 let worker: ChildProcess
 let agent: RefundAgent
@@ -50,7 +59,7 @@ test.describe('Guard › navigation and guardrails', () => {
   test('arranges an agent that refunds orders', async ({ page }) => {
     await page.goto(`/${ORGANIZATION.slug}/chat`)
     const modelKey = await connectStubModel(page)
-    agent = await arrangeRefundAgent(page, { name: `Guarded refunds ${stamp}`, modelKey })
+    agent = await arrangeRefundAgent(page, { name: AGENT_NAME, modelKey })
     expect(agent.agentId).toBeTruthy()
   })
 
@@ -102,6 +111,90 @@ test.describe('Guard › navigation and guardrails', () => {
     const confirm = page.getByRole('alertdialog', { name: `Delete “${RULE}”?` })
     await confirm.getByRole('button', { name: 'Delete rule' }).click()
     await expect(rowOf(page, RULE)).toHaveCount(0)
+  })
+})
+
+test.describe('Guard › what agents and runs tell Guard', () => {
+  test('publishes the agent with rules of its own', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION.slug}/chat`)
+    await publishWithOwnRules(page, agent)
+    const published = await callApi<{ status: string; liveVersion: number | null }>(
+      page,
+      'GET',
+      `/orgs/${agent.orgId}/agents/${agent.agentId}`,
+    )
+    expect(published).toMatchObject({ status: 'active', liveVersion: 1 })
+  })
+
+  test('lists the agent’s rules read-only, and counts the agents an organization rule reaches', async ({
+    page,
+  }) => {
+    await page.goto(`${GUARD}/guardrails`)
+    const own = rowOf(page, `${AGENT_NAME}: Blocked records.delete`)
+    await expect(own).toContainText('Blocked action')
+    await expect(own).toContainText('Agent')
+    await expect(rowOf(page, `${AGENT_NAME}: confidence thresholds`)).toContainText('Agent')
+    // the approval rule of the organization reaches the one published agent
+    await expect(rowOf(page, agent.ruleName)).toContainText('1 agent or flow')
+
+    await own
+      .getByRole('button', { name: new RegExp(AGENT_NAME) })
+      .first()
+      .click()
+    const sheet = page.getByRole('dialog', { name: new RegExp(AGENT_NAME) })
+    await expect(sheet.getByText('This rule belongs to an agent')).toBeVisible()
+    await expect(sheet.getByRole('link', { name: "Open the agent's Guard tab" })).toBeVisible()
+  })
+
+  test('says which agents turning a rule off affects', async ({ page }) => {
+    await page.goto(`${GUARD}/guardrails`)
+    await rowOf(page, agent.ruleName).getByRole('switch').click()
+    const dialog = page.getByRole('alertdialog', { name: `Turn off “${agent.ruleName}”?` })
+    await expect(dialog.getByText('Affects 1 agent')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+  })
+
+  test('previews the defaults against the actions the runs so far were checked on', async ({
+    page,
+  }) => {
+    await page.goto(`${GUARD}/defaults`)
+    await expect(page.getByText(/of the last \d+ actions would have needed a person/)).toBeVisible()
+    await expect(page.getByText('There are no recent actions to preview yet.')).toBeHidden()
+  })
+
+  test('flags the agent when the defaults are raised above its own thresholds', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION.slug}/chat`)
+    const defaults = {
+      quickApproveMaxAmountMicros: 0,
+      quickApproveMaxRisk: 'low',
+      stepUpAmountMicros: null,
+      targetDecisionMinutes: 60,
+    }
+    await callApi(page, 'PUT', `/orgs/${agent.orgId}/guard/defaults`, {
+      ...defaults,
+      autoThresholdBp: 9500,
+      reviewThresholdBp: 7000,
+    })
+    try {
+      await page.goto(`${GUARD}/overview`)
+      await expect(
+        page.getByText('1 agent uses thresholds looser than your defaults'),
+      ).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Open agent' })).toHaveAttribute(
+        'href',
+        new RegExp(`/agents/${agent.agentId}`),
+      )
+    } finally {
+      await callApi(page, 'PUT', `/orgs/${agent.orgId}/guard/defaults`, {
+        ...defaults,
+        autoThresholdBp: 9000,
+        reviewThresholdBp: 6000,
+        reason: 'Back to the defaults the other specs expect',
+      })
+    }
   })
 })
 
