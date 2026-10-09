@@ -186,3 +186,24 @@ export interface CreatedApproval {
   /** False when `dedupeKey` matched an approval created before. */
   created: boolean
 }
+
+/** How an approval of an AI action ended, as the run that waits for it needs to know. */
+export interface ApprovalResolution {
+  id: string
+  status: ApprovalRow['status']
+  /** `approved`, `approved_with_edits` and `timed_out_continued` run the action; the rest do not. */
+  outcome:
+    | 'pending'
+    | 'approved'
+    | 'approved_with_edits'
+    | 'rejected'
+    | 'timed_out_rejected'
+    | 'timed_out_continued'
+  /** The fields an approver changed ("Edit and approve"), with the original action's others. */
+  editedInput: Readonly<Record<string, unknown>> | null
+  /** The guardrail or agent rule the approval came from. */
+  ruleRef: string | null
+  /** The run that waits for it; null for the request kinds. */
+  agentRunId: string | null
+  decidedAt: Date | null
+}

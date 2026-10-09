@@ -20,6 +20,7 @@ const workers = registerJobs(container, [
   ...container.modules.connections.jobs,
   ...container.modules.approvals.jobs,
   ...container.modules.guard.jobs,
+  ...container.modules.agentRuns.jobs,
   ...container.modules.chats.jobs,
   ...container.modules.usage.jobs,
   ...container.modules.knowledge.jobs,

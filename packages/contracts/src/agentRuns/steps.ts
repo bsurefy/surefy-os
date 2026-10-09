@@ -71,6 +71,12 @@ const passageSchema = z.object({
 
 const dataBaseShape = { version: z.literal(1), truncated: z.boolean().default(false) } as const
 
+/**
+ * The model's id of the tool call a decision, Guard, approval or tool step belongs to. The
+ * executor rebuilds a turn from these: a call is complete when its `tool` step exists.
+ */
+const callIdShape = { callId: z.string().max(200).optional() } as const
+
 /** One variant per step type; `input` and `output` of a step carry the variant of its `type`. */
 export const agentRunStepDataSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -101,6 +107,7 @@ export const agentRunStepDataSchema = z.discriminatedUnion('kind', [
   z.object({
     ...dataBaseShape,
     kind: z.literal('tool'),
+    ...callIdShape,
     toolId: z.uuid().optional(),
     arguments: z.record(z.string(), z.unknown()).optional(),
     result: z.unknown().optional(),
@@ -109,6 +116,7 @@ export const agentRunStepDataSchema = z.discriminatedUnion('kind', [
   z.object({
     ...dataBaseShape,
     kind: z.literal('decision'),
+    ...callIdShape,
     question: z.string().max(2000).optional(),
     options: z.array(z.string()).max(20).optional(),
     value: z.union([z.string(), z.number(), z.boolean()]).optional(),
@@ -117,6 +125,7 @@ export const agentRunStepDataSchema = z.discriminatedUnion('kind', [
   z.object({
     ...dataBaseShape,
     kind: z.literal('approval'),
+    ...callIdShape,
     ruleRef: z.string().max(300).nullable().optional(),
     outcome: z
       .enum([
@@ -132,6 +141,7 @@ export const agentRunStepDataSchema = z.discriminatedUnion('kind', [
   z.object({
     ...dataBaseShape,
     kind: z.literal('guard'),
+    ...callIdShape,
     action: z.string().max(200).optional(),
     result: guardCheckResultSchema.optional(),
   }),

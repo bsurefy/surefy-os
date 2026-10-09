@@ -33,8 +33,20 @@ const guardRulesChangedPayload = z.object({ version: z.literal(1) })
  */
 const agentPublishedPayload = z.object({ version: z.literal(1), id: z.uuid() })
 
+/**
+ * An agent run ended (`agentRuns`): succeeded, failed, canceled or timed out. Ids and status only.
+ * Channel adapters deliver the answer from it; the chat message is completed in the same
+ * transaction that ends the run.
+ */
+const agentRunFinishedPayload = z.object({
+  version: z.literal(1),
+  id: z.uuid(),
+  status: z.enum(['succeeded', 'failed', 'canceled', 'timed_out']),
+})
+
 export const OUTBOX_PAYLOADS = {
   'agent.published': agentPublishedPayload,
+  'agent_run.finished': agentRunFinishedPayload,
   'approval.requested': approvalPayload,
   'approval.decided': approvalPayload,
   'approval.expired': approvalPayload,

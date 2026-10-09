@@ -15,6 +15,11 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import {
+  createAgentRunsAgents,
+  createAgentRunsModule,
+  createAgentRunsPeople,
+} from './modules/agentRuns/index.js'
 import { createAgentsModels, createAgentsModule } from './modules/agents/index.js'
 import { createAgentToolsModule } from './modules/agentTools/index.js'
 import { createApiKeysModule } from './modules/apiKeys/index.js'
@@ -334,6 +339,22 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     audit: audit.service,
   })
+  // the executor of agent runs: the worker runs its jobs, the starters call its service
+  const agentRuns = createAgentRunsModule({
+    db,
+    cache,
+    queues,
+    logger,
+    agents: createAgentRunsAgents(agents.repository),
+    people: createAgentRunsPeople(access.service),
+    guard: guard.engine,
+    gateway: modelGateway.service,
+    tools: agentTools.service,
+    knowledge: knowledge.retrieval,
+    approvals: approvals.service,
+    audit: audit.service,
+    outbox: () => outbox.service,
+  })
   const chats = createChatsModule({
     db,
     queues,
@@ -371,6 +392,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       ...connections.outboxHandlers,
       ...approvals.outboxHandlers,
       ...guard.outboxHandlers,
+      ...agentRuns.outboxHandlers,
     ],
     hooks,
   })
@@ -387,6 +409,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     connections,
     agentTools,
     agents,
+    agentRuns,
     templates,
     approvals,
     guard,

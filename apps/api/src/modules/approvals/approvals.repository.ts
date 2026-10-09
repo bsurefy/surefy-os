@@ -233,6 +233,14 @@ export class ApprovalsRepository {
     return tx.query.approvals.findFirst({ where: and(eq(a.organizationId, orgId), eq(a.id, id)) })
   }
 
+  /** Every approval a run created, for the run engine's resume. */
+  async findByRun(tx: DbExecutor, orgId: string, runId: string): Promise<ApprovalRow[]> {
+    return tx
+      .select()
+      .from(a)
+      .where(and(eq(a.organizationId, orgId), eq(a.agentRunId, runId)))
+  }
+
   async findByIds(tx: DbExecutor, orgId: string, ids: readonly string[]): Promise<ApprovalRow[]> {
     if (ids.length === 0) return []
     return tx

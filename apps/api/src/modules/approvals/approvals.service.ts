@@ -35,10 +35,12 @@ import {
   ApprovalNotQuickApprovableError,
 } from './approvals.errors.js'
 import { approvalSort, isQuickApprovable } from './approvals.repository.js'
+import { resolutionOf } from './approvals.resolution.js'
 
 import type { ApprovalPresenter } from './approvals.presenter.js'
 import type { ApprovalRow, ApprovalsRepository, CancelScope } from './approvals.repository.js'
 import type {
+  ApprovalResolution,
   ApprovalSubjects,
   ApprovalsAccess,
   ApprovalsContext,
@@ -336,6 +338,29 @@ export class ApprovalsService {
       ...(ctx.requestId === undefined ? {} : { requestId: ctx.requestId }),
     })
     return { id: row.id, created: true }
+  }
+
+  /**
+   * What became of the approvals a run waits for, by id. A missing id is not in the map. The run
+   * engine reads them when it resumes and turns each into its tool call's outcome.
+   */
+  async resolutionsOf(
+    tx: DbExecutor,
+    orgId: string,
+    ids: readonly string[],
+  ): Promise<ReadonlyMap<string, ApprovalResolution>> {
+    const rows = await this.deps.repository.findByIds(tx, orgId, ids)
+    return new Map(rows.map((row) => [row.id, resolutionOf(row)]))
+  }
+
+  /** The approvals of one run with how each ended: the run engine resumes when none is pending. */
+  async resolutionsForRun(
+    tx: DbExecutor,
+    orgId: string,
+    runId: string,
+  ): Promise<readonly ApprovalResolution[]> {
+    const rows = await this.deps.repository.findByRun(tx, orgId, runId)
+    return rows.map(resolutionOf)
   }
 
   /**

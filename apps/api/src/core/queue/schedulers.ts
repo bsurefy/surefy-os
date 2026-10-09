@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { QUEUES, type QueueName } from '@/constants/queues.js'
+import { AGENT_RUN_JOBS, SWEEP_EVERY_MS } from '@/modules/agentRuns/agentRuns.constants.js'
 import { API_KEYS_JOBS, LAST_USED_FLUSH_EVERY_MS } from '@/modules/apiKeys/apiKeys.constants.js'
 import { APPROVALS_JOBS, TIMEOUTS_EVERY_MS } from '@/modules/approvals/approvals.constants.js'
 import {
@@ -148,6 +149,12 @@ export const SYSTEM_SCHEDULERS: readonly SchedulerDefinition[] = [
     queue: QUEUES.MAINTENANCE,
     repeat: { every: TIMEOUTS_EVERY_MS },
     job: { name: APPROVALS_JOBS.TIMEOUTS },
+  },
+  {
+    id: 'agent-run-sweeper',
+    queue: QUEUES.AGENT_RUNS,
+    repeat: { every: SWEEP_EVERY_MS },
+    job: { name: AGENT_RUN_JOBS.SWEEP },
   },
   {
     id: 'guard-stats-hourly',

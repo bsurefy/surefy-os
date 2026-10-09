@@ -12,3 +12,5 @@ export type {
   AgentsModels,
 } from './agents.types.js'
 export type { AgentsService } from './agents.service.js'
+export { viewerOf } from './agents.access.js'
+export type { AgentsRepository } from './agents.repository.js'

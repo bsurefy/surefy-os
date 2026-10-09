@@ -310,6 +310,25 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     publishAgentResultDtoSchema,
   )
 
+  // A test run of A's agent with its first step, as the editor's Test tab starts one
+  await setup.container.modules.agentRuns.service.start(
+    {
+      orgId: a.id,
+      userId: adam.id,
+      teamIds: [],
+      access: {
+        permissions: ['agents:manage-all'],
+        limits: { maxRunsPerMonth: null },
+        reasons: [],
+      },
+    } as never,
+    {
+      agentId: agent.id,
+      trigger: 'test',
+      input: { messages: [{ role: 'user', text: 'Where is order 1182?' }] },
+    },
+  )
+
   // A pending approval of A, as Guard would create it
   const approval = await setup.db.tenant(a.id, (tx) =>
     setup.container.modules.approvals.service.create(
