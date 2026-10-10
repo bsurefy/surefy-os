@@ -15,6 +15,12 @@ import {
 
 const isCi = process.env.CI !== undefined
 const SERVER_START_MS = 180_000
+/**
+ * The specs that add agents, API keys and connections run in their own project, after the others
+ * (one worker runs the projects in the order listed): a key can only be revoked and stays listed, so
+ * the API keys and Connections specs, which start from an empty organization, must run first.
+ */
+const AGENT_SPECS = ['**/agents.spec.ts', '**/approvals.spec.ts', '**/guard.spec.ts']
 
 /**
  * End-to-end specs against the real API and a fresh database (testing.md §1). `pnpm test:e2e`
@@ -43,6 +49,13 @@ export default defineConfig({
     { name: 'setup', testMatch: '**/*.setup.ts' },
     {
       name: 'chromium',
+      testIgnore: AGENT_SPECS,
+      use: { ...devices['Desktop Chrome'], storageState: OWNER_STATE },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'agents',
+      testMatch: AGENT_SPECS,
       use: { ...devices['Desktop Chrome'], storageState: OWNER_STATE },
       dependencies: ['setup'],
     },

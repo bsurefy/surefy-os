@@ -24,8 +24,12 @@ export async function connectStubModel(page: Page): Promise<string> {
   const orgId = await currentOrgId(page)
   const vault = `/orgs/${orgId}/vault`
   const models = () => callApi<VaultModel[]>(page, 'GET', `${vault}/models?limit=100`)
+  // the local server's model only: the cloud provider's copy (`connectStubCloudModel`) stays listed
+  // after its key is revoked, and answering with it would leave Chat without a usable model
+  const stub = (entry: VaultModel) =>
+    entry.modelKey.endsWith(STUB_MODEL_ID) && entry.modelKey.startsWith('local/')
 
-  let model = (await models()).find((entry) => entry.modelKey.endsWith(STUB_MODEL_ID))
+  let model = (await models()).find(stub)
   if (!model) {
     await callApi(page, 'POST', `${vault}/local-servers`, {
       scope: 'organization',
@@ -33,7 +37,7 @@ export async function connectStubModel(page: Page): Promise<string> {
       providerKey: 'openai_compatible',
       baseUrl: `${modelServerUrl}/v1`,
     })
-    model = (await models()).find((entry) => entry.modelKey.endsWith(STUB_MODEL_ID))
+    model = (await models()).find(stub)
   }
   if (!model) throw new Error(`The stub server's model ${STUB_MODEL_ID} was not detected`)
   if (!model.isEnabled)
