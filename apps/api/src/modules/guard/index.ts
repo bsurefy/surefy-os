@@ -7,7 +7,14 @@ export {
 } from './guard.module.js'
 export { GUARD_JOBS, STATS_HOURLY_DAYS, STATS_NIGHTLY_DAYS } from './guard.constants.js'
 export { agentRuleRef, type GuardCheckContext } from './guard.engine.js'
-export type { PiiFilterFinding, PiiFilterInput, PiiFilterResult } from './guard.pii.js'
+export type {
+  PiiFilter,
+  PiiFilterFinding,
+  PiiFilterInput,
+  PiiFilterResult,
+  PiiRequestInput,
+  PiiRequestResult,
+} from './guard.pii.js'
 export type {
   ActionCounts,
   GuardAction,

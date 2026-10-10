@@ -5,6 +5,7 @@ import type { AgentRunMessage } from '@surefy/contracts'
 import { PASSAGE_PROMPT_CHARS, RETRIEVAL_PASSAGES, TEXT_FLUSH_MS } from './agentRuns.constants.js'
 import { RunFailure } from './agentRuns.errors.js'
 import { failureCodeOf } from './agentRuns.failure.js'
+import { dataLocationOf, piiScopeOf } from './agentRuns.pii.js'
 import { buildMessages, systemPrompt, toolSet } from './agentRuns.prompt.js'
 
 import type { StepRecorder } from './agentRuns.recorder.js'
@@ -14,6 +15,7 @@ import type {
   AgentRunsEvents,
   AgentRunsGateway,
   AgentRunsKnowledge,
+  AgentRunsPii,
   AgentRunsTools,
 } from './agentRuns.types.js'
 import type { Logger } from '@/core/logger/index.js'
@@ -23,6 +25,7 @@ export interface TurnsDeps {
   recorder: StepRecorder
   events: AgentRunsEvents
   gateway: AgentRunsGateway
+  pii: AgentRunsPii
   knowledge: AgentRunsKnowledge
   tools: AgentRunsTools
   logger: Logger
@@ -152,7 +155,9 @@ export class ModelTurns {
    * One model call through the gateway with the conversation rebuilt from the steps. The text and
    * reasoning stream to the event stream as they arrive; the `model` step holds the final text
    * and the tool calls the model asked for. A model that cannot answer ends the run with the
-   * gateway's code.
+   * gateway's code. Before a cloud model reads the instructions, the sources and the conversation,
+   * the personal-data filter masks them or, for a blocked type, ends the run with
+   * `GUARD_PII_BLOCKED`; the step keeps where the data went, never a copy of the masked text.
    */
   async modelTurn(session: RunSession, state: RunState): Promise<void> {
     const seq = state.nextSeq
@@ -171,10 +176,15 @@ export class ModelTurns {
     let finishReason: string | undefined
     let model: Awaited<ReturnType<AgentRunsGateway['streamText']>> | undefined
     try {
-      model = await this.deps.gateway.streamText(session.modelContext(seq), {
-        modelKey: session.definition.model.modelKey,
-        instructions: systemPrompt(session.definition, passages),
+      const filtered = await this.deps.pii.applyToRequest({
+        ...piiScopeOf(session),
+        system: systemPrompt(session.definition, passages),
         messages,
+      })
+      model = await this.deps.gateway.streamText(session.modelContext(seq, filtered.masked), {
+        modelKey: session.definition.model.modelKey,
+        instructions: filtered.system ?? '',
+        messages: filtered.messages,
         tools: toolSet(tools),
         temperature: session.definition.model.creativity,
         signal: session.signal,
@@ -288,6 +298,3 @@ export class ModelTurns {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const dataLocationOf = (source: string): 'local' | 'provider' | 'platform' =>
-  source === 'local' || source === 'platform' ? source : 'provider'

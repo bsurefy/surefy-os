@@ -4,9 +4,11 @@ import type { BuiltInPiiType, PiiAction, PiiType } from '@surefy/contracts'
 
 import { PII_BATCH_MAX_TEXTS } from './guard.constants.js'
 import { GuardPiiBlockedError } from './guard.errors.js'
+import { textsOfMessages, withMessageTexts } from './guard.piiMessages.js'
 
 import type { StoredPiiRule, GuardRuleSets } from './guard.ruleSet.js'
 import type { GuardPiiService } from './guard.types.js'
+import type { ModelMessage } from 'ai'
 
 /** What one personal-data type does for a given team and agent. */
 export interface ResolvedPiiRule {
@@ -180,6 +182,17 @@ export interface PiiFilterResult {
   findings: PiiFilterFinding[]
 }
 
+/** A model request: the system text and the conversation, filtered together. */
+export type PiiRequestInput = Omit<PiiFilterInput, 'texts'> & {
+  system?: string
+  messages?: readonly ModelMessage[]
+}
+
+export interface PiiRequestResult extends Omit<PiiFilterResult, 'texts'> {
+  system: string | undefined
+  messages: ModelMessage[]
+}
+
 export interface PiiFilterDeps {
   ruleSets: GuardRuleSets
   ml: GuardPiiService
@@ -235,5 +248,22 @@ export class PiiFilter {
       throw new GuardPiiBlockedError(blocked.map((finding) => finding.piiType))
     const texts = reassemble(input.texts, masked)
     return { texts, masked: findings.some((finding) => finding.action === 'mask'), findings }
+  }
+
+  /**
+   * `apply` for a model request: the system text and every text of the messages in one pass, so
+   * a block anywhere stops the whole request. What comes back has the same shape as what went in.
+   */
+  async applyToRequest(input: PiiRequestInput): Promise<PiiRequestResult> {
+    const { system, messages = [], ...rest } = input
+    const texts = [...(system === undefined ? [] : [system]), ...textsOfMessages(messages)]
+    const result = await this.apply({ ...rest, texts })
+    const [first, ...others] = result.texts
+    return {
+      system: system === undefined ? undefined : first,
+      messages: withMessageTexts(messages, system === undefined ? result.texts : others),
+      masked: result.masked,
+      findings: result.findings,
+    }
   }
 }

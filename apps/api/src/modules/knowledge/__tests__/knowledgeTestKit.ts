@@ -83,8 +83,14 @@ export function createFakeMl(
         return Promise.reject(error instanceof Error ? error : new Error('ml failed'))
       }
     },
-    detectPii: () => Promise.reject(new Error('not used by knowledge')),
-    maskPii: () => Promise.reject(new Error('not used by knowledge')),
+    // a question asked in chat passes the personal-data filter, which finds nothing here
+    detectPii: (input) =>
+      Promise.resolve({ language: 'en', results: input.texts.map(() => ({ findings: [] })) }),
+    maskPii: (input) =>
+      Promise.resolve({
+        language: 'en',
+        results: input.texts.map((text) => ({ text, findings: [] })),
+      }),
   }
 }
 

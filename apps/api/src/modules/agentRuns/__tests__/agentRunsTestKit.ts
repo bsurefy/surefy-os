@@ -7,6 +7,7 @@ import { createEmptyAgentDefinition } from '@surefy/contracts'
 import type { AgentDefinition, AgentTool } from '@surefy/contracts'
 
 import { setupTwoOrgs, type TwoOrgSetup } from '../../../../test/helpers/orgSetup.js'
+import { createFakePii, type FakePii } from '../../guard/__tests__/guardTestKit.js'
 import { createAgentRunsAgents, createAgentRunsPeople } from '../agentRuns.adapters.js'
 import { createAgentRunsModule } from '../agentRuns.module.js'
 
@@ -226,6 +227,8 @@ export class CapturedEvents implements AgentRunsEvents {
 }
 
 export interface RunsSetup extends TwoOrgSetup {
+  /** The ML service behind the personal-data filter. */
+  pii: FakePii
   gateway: FakeGateway
   tools: FakeTools
   knowledge: FakeKnowledge
@@ -260,7 +263,8 @@ const fakeQueues = (sink: RunsSetup['enqueued']): Queues =>
 
 /** The agent run module over the real database, Guard and approvals, with a scripted model, tools and knowledge. */
 export async function setupRuns(options: TestAppOptions = {}): Promise<RunsSetup> {
-  const setup = await setupTwoOrgs(options)
+  const pii = createFakePii()
+  const setup = await setupTwoOrgs({ ml: pii, ...options })
   const { container } = setup
   const gateway = new FakeGateway()
   const tools = new FakeTools()
@@ -277,6 +281,7 @@ export async function setupRuns(options: TestAppOptions = {}): Promise<RunsSetup
     users: { findUserRefs: () => Promise.resolve(new Map()) },
     models: { refs: () => Promise.resolve(new Map()) },
     guard: container.modules.guard.engine,
+    pii: container.modules.guard.piiFilter,
     gateway,
     tools,
     knowledge,
@@ -307,6 +312,7 @@ export async function setupRuns(options: TestAppOptions = {}): Promise<RunsSetup
     })
 
   return Object.assign(setup, {
+    pii,
     gateway,
     tools,
     knowledge,

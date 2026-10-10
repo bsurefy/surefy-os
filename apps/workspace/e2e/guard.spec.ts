@@ -4,14 +4,17 @@ import { expect, test } from '@playwright/test'
 import {
   arrangeRefundAgent,
   cleanUp,
+  forgetModelRequests,
   publishWithOwnRules,
   readRun,
+  receivedByModel,
   refundsSoFar,
   startTestRun,
+  useModel,
 } from './support/agents'
 import { callApi } from './support/api'
 import { ORGANIZATION } from './support/env'
-import { connectStubModel } from './support/models'
+import { connectStubCloudModel, connectStubModel } from './support/models'
 import { startWorker, stopWorker } from './support/worker'
 
 import type { RefundAgent } from './support/agents'
@@ -195,6 +198,49 @@ test.describe('Guard › what agents and runs tell Guard', () => {
         reason: 'Back to the defaults the other specs expect',
       })
     }
+  })
+})
+
+test.describe('Guard › personal data on model calls', () => {
+  let localModelKey: string
+
+  test('a cloud model gets the request with the email address masked', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION.slug}/chat`)
+    localModelKey = agent.modelKey
+    await useModel(page, agent, await connectStubCloudModel(page))
+    await forgetModelRequests(page)
+
+    const runId = await runRefund(page, 'Please write to maria@example.com about her order')
+
+    const seen = (await receivedByModel(page)).join('\n')
+    expect(seen).toContain('Please write to [EMAIL] about her order')
+    expect(seen).not.toContain('maria@example.com')
+    expect(await readRun(page, agent, runId)).toMatchObject({ status: 'succeeded' })
+  })
+
+  test('a card number stops the run before the model is called', async ({ page }) => {
+    await page.goto(`/${ORGANIZATION.slug}/chat`)
+    await forgetModelRequests(page)
+
+    const runId = await startTestRun(page, agent, 'Refund to card 4111 1111 1111 1111')
+    await expect.poll(async () => (await readRun(page, agent, runId)).status).toBe('failed')
+
+    expect(await readRun(page, agent, runId)).toMatchObject({ errorCode: 'GUARD_PII_BLOCKED' })
+    expect(await receivedByModel(page)).toEqual([])
+  })
+
+  test('a local model keeps the data on the network, so the request goes as written', async ({
+    page,
+  }) => {
+    await page.goto(`/${ORGANIZATION.slug}/chat`)
+    await useModel(page, agent, localModelKey)
+    await forgetModelRequests(page)
+
+    await runRefund(page, 'Please write to maria@example.com about her order')
+
+    const seen = (await receivedByModel(page)).join('\n')
+    expect(seen).toContain('maria@example.com')
+    expect(seen).not.toContain('[EMAIL]')
   })
 })
 

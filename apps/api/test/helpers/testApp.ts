@@ -13,6 +13,7 @@ import { onFileTeardown } from './cleanup.js'
 import { getTestDatabase } from './testDatabase.js'
 import { createFakeAi, type FakeAi } from '../fixtures/fakeAi.js'
 import { createFakeHttp, type FakeHttp } from '../fixtures/fakeHttp.js'
+import { createDefaultFakeMl } from '../fixtures/fakeMl.js'
 
 import type { MlService } from '@/integrations/ml/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
@@ -38,7 +39,7 @@ export interface TestAppOptions {
   extensions?: readonly string[]
   /** Replaces the membership resolver of `app.authorize()`; by default real memberships decide. */
   tenants?: TenantAccessResolver
-  /** The ML service; the default talks to `ML_SERVICE_URL`, which no test serves. */
+  /** The ML service; the default finds no personal data and parses against `ML_SERVICE_URL`, which no test serves. */
   ml?: MlService
   /** Knowledge's file storage and web access (signed uploads, crawled pages). */
   knowledge?: NonNullable<ContainerOverrides['knowledge']>
@@ -81,7 +82,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     extensions: options.extensions ?? [],
     ...(options.integrations === undefined ? {} : { integrations: options.integrations }),
     ...(options.tenants === undefined ? {} : { tenants: options.tenants }),
-    ...(options.ml === undefined ? {} : { ml: options.ml }),
+    ml: options.ml ?? createDefaultFakeMl(config),
     ...(options.knowledge === undefined ? {} : { knowledge: options.knowledge }),
   })
   const container: Container = {

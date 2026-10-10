@@ -38,6 +38,8 @@ export interface ModelCallMeter {
   /** Chat message, run, document or training job id. */
   sourceRefId?: string | null
   subject?: { type: 'agent' | 'flow'; id: string } | null
+  /** The personal-data filter changed the request before it left (`usage_events.pii_masked`). */
+  piiMasked?: boolean
 }
 
 /** The model that serves a call, ready for the AI SDK. */

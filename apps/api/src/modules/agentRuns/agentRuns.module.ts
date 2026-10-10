@@ -30,6 +30,7 @@ import type {
   AgentRunsModels,
   AgentRunsOutbox,
   AgentRunsPeople,
+  AgentRunsPii,
   AgentRunsTools,
   AgentRunsUsers,
 } from './agentRuns.types.js'
@@ -51,6 +52,8 @@ export interface AgentRunsModuleDeps {
   users: AgentRunsUsers
   models: AgentRunsModels
   guard: AgentRunsGuard
+  /** The personal-data filter of model calls; `guard.piiFilter`. */
+  pii: AgentRunsPii
   gateway: AgentRunsGateway
   tools: AgentRunsTools
   knowledge: AgentRunsKnowledge
@@ -113,6 +116,7 @@ export function createAgentRunsModule(deps: AgentRunsModuleDeps) {
       recorder,
       events,
       gateway: deps.gateway,
+      pii: deps.pii,
       knowledge: deps.knowledge,
       tools: deps.tools,
       logger: deps.logger,
@@ -123,6 +127,7 @@ export function createAgentRunsModule(deps: AgentRunsModuleDeps) {
       recorder,
       events,
       gateway: deps.gateway,
+      pii: deps.pii,
       guard: deps.guard,
       tools: deps.tools,
       approvals: deps.approvals,

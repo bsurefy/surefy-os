@@ -10,6 +10,7 @@ import {
 } from './agentRuns.constants.js'
 import { AgentRunSupersededError } from './agentRuns.errors.js'
 import { failureCodeOf } from './agentRuns.failure.js'
+import { dataLocationOf, piiScopeOf } from './agentRuns.pii.js'
 import { argumentsOf } from './agentRuns.state.js'
 
 import type { StepRecorder } from './agentRuns.recorder.js'
@@ -21,6 +22,7 @@ import type {
   AgentRunsEvents,
   AgentRunsGateway,
   AgentRunsGuard,
+  AgentRunsPii,
   AgentRunsTools,
 } from './agentRuns.types.js'
 import type { Database } from '@/core/database/index.js'
@@ -34,6 +36,7 @@ export interface CallMovesDeps {
   recorder: StepRecorder
   events: AgentRunsEvents
   gateway: AgentRunsGateway
+  pii: AgentRunsPii
   guard: AgentRunsGuard
   tools: AgentRunsTools
   approvals: AgentRunsApprovals
@@ -97,7 +100,11 @@ export class CallMoves {
 
   // ---- Decision -----------------------------------------------------------------------------
 
-  /** How sure the agent is that this action is right: asked of the model, recorded as a `decision` step. */
+  /**
+   * How sure the agent is that this action is right: asked of the model, recorded as a `decision`
+   * step. The action's arguments and the user's request go through the personal-data filter like
+   * any other text a cloud model reads; a blocked or unchecked request is a failed decision.
+   */
   async decide(
     session: RunSession,
     state: RunState,
@@ -117,10 +124,12 @@ export class CallMoves {
       request: lastUser?.text ?? '',
     }).slice(0, DECISION_INPUT_MAX)
     try {
-      const answer = await this.deps.gateway.decide(session.modelContext(seq), {
+      const scope = piiScopeOf(session)
+      const filtered = await this.deps.pii.apply({ ...scope, texts: [subject] })
+      const answer = await this.deps.gateway.decide(session.modelContext(seq, filtered.masked), {
         modelKey: session.definition.model.modelKey,
         question,
-        input: subject,
+        input: filtered.texts[0] ?? subject,
         signal: session.signal,
       })
       // a confident "no" is a low confidence that the action is right
@@ -143,6 +152,7 @@ export class CallMoves {
         costMicros: answer.call.usage.costMicros,
         currency: answer.call.usage.currency,
         confidence,
+        dataLocation: dataLocationOf(answer.call.model.source),
         startedAt,
         finishedAt: this.now(),
       })

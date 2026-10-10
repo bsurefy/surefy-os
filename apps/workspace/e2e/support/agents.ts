@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto'
 
 import { callApi, currentOrgId } from './api'
-import { ORGANIZATION, oauthServerUrl, OWNER_STATE } from './env'
+import { ORGANIZATION, modelServerUrl, oauthServerUrl, OWNER_STATE } from './env'
 import { removeStubModel } from './models'
 
 import type { Browser, Page } from '@playwright/test'
@@ -23,6 +23,8 @@ export interface RefundAgent {
   agentId: string
   /** Deleting a published agent asks for its name. */
   name: string
+  /** The model the agent was arranged with. */
+  modelKey: string
   ruleId: string
   /** The approval rule's name, which an approval shows as the rule that asked. */
   ruleName: string
@@ -88,7 +90,14 @@ export async function arrangeRefundAgent(
       risk: 'medium',
     },
   })
-  return { orgId, agentId: agent.id, name: options.name, ruleId: rule.id, ruleName }
+  return {
+    orgId,
+    agentId: agent.id,
+    name: options.name,
+    modelKey: options.modelKey,
+    ruleId: rule.id,
+    ruleName,
+  }
 }
 
 /**
@@ -119,6 +128,18 @@ export async function publishWithOwnRules(page: Page, agent: RefundAgent): Promi
 interface RunDto {
   id: string
   status: string
+  errorCode: string | null
+}
+
+/** Points the agent's draft at another model, as the editor's model picker does. */
+export async function useModel(page: Page, agent: RefundAgent, modelKey: string): Promise<void> {
+  const draftPath = `/orgs/${agent.orgId}/agents/${agent.agentId}/draft`
+  const draft = await callApi<AgentDraft>(page, 'GET', draftPath)
+  const { model } = draft.definition as { model: Record<string, unknown> }
+  await callApi(page, 'PUT', draftPath, {
+    baseRevision: draft.revision,
+    definition: { ...draft.definition, model: { ...model, modelKey } },
+  })
 }
 
 /** Starts a test run of the agent's draft and returns the queued run's id. */
@@ -160,4 +181,15 @@ export async function cleanUp(browser: Browser, agent: RefundAgent | undefined):
   } finally {
     await context.close()
   }
+}
+
+/** The text of every request the stub model server was sent so far (what the "provider" saw). */
+export async function receivedByModel(page: Page): Promise<string[]> {
+  const response = await page.request.get(`${modelServerUrl}/control/requests`)
+  return (await response.json()) as string[]
+}
+
+/** Forgets the requests the stub model server was sent, so a spec reads only its own. */
+export async function forgetModelRequests(page: Page): Promise<void> {
+  await page.request.delete(`${modelServerUrl}/control/requests`)
 }

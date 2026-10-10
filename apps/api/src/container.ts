@@ -356,6 +356,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
     models: agentModels,
     guard: guard.engine,
+    pii: guard.piiFilter,
     gateway: modelGateway.service,
     tools: agentTools.service,
     knowledge: knowledge.retrieval,
@@ -377,6 +378,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     storage: integrations.storage,
     encryptionKey: config.crypto.encryptionKey,
     gateway: modelGateway.service,
+    pii: guard.piiFilter,
     models: modelGrants.modelsRepository,
     retrieval: knowledge.chatRetrieval,
     parser: createChatDocumentParser({

@@ -308,6 +308,7 @@ describe('attachments', () => {
         storage: container.integrations.storage,
         encryptionKey: setup.config.crypto.encryptionKey,
         gateway: container.modules.modelGateway.service,
+        pii: container.modules.guard.piiFilter,
         models: container.modules.vault.grants.modelsRepository,
         parser: { extract },
       }).attachments

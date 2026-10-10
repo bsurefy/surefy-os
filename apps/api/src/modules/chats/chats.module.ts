@@ -19,6 +19,7 @@ import {
   noChatRetrieval,
   type ChatDocumentParser,
   type ChatGateway,
+  type ChatPii,
   type ChatRetrieval,
 } from './chats.types.js'
 import { deriveUploadKey } from './chats.utils.js'
@@ -38,6 +39,8 @@ export interface ChatsModuleDeps {
   /** `ENCRYPTION_KEY`: the signing key of upload URLs is derived from it. */
   encryptionKey: string
   gateway: ChatGateway
+  /** The personal-data filter of model calls; `guard.piiFilter`. */
+  pii: ChatPii
   models: ModelGrants['modelsRepository']
   parser: ChatDocumentParser
   /** Knowledge retrieval for answers with sources; chats answer without sources until it exists. */
@@ -65,6 +68,7 @@ export function createChatsModule(deps: ChatsModuleDeps) {
     attachments: attachmentRows,
     models,
     gateway: deps.gateway,
+    pii: deps.pii,
     retrieval,
     storage: deps.storage,
     logger: deps.logger,

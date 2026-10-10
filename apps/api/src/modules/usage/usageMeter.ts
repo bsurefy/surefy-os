@@ -70,7 +70,7 @@ export function eventOfCall(record: ModelCallRecord): UsageEvent {
     errorCode: record.errorCode,
     routed: result.routed,
     fallbackFromModelKey: result.fallback?.from.modelKey ?? null,
-    piiMasked: false,
+    piiMasked: ctx.meter?.piiMasked ?? false,
     dataLocation: DATA_LOCATION[scope],
     dedupeKey: `${key}:${record.attempt}`,
     requestId: ctx.requestId ?? null,

@@ -65,6 +65,17 @@ describe('eventOfCall', () => {
     expect(event).toMatchObject({ billedVia: 'local', dataLocation: 'local', costMicros: 0 })
   })
 
+  it('marks a call whose request the personal-data filter changed', () => {
+    const base = record()
+    expect(eventOfCall(base).piiMasked).toBe(false)
+    const masked = eventOfCall({
+      ...base,
+      ctx: { ...base.ctx, meter: { key: 'chat:1', piiMasked: true } },
+    })
+    expect(masked.piiMasked).toBe(true)
+    expect(usageEventSchema.safeParse(masked).success).toBe(true)
+  })
+
   it('gives calls without a meter key a unique one and system calls the routing module', () => {
     const base = record()
     const event = eventOfCall({ ...base, ctx: { ...base.ctx, caller: 'system', meter: undefined } })

@@ -138,6 +138,9 @@ function openStream(response: ServerResponse, base: object) {
   return { event, chunk }
 }
 
+/** The text of every chat request the server was sent, oldest first (`GET /control/requests`). */
+const received: string[] = []
+
 async function completions(request: IncomingMessage, response: ServerResponse) {
   const body = (await readJson(request)) as {
     model: string
@@ -145,6 +148,7 @@ async function completions(request: IncomingMessage, response: ServerResponse) {
     messages: ChatMessage[]
     tools?: ToolDefinition[]
   }
+  received.push(body.messages.map((message) => textOf(message.content)).join('\n'))
   const system = textOf(body.messages.find((message) => message.role === 'system')?.content)
   const turn = system.startsWith(DECISION_SYSTEM_PREFIX)
     ? { text: DECISION_ANSWER }
@@ -275,6 +279,11 @@ const server = createServer((request, response) => {
     embeddings(request, response).catch((error: unknown) => {
       send(response, 500, { error: { message: String(error) } })
     })
+    return
+  }
+  if (path === '/control/requests') {
+    if (request.method === 'DELETE') received.length = 0
+    send(response, 200, received)
     return
   }
   if (request.method === 'GET' && path === '/v1/models') {

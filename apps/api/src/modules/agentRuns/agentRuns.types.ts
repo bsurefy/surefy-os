@@ -17,7 +17,14 @@ import type { agentRuns } from '@/database/tables/agentRuns.tables.js'
 import type { agentRunSteps } from '@/database/tables/partitioned/agentRuns.tables.js'
 import type { AgentToolsContext, ResolvedTool, ToolOutcome } from '@/modules/agentTools/index.js'
 import type { ApprovalResolution, ApprovalsContext } from '@/modules/approvals/index.js'
-import type { GuardCheckContext, GuardCheckInput } from '@/modules/guard/index.js'
+import type {
+  GuardCheckContext,
+  GuardCheckInput,
+  PiiFilterInput,
+  PiiFilterResult,
+  PiiRequestInput,
+  PiiRequestResult,
+} from '@/modules/guard/index.js'
 import type { RetrievalRequest, RetrievalResult } from '@/modules/knowledge/index.js'
 import type {
   GatewayDecisionRequest,
@@ -115,6 +122,12 @@ export interface AgentRunsModels {
 /** `guard.check` (guard module). */
 export interface AgentRunsGuard {
   check(ctx: GuardCheckContext, input: GuardCheckInput): Promise<GuardCheckResult>
+}
+
+/** The personal-data filter (guard module), applied before a request goes to a cloud model. */
+export interface AgentRunsPii {
+  applyToRequest(input: PiiRequestInput): Promise<PiiRequestResult>
+  apply(input: PiiFilterInput): Promise<PiiFilterResult>
 }
 
 /** The model gateway's streaming and decision calls. */

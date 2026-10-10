@@ -7,6 +7,7 @@ import { settingsOf } from '../guard.ruleSet.js'
 import { createFakePii } from './guardTestKit.js'
 
 import type { GuardRuleSets, StoredPiiRule } from '../guard.ruleSet.js'
+import type { ModelMessage } from 'ai'
 
 const ORG = '0198f3a0-0000-7000-8000-000000000001'
 const SALES = '0198f3a0-0000-7000-8000-0000000000b1'
@@ -196,5 +197,95 @@ describe('PiiFilter', () => {
     expect(result.texts[0]?.endsWith('[EMAIL]')).toBe(true)
     expect(ml.calls[0]?.input.texts.every((text) => text.length <= 100_000)).toBe(true)
     expect(ml.calls[0]?.input.texts.length).toBeGreaterThan(1)
+  })
+
+  it('filters a request: the system text and every text of the conversation, in one pass', async () => {
+    const { filter, ml } = filterOver([])
+    const messages: ModelMessage[] = [
+      { role: 'user', content: 'Mail ana@acme.test' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'and cc bob@acme.test' },
+          { type: 'image', image: 'data:image/png;base64,AAAA' },
+        ],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Looking up cy@acme.test' },
+          { type: 'tool-call', toolCallId: 'c1', toolName: 'lookup', input: { id: 1 } },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'lookup',
+            output: { type: 'text', value: 'Owner dee@acme.test' },
+          },
+        ],
+      },
+    ]
+    const result = await filter.applyToRequest({
+      orgId: ORG,
+      teamIds: [],
+      dataLocation: 'cloud',
+      system: 'Support for eve@acme.test',
+      messages,
+    })
+    expect(result.system).toBe('Support for [EMAIL]')
+    expect(result.masked).toBe(true)
+    expect(result.messages[0]).toEqual({ role: 'user', content: 'Mail [EMAIL]' })
+    expect(result.messages[1]).toEqual({
+      role: 'user',
+      content: [
+        { type: 'text', text: 'and cc [EMAIL]' },
+        { type: 'image', image: 'data:image/png;base64,AAAA' },
+      ],
+    })
+    expect(result.messages[2]).toEqual({
+      role: 'assistant',
+      content: [
+        { type: 'text', text: 'Looking up [EMAIL]' },
+        { type: 'tool-call', toolCallId: 'c1', toolName: 'lookup', input: { id: 1 } },
+      ],
+    })
+    expect(JSON.stringify(result.messages[3])).toContain('Owner [EMAIL]')
+    // one call for the whole request
+    expect(ml.calls).toHaveLength(1)
+  })
+
+  it('returns a request without a system text or a conversation as it came', async () => {
+    const { filter, ml } = filterOver([])
+    const base = { orgId: ORG, teamIds: [], dataLocation: 'cloud' as const }
+    expect(
+      await filter.applyToRequest({ ...base, messages: [{ role: 'user', content: 'Hi' }] }),
+    ).toEqual({
+      system: undefined,
+      messages: [{ role: 'user', content: 'Hi' }],
+      masked: false,
+      findings: [],
+    })
+    expect(await filter.applyToRequest({ ...base, system: 'Be brief' })).toMatchObject({
+      system: 'Be brief',
+      messages: [],
+    })
+    expect(ml.calls).toHaveLength(2)
+  })
+
+  it('stops a request when a blocked type is anywhere in it', async () => {
+    const { filter } = filterOver([])
+    await expect(
+      filter.applyToRequest({
+        orgId: ORG,
+        teamIds: [],
+        dataLocation: 'cloud',
+        system: 'Be brief',
+        messages: [{ role: 'user', content: 'Card 4111-1111-1111-1111' }],
+      }),
+    ).rejects.toBeInstanceOf(GuardPiiBlockedError)
   })
 })

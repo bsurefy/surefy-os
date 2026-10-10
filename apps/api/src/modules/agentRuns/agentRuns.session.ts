@@ -35,8 +35,11 @@ export interface RunSession {
   signal: AbortSignal
   /** Resolved on first use, then kept for the life of this executor. */
   resolved: ResolvedTool[] | undefined
-  /** The model call context for the step with this `seq`: the meter key makes a retried call count once. */
-  modelContext(seq: number): ModelCallContext
+  /**
+   * The model call context for the step with this `seq`: the meter key makes a retried call count
+   * once. `piiMasked` is whether the personal-data filter changed what the call sends.
+   */
+  modelContext(seq: number, piiMasked?: boolean): ModelCallContext
 }
 
 export interface SessionDeps {
@@ -107,7 +110,7 @@ export async function openSession(
       tools: { orgId, principal: { userId: principalUserId, teamIds: guardTeamIds } },
       signal,
       resolved: undefined,
-      modelContext: (seq) => ({
+      modelContext: (seq, piiMasked = false) => ({
         orgId,
         userId: starter === null ? null : run.startedByUserId,
         teamIds: starter?.teamIds ?? [],
@@ -120,6 +123,7 @@ export async function openSession(
           key: `agent_run:${run.id}:${seq}`,
           sourceRefId: run.id,
           subject: { type: 'agent', id: agent.id },
+          piiMasked,
         },
       }),
     },
