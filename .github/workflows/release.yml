@@ -1,0 +1,180 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# A `vX.Y.Z` tag on main publishes the Community images and creates the GitHub release with the
+# CHANGELOG.md section as its notes (docs: git-workflow.md, "Releases"). Images are built natively
+# for amd64 and arm64, then joined into one multi-platform tag per image.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.ref_name }}
+
+jobs:
+  verify:
+    name: Check the tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      tags: ${{ steps.version.outputs.tags }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Version from the tag
+        id: version
+        run: |
+          pattern='^v([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?$'
+          if [[ ! "$TAG" =~ $pattern ]]; then
+            echo "::error::Tag must look like v1.2.3 or v1.2.3-rc.1. Got: $TAG"
+            exit 1
+          fi
+          major="${BASH_REMATCH[1]}"; minor="${BASH_REMATCH[2]}"; suffix="${BASH_REMATCH[4]}"
+          version="${TAG#v}"
+          tags="$version"
+          prerelease=false
+          if [[ -n "$suffix" ]]; then
+            prerelease=true
+          else
+            # a stable release also moves its minor tag, its major tag (from 1.0) and latest
+            tags="$tags $major.$minor latest"
+            if [[ "$major" != "0" ]]; then tags="$tags $major"; fi
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+      - name: The tag is on main
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$TAG is not on main. Tag the merge commit of the release pull request."
+            exit 1
+          fi
+      - name: The release has a changelog section and the apps carry its version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node .github/scripts/release-notes.mjs "$VERSION" > /dev/null
+          for package in apps/api/package.json apps/workspace/package.json; do
+            found="$(node -p "require('./$package').version")"
+            if [[ "$found" != "$VERSION" ]]; then
+              echo "::error::$package is at $found, the tag is $VERSION. Bump the versions in the release branch."
+              exit 1
+            fi
+          done
+
+  images:
+    name: Image ${{ matrix.image }} (${{ matrix.arch }})
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, workspace, ml]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Sign in to the registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build and push the ${{ matrix.arch }} image
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          IMAGE: ${{ matrix.image }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          docker buildx build \
+            --platform "linux/$ARCH" \
+            --file "infra/docker/$IMAGE.Dockerfile" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.licenses=AGPL-3.0-only" \
+            --tag "ghcr.io/$owner/surefy-$IMAGE:$VERSION-$ARCH" \
+            --push \
+            .
+
+  manifests:
+    name: Tags of ${{ matrix.image }}
+    needs: [verify, images]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, workspace, ml]
+    steps:
+      - name: Sign in to the registry
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Join the two architectures under every tag
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          TAGS: ${{ needs.verify.outputs.tags }}
+          IMAGE: ${{ matrix.image }}
+        run: |
+          repository="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/surefy-$IMAGE"
+          for tag in $TAGS; do
+            docker buildx imagetools create \
+              --tag "$repository:$tag" \
+              "$repository:$VERSION-amd64" \
+              "$repository:$VERSION-arm64"
+          done
+          docker buildx imagetools inspect "$repository:$VERSION"
+
+  release:
+    name: GitHub release
+    needs: [verify, manifests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Notes from the changelog
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          {
+            node .github/scripts/release-notes.mjs "$VERSION"
+            printf '\n### Self-hosting\n\n'
+            printf 'Images: `ghcr.io/%s/surefy-api`, `surefy-workspace` and `surefy-ml`, tag `%s` (amd64 and arm64).\n\n' "$owner" "$VERSION"
+            printf 'New install: check out `%s`, then follow [SELF-HOSTING.md](https://github.com/%s/blob/%s/SELF-HOSTING.md).\n\n' "$TAG" "$GITHUB_REPOSITORY" "$TAG"
+            printf 'Upgrade: take a backup, set `SUREFY_VERSION=%s` in `infra/docker/.env`, then pull and start (the upgrade steps in the guide).\n' "$VERSION"
+          } > notes.md
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          flags=()
+          if [[ "$PRERELEASE" == "true" ]]; then flags+=(--prerelease); fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "SurefyOS $VERSION" --notes-file notes.md ${flags[@]+"${flags[@]}"}
+          else
+            gh release create "$TAG" --verify-tag --title "SurefyOS $VERSION" --notes-file notes.md ${flags[@]+"${flags[@]}"}
+          fi

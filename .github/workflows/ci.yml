@@ -50,6 +50,8 @@ jobs:
         run: pnpm format:check
       - name: SPDX headers
         run: node .github/scripts/check-spdx.mjs
+      - name: Release script tests
+        run: node --test ".github/scripts/*.test.mjs"
       - name: No private packages in public code
         run: node .github/scripts/check-private-imports.mjs
       - name: Translation keys match across locales
