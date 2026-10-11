@@ -42,7 +42,12 @@ const rowOf = (page: Page, name: string) => table(page).getByRole('row').filter(
 
 async function runRefund(page: Page, text: string): Promise<string> {
   const runId = await startTestRun(page, agent, text)
-  await expect.poll(async () => (await readRun(page, agent, runId)).status).toBe('succeeded')
+  await expect
+    .poll(async () => {
+      const run = await readRun(page, agent, runId)
+      return run.status === 'failed' ? `failed (${run.errorCode ?? 'no error code'})` : run.status
+    })
+    .toBe('succeeded')
   return runId
 }
 

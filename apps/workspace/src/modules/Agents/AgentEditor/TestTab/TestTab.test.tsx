@@ -60,7 +60,8 @@ async function ask(text: string) {
   return user
 }
 
-const steps = () => within(screen.getByRole('list', { name: 'Steps' }))
+// the list of steps renders after the answer starts, which a slow machine makes visible
+const steps = async () => within(await screen.findByRole('list', { name: 'Steps' }))
 
 describe('TestTab conversation', () => {
   it('invites a first message, with the conversation starters of the draft', async () => {
@@ -74,8 +75,8 @@ describe('TestTab conversation', () => {
     renderAgentEditor()
     await ask('Where is my order?')
     expect(await screen.findByText(/Your order ships within two business days/)).toBeVisible()
-    expect(await steps().findByText('Search Help center')).toBeVisible()
-    expect(await steps().findByText('GPT-4.1')).toBeVisible()
+    expect(await (await steps()).findByText('Search Help center')).toBeVisible()
+    expect(await (await steps()).findByText('GPT-4.1')).toBeVisible()
     // the two steps and the run itself are done
     await waitFor(() => {
       expect(screen.getAllByText('Done')).toHaveLength(3)
@@ -87,7 +88,7 @@ describe('TestTab conversation', () => {
     const user = userEvent.setup()
     await user.click(await screen.findByRole('button', { name: 'How do I get a refund?' }))
     expect(await screen.findByText('You')).toBeVisible()
-    expect(await steps().findByText('Refund API')).toBeVisible()
+    expect(await (await steps()).findByText('Refund API')).toBeVisible()
   })
 
   it('starts again with New test', async () => {
@@ -102,7 +103,7 @@ describe('TestTab conversation', () => {
   it('opens a step to show its input and output', async () => {
     renderAgentEditor()
     const user = await ask('Where is my order?')
-    await steps().findByText('Search Help center')
+    await (await steps()).findByText('Search Help center')
     await user.click(
       screen.getByRole('button', { name: 'Show the input and output of Search Help center' }),
     )
@@ -122,7 +123,7 @@ describe('TestTab approvals', () => {
   it('waits for an approval and goes on once it is approved as tester', async () => {
     renderAgentEditor()
     const user = await ask('I would like a refund')
-    expect(await steps().findByText('Waiting')).toBeVisible()
+    expect(await (await steps()).findByText('Waiting')).toBeVisible()
     expect(screen.getByText('Waiting for approval by Maya Okafor')).toBeVisible()
     expect(screen.getByText('Waiting for approval')).toBeVisible()
 
@@ -148,7 +149,7 @@ describe('TestTab failures', () => {
     await user.click(screen.getByRole('button', { name: 'Retry step' }))
     expect(await screen.findByText(/arrives on Friday/)).toBeVisible()
     // the steps before the failed one were reused
-    expect(steps().getAllByText('Reused')).toHaveLength(2)
+    expect((await steps()).getAllByText('Reused')).toHaveLength(2)
     expect(screen.queryByText('This tool call failed')).not.toBeInTheDocument()
   })
 

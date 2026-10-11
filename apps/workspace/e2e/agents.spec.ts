@@ -6,6 +6,7 @@ import type { ApiKeyCreatedDto } from '@surefy/contracts'
 import { callApi, currentOrgId } from './support/api'
 import { apiUrl, mcpServerUrl, ORGANIZATION, OWNER_STATE, STUB_MODEL_ID } from './support/env'
 import { connectStubModel, removeStubModel } from './support/models'
+import { refreshOwnerSession } from './support/session'
 import { startWorker, stopWorker } from './support/worker'
 
 import type { Page } from '@playwright/test'
@@ -24,7 +25,9 @@ let secret = ''
 let staleId = ''
 let connectionName = ''
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
+  // creating an API key needs a recent sign-in, and this spec runs late in the run
+  await refreshOwnerSession(browser)
   // a run executes in the worker
   worker = await startWorker()
 })
