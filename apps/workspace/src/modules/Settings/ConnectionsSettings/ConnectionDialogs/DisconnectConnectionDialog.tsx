@@ -76,6 +76,7 @@ export default function DisconnectConnectionDialog({
       impact={lines}
       labels={{ confirm: t('confirm') }}
       error={error}
+      confirmDisabled={!impact.data}
       onConfirm={async () => {
         // the names must be the ones at the moment of confirming
         if (!impact.data) throw new Error('The impact is not loaded yet')

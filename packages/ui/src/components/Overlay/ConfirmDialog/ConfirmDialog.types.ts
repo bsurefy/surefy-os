@@ -37,6 +37,8 @@ export interface ConfirmDialogProps {
   confirmationText?: string
   /** `destructive` for removals and revokes. */
   tone?: 'destructive' | 'primary'
+  /** Holds the confirm button back while what the dialog shows is still loading (the impact). */
+  confirmDisabled?: boolean
   /** May return a promise: the button shows its loading state and the dialog closes on success. */
   onConfirm: (details: { reason?: string }) => unknown
   /** Why the action failed; the dialog stays open. */
