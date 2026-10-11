@@ -1,1 +1,5 @@
-{}
+{
+  "BUDGET_NOT_FOUND": "This budget no longer exists.",
+  "BUDGET_ALREADY_EXISTS": "This already has a budget. Edit that one instead.",
+  "BUDGET_TARGET_NOT_FOUND": "That team or person isn't in this organization anymore."
+}

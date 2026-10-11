@@ -222,6 +222,7 @@ const KEY_OF: Record<InsightsBreakdownDimension, (row: UsageRow) => string | nul
   team: (row) => row.teamId,
   person: (row) => row.userId,
   model: (row) => row.model.modelKey,
+  agent: () => null,
 }
 
 function labelOf(by: InsightsBreakdownDimension, key: string): string | null {

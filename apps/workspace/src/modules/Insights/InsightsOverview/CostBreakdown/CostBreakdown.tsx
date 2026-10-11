@@ -4,7 +4,7 @@
 import { Filter } from 'lucide-react'
 import { useFormatter, useTranslations } from 'next-intl'
 
-import type { InsightsBreakdownDimension, InsightsBreakdownDto } from '@surefy/contracts'
+import type { InsightsBreakdownDto } from '@surefy/contracts'
 import { BarChart, ChartFrame, EmptyState } from '@surefy/ui/components/DataDisplay'
 import { ErrorState } from '@surefy/ui/components/Feedback'
 import { SegmentedControl } from '@surefy/ui/components/Forms'
@@ -19,20 +19,24 @@ import {
   TableRow,
 } from '@surefy/ui/primitives/table'
 
-import { BREAKDOWN_DIMENSIONS, CHART_HEIGHT } from '../InsightsOverview.constants'
+import {
+  BREAKDOWN_DIMENSIONS,
+  CHART_HEIGHT,
+  type BreakdownDimension,
+} from '../InsightsOverview.constants'
 import { costMicrosOf, microsToUnits, toCostData, toCostGroups } from '../InsightsOverview.utils'
 
 import type { CostGroup } from '../InsightsOverview.types'
 
 interface CostBreakdownProps {
-  by: InsightsBreakdownDimension
+  by: BreakdownDimension
   data: InsightsBreakdownDto | undefined
   isLoading: boolean
   error: { message: string; reference?: string } | null
   onRetry: () => void
-  onByChange: (by: InsightsBreakdownDimension) => void
+  onByChange: (by: BreakdownDimension) => void
   /** Narrows the page to one group (drill-down). */
-  onFilterGroup: (by: InsightsBreakdownDimension, key: string) => void
+  onFilterGroup: (by: BreakdownDimension, key: string) => void
 }
 
 /** Cost by team, person or model: the top groups and "Others", as a bar chart or a table. */
