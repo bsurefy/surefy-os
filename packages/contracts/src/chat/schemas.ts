@@ -17,8 +17,9 @@ import { modelKeySchema } from '../models/keys.js'
 // POST /chats/:chatId/attachments · POST …/attachments/:attachmentId/{complete,retry} ·
 // DELETE …/attachments/:attachmentId ·
 // GET/POST /chat-folders · PATCH/DELETE /chat-folders/:folderId · PUT /chat-folders/order.
+// POST /chats/:chatId/messages/:messageId/choose (Compare, V1: "Continue with A/B").
 // Exports use the `chat_pdf`, `chat_markdown` and `chat_json` kinds of `exports` (dataControl).
-// Shares, compare variants, prompts and agents' chats arrive with V1 and extend these DTOs.
+// Shares are in ./shares.ts and prompts in ./prompts.ts (V1).
 
 export const DATA_LOCATIONS = ['local', 'provider', 'platform'] as const
 export type DataLocation = (typeof DATA_LOCATIONS)[number]
@@ -183,6 +184,23 @@ export const chatFeedbackDtoSchema = z.object({
 })
 export type ChatFeedbackDto = z.infer<typeof chatFeedbackDtoSchema>
 
+// ── Compare (V1) ────────────────────────────────────────────────────────────────────────────────
+
+/** Compare shows two answers to one message side by side, A from the chat's model and B from another. */
+export const CHAT_VARIANT_LABELS = ['a', 'b'] as const
+export type ChatVariantLabel = (typeof CHAT_VARIANT_LABELS)[number]
+
+export const chatMessageVariantSchema = z.object({
+  groupId: z.uuid(),
+  label: z.enum(CHAT_VARIANT_LABELS),
+})
+export type ChatMessageVariant = z.infer<typeof chatMessageVariantSchema>
+
+// `POST …/messages/:messageId/choose` (no body) on one answer of a comparison ("Continue with
+// A/B"): the other answer becomes `superseded` and the chat goes on with the chosen answer's model.
+// It answers `200` with the chosen message; CHAT_MESSAGE_STATE_INVALID when the message is not an
+// unresolved variant or either answer is still streaming.
+
 export const chatMessageDtoSchema = z.object({
   id: z.uuid(),
   chatId: z.uuid(),
@@ -204,6 +222,10 @@ export const chatMessageDtoSchema = z.object({
   usage: chatUsageSchema.nullable(),
   /** The signed-in person's rating; null when unrated. */
   feedback: chatFeedbackDtoSchema.nullable(),
+  /** Compare (V1): the two answers to one message share `groupId`; null outside a comparison. */
+  variant: chatMessageVariantSchema.nullable(),
+  /** Answers from an agent (V1): the run behind them, for its timeline. */
+  agentRunId: z.uuid().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 })

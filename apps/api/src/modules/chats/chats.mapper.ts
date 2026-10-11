@@ -85,6 +85,11 @@ export function toMessageDto(
     piiMasked: row.piiMasked,
     routed: row.routed,
     errorCode: row.errorCode,
+    variant:
+      row.variantGroupId !== null && row.variantLabel !== null
+        ? { groupId: row.variantGroupId, label: row.variantLabel }
+        : null,
+    agentRunId: row.agentRunId,
     usage: metered
       ? {
           inputTokens: row.inputTokens ?? 0,

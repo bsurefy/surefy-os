@@ -33,6 +33,12 @@ export const toolPartSchema = z.object({
   errorCode: z.string().optional(),
 })
 
+/**
+ * The tool name of a web search (V1): its `tool` part shows "Searched the web" with the query, and
+ * every result the answer cites is a `web` source part with `url`, `title` and `snippet`.
+ */
+export const CHAT_WEB_SEARCH_TOOL_NAME = 'webSearch'
+
 export const SOURCE_KINDS = ['knowledge', 'web'] as const
 export type SourceKind = (typeof SOURCE_KINDS)[number]
 
@@ -99,6 +105,17 @@ export const knowledgeSkippedDataPartSchema = z.object({
   data: z.object({ reason: z.enum(KNOWLEDGE_SKIPPED_REASONS) }),
 })
 
+/** Why an answer that asked for web search was written without it. */
+export const WEB_SEARCH_SKIPPED_REASONS = ['provider_error', 'pii_blocked'] as const
+export type WebSearchSkippedReason = (typeof WEB_SEARCH_SKIPPED_REASONS)[number]
+
+/** "Web search didn't work · answered without it" (V1). */
+export const webSearchSkippedDataPartSchema = z.object({
+  type: z.literal('data'),
+  name: z.literal('web-search-skipped'),
+  data: z.object({ reason: z.enum(WEB_SEARCH_SKIPPED_REASONS) }),
+})
+
 /** The inline card with "Use a local model" and "Ask an admin" / "Add credits". */
 export const budgetReachedDataPartSchema = z.object({
   type: z.literal('data'),
@@ -119,6 +136,7 @@ export const CHAT_DATA_PART_NAMES = [
   'knowledge-skipped',
   'budget-reached',
   'approval',
+  'web-search-skipped',
 ] as const
 export type ChatDataPartName = (typeof CHAT_DATA_PART_NAMES)[number]
 
@@ -128,6 +146,7 @@ export const dataPartSchema = z.discriminatedUnion('name', [
   knowledgeSkippedDataPartSchema,
   budgetReachedDataPartSchema,
   approvalDataPartSchema,
+  webSearchSkippedDataPartSchema,
 ])
 export type DataPart = z.infer<typeof dataPartSchema>
 

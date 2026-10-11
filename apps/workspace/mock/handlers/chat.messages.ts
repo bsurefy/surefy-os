@@ -75,6 +75,8 @@ export const chatMessageFactory = defineFactory(
     errorCode: null,
     usage: null,
     feedback: null,
+    variant: null,
+    agentRunId: null,
     createdAt: '2026-01-02T09:00:00.000Z',
     updatedAt: '2026-01-02T09:00:00.000Z',
   }),

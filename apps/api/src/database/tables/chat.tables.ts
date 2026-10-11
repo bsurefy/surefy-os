@@ -36,6 +36,7 @@ import type {
   ChatMessageParts,
   ChatMessageRole,
   ChatMessageStatus,
+  ChatVariantLabel,
   DataLocation,
 } from '@surefy/contracts'
 
@@ -185,7 +186,7 @@ export const chatMessages = pgTable(
     agentRunId: uuid(),
     /** Compare (V1): both answers to one prompt share it. */
     variantGroupId: uuid(),
-    variantLabel: text(),
+    variantLabel: text().$type<ChatVariantLabel>(),
     inputTokens: bigint({ mode: 'number' }),
     outputTokens: bigint({ mode: 'number' }),
     cachedInputTokens: bigint({ mode: 'number' }),

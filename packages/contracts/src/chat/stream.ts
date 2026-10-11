@@ -19,6 +19,14 @@ import { modelKeySchema } from '../models/keys.js'
 // - The first `start` chunk's `messageId` is the assistant message's id.
 // - `:chatId` may be a new id the client generated: the chat is inserted with its first message or
 //   first attachment, so empty chats are never stored.
+// - Web search (V1): `webSearch: true` lets the model call the `webSearch` tool for this answer.
+//   It needs web search allowed for the person (`AccessPolicy.tools.webSearch`) and a configured
+//   search provider (CHAT_WEB_SEARCH_NOT_ALLOWED otherwise). Results become `web` source parts.
+// - Compare (V1): the composer sends the message as usual (answer A), then a `compare` request with
+//   the user message id from A's `data-message` chunk (answer B); the two streams may overlap.
+//   Until one answer is chosen (schemas.ts `choose`), a new message fails with
+//   CHAT_COMPARE_UNRESOLVED. Agent chats have no compare (CHAT_COMPARE_NOT_AVAILABLE); in a private
+//   chat both models are local.
 
 const messageTextSchema = z.string().trim().min(1).max(100_000)
 
@@ -27,12 +35,16 @@ export const CHAT_MESSAGE_ATTACHMENTS_MAX = 10
 
 const attachmentIdsSchema = z.array(z.uuid()).max(CHAT_MESSAGE_ATTACHMENTS_MAX)
 
+/** The composer's web search toggle (V1), for this answer only; absent means off. */
+const webSearchSchema = z.boolean().optional()
+
 const submitMessageInputSchema = z.object({
   trigger: z.literal('submit'),
   text: messageTextSchema,
   attachmentIds: attachmentIdsSchema.default([]),
   /** The model for this answer; omitted keeps the chat's current model. A change adds a switch divider. */
   modelKey: modelKeySchema.optional(),
+  webSearch: webSearchSchema,
   /** Used only when this request creates the chat; ignored otherwise. */
   newChat: chatSettingsInputSchema.optional(),
 })
@@ -42,6 +54,7 @@ const regenerateMessageInputSchema = z.object({
   /** The assistant message to replace; it becomes `superseded`. */
   messageId: z.uuid(),
   modelKey: modelKeySchema.optional(),
+  webSearch: webSearchSchema,
 })
 
 const editMessageInputSchema = z.object({
@@ -51,6 +64,7 @@ const editMessageInputSchema = z.object({
   text: messageTextSchema,
   attachmentIds: attachmentIdsSchema.default([]),
   modelKey: modelKeySchema.optional(),
+  webSearch: webSearchSchema,
 })
 
 const continueMessageInputSchema = z.object({
@@ -59,12 +73,22 @@ const continueMessageInputSchema = z.object({
   messageId: z.uuid(),
 })
 
+const compareMessageInputSchema = z.object({
+  trigger: z.literal('compare'),
+  /** The user message answer A replies to; both answers get one variant group (A `a`, B `b`). */
+  messageId: z.uuid(),
+  /** Answer B's model; it differs from answer A's. */
+  modelKey: modelKeySchema,
+  webSearch: webSearchSchema,
+})
+
 /** Body of `POST …/chats/:chatId/messages`: the AI SDK transport sends it from `prepareSendMessagesRequest`. */
 export const sendChatMessageInputSchema = z.discriminatedUnion('trigger', [
   submitMessageInputSchema,
   regenerateMessageInputSchema,
   editMessageInputSchema,
   continueMessageInputSchema,
+  compareMessageInputSchema,
 ])
 export type SendChatMessageInput = z.infer<typeof sendChatMessageInputSchema>
 
