@@ -28,7 +28,8 @@ function accessAs(role: OrgRole, overrides: Partial<EffectiveAccessDto> = {}): E
 /**
  * `GET /api/v1/orgs/:orgId/access/me`: an Owner on Community by default. Scenarios: `role-user`,
  * `role-builder`, `role-admin`, `enterprise` (every feature), `forbidden` (a User without
- * notifications, for the permission-denied page). Its other failure scenarios keep the default, so
+ * notifications, for the permission-denied page), `web-search-off` (a User whose team turned web
+ * search off). Its other failure scenarios keep the default, so
  * the shell stays up while a page shows its state. Live on the real API (I4-02); the handlers stay
  * for component tests and for `MOCK_DOMAINS=access`.
  */
@@ -46,6 +47,15 @@ export const accessDomain = defineMockDomain(
         'role-builder': () => mockOk(accessAs('builder')),
         'role-admin': () => mockOk(accessAs('admin')),
         enterprise: () => mockOk(accessAs('owner', { features: Object.values(FEATURES) })),
+        'web-search-off': () =>
+          mockOk(
+            accessAs('user', {
+              teamIds: [SUPPORT_TEAM_ID],
+              primaryTeamId: SUPPORT_TEAM_ID,
+              tools: { webSearch: false, bridge: true, mcp: true, apiTools: true },
+              reasons: [{ key: 'tool:webSearch', source: 'team', teamId: SUPPORT_TEAM_ID }],
+            }),
+          ),
         forbidden: () =>
           mockOk(
             accessAs('user', {

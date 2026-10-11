@@ -157,6 +157,7 @@ export class AccessService implements TenantAccessResolver {
           localModels: level.providerFlags.localModels,
         }),
         limits: level.limits,
+        tools: level.tools,
         reasons: level.reasons,
       }
     })
@@ -416,6 +417,7 @@ export class AccessService implements TenantAccessResolver {
         localModels: level.providerFlags.localModels,
       }),
       limits: level.limits,
+      tools: level.tools,
       reasons: level.reasons,
     }
   }

@@ -44,6 +44,7 @@ const access = (overrides: Partial<EffectiveAccess> = {}): EffectiveAccess => ({
     maxStorageBytes: null,
     maxKnowledgeBases: null,
   },
+  tools: { webSearch: true, bridge: true, mcp: true, apiTools: true },
   reasons: [],
   ...overrides,
 })
