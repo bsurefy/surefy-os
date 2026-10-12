@@ -3,7 +3,12 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { agentEditorHandlers, renderAgentEditor, useScenarioFor } from '@/test/agentEditor'
+import {
+  agentEditorHandlers,
+  leaveAgentEditor,
+  renderAgentEditor,
+  useScenarioFor,
+} from '@/test/agentEditor'
 import { ORG_ID } from '@/test/shell'
 import { setupTestServer } from '@surefy/web-core/testing'
 
@@ -49,7 +54,8 @@ beforeEach(() => {
   setRunStreamDelay(0)
 })
 
-afterEach(() => {
+afterEach(async () => {
+  await leaveAgentEditor(server)
   server.events.removeAllListeners()
 })
 

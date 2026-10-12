@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   agentEditorHandlers,
+  leaveAgentEditor,
   readSavedAgent,
   renderAgentEditor,
   updateSavedDraft,
@@ -52,7 +53,8 @@ beforeEach(() => {
   resetVaultMock()
 })
 
-afterEach(() => {
+afterEach(async () => {
+  await leaveAgentEditor(server)
   server.events.removeAllListeners()
 })
 

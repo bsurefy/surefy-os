@@ -2,7 +2,12 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { agentEditorHandlers, readSavedAgent, renderAgentEditor } from '@/test/agentEditor'
+import {
+  agentEditorHandlers,
+  leaveAgentEditor,
+  readSavedAgent,
+  renderAgentEditor,
+} from '@/test/agentEditor'
 import { setupTestServer } from '@surefy/web-core/testing'
 
 import { resetAgentsMock, SUPPORT_AGENT_ID } from '../../../../../mock/handlers/agents'
@@ -34,7 +39,8 @@ beforeEach(() => {
   resetVaultMock()
 })
 
-afterEach(() => {
+afterEach(async () => {
+  await leaveAgentEditor(server)
   server.events.removeAllListeners()
 })
 

@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { cleanup, waitFor } from '@testing-library/react'
+
 import { appMessages } from '@/test/messages'
 import { accessAs, ORG_ID, seededShellClient } from '@/test/shell'
 import type { AgentDefinition, OrgRole } from '@surefy/contracts'
@@ -56,6 +58,40 @@ export function useScenarioFor(
       request.headers.set('x-mock-scenario', scenario)
     }
   })
+}
+
+/** How long the mock server must stay idle before the next test may reset it. */
+const QUIET_MS = 50
+
+/**
+ * Unmounts the editor and waits until the save it makes on leaving has reached the mock server.
+ * Without it, that save can land after the next test resets the mock, move the draft's revision
+ * and turn the next test's own save into a conflict.
+ */
+export async function leaveAgentEditor(server: SetupServer): Promise<void> {
+  const open = new Set<string>()
+  let lastActivityAt = Date.now()
+  const onStart = ({ requestId }: { requestId: string }) => {
+    open.add(requestId)
+    lastActivityAt = Date.now()
+  }
+  const onEnd = ({ requestId }: { requestId: string }) => {
+    open.delete(requestId)
+    lastActivityAt = Date.now()
+  }
+  server.events.on('request:start', onStart)
+  server.events.on('request:end', onEnd)
+  try {
+    cleanup()
+    await waitFor(() => {
+      if (open.size > 0 || Date.now() - lastActivityAt < QUIET_MS) {
+        throw new Error('The mock server is still handling the editor requests')
+      }
+    })
+  } finally {
+    server.events.removeListener('request:start', onStart)
+    server.events.removeListener('request:end', onEnd)
+  }
 }
 
 export interface SavedAgent {
