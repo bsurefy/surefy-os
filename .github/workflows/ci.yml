@@ -54,6 +54,8 @@ jobs:
         run: node --test ".github/scripts/*.test.mjs"
       - name: No private packages in public code
         run: node .github/scripts/check-private-imports.mjs
+      - name: Widget takes only types from AGPL packages
+        run: node .github/scripts/check-widget-imports.mjs
       - name: Translation keys match across locales
         run: node .github/scripts/check-i18n-parity.mjs
       - name: Lint, typecheck, test, build

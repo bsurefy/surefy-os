@@ -16,4 +16,6 @@ export const AGENTS_ERROR_CODES = {
   AGENT_CHANNEL_PENDING_APPROVAL: 'AGENT_CHANNEL_PENDING_APPROVAL', // 409: the channel waits for an Admin and cannot change yet
   AGENT_TOOL_HTTP_ERROR: 'AGENT_TOOL_HTTP_ERROR', // status reason: the tool's address answered with an error status
   AGENT_TOOL_BAD_RESPONSE: 'AGENT_TOOL_BAD_RESPONSE', // status reason: the answer was not what the tool kind expects (an MCP server that does not speak MCP)
+  AGENT_WIDGET_TOKEN_INVALID: 'AGENT_WIDGET_TOKEN_INVALID', // 401: unknown, rotated or disconnected widget token
+  AGENT_WIDGET_ORIGIN_NOT_ALLOWED: 'AGENT_WIDGET_ORIGIN_NOT_ALLOWED', // 403: the page's origin is not in the widget's allowed origins
 } as const
