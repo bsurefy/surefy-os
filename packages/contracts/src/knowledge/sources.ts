@@ -15,8 +15,8 @@ import { teamRefDtoSchema } from '../teams/schemas.js'
 // GET/PATCH/DELETE /sources/:sourceId · POST /sources/:sourceId/{complete,retry,sync,restore} ·
 // GET /sources/:sourceId/documents · GET /documents/:documentId ·
 // GET /documents/:documentId/pages · POST /documents/:documentId/download.
-// Connector sources (Google Drive, Notion) are created by the V1 connection flow; the MVP reads
-// and manages them like any other source.
+// Connector sources (Google Drive, Notion; V1) are added and their folders browsed through
+// ./connectors.ts; the routes here read and manage them like any other source.
 
 export const KNOWLEDGE_SOURCE_TYPES = ['file', 'link', 'connector'] as const
 export type KnowledgeSourceType = (typeof KNOWLEDGE_SOURCE_TYPES)[number]
@@ -138,6 +138,8 @@ export const knowledgeSourceDtoSchema = z.object({
   /** Link and connector sources; at most one is set, matching `type`. */
   link: knowledgeLinkConfigSchema.nullable(),
   connector: knowledgeConnectorConfigSchema.nullable(),
+  /** Connector sources: the connection they sync through, for its status and Reconnect. */
+  connectionId: z.uuid().nullable(),
   ocrMode: z.enum(KNOWLEDGE_OCR_MODES),
   status: z.enum(KNOWLEDGE_SOURCE_STATUSES),
   /** Upload 0–100 while `uploading`, then parse and embed progress; for links the share of finished documents. */
@@ -217,10 +219,19 @@ export const createKnowledgeLinkInputSchema = knowledgeLinkConfigSchema.extend({
 })
 export type CreateKnowledgeLinkInput = z.infer<typeof createKnowledgeLinkInputSchema>
 
-/** `PATCH …/sources/:sourceId`: rename, change a link's crawl settings (the address stays), or the OCR mode. */
+/**
+ * `PATCH …/sources/:sourceId`: rename, change a link's crawl settings (the address stays), a
+ * connector's folders and schedule (the provider and the connection stay), or the OCR mode. A
+ * changed folder list syncs at once; a removed folder's documents are deleted by that sync.
+ */
 export const updateKnowledgeSourceInputSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   link: knowledgeLinkConfigSchema.omit({ url: true }).partial().optional(),
+  connector: knowledgeConnectorConfigSchema
+    .pick({ syncEvery: true })
+    .extend({ folders: knowledgeConnectorConfigSchema.shape.folders.min(1) })
+    .partial()
+    .optional(),
   ocrMode: z.enum(KNOWLEDGE_OCR_MODES).optional(),
 })
 export type UpdateKnowledgeSourceInput = z.infer<typeof updateKnowledgeSourceInputSchema>

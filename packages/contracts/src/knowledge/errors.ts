@@ -18,8 +18,9 @@ export const KNOWLEDGE_ERROR_CODES = {
   KNOWLEDGE_PROCESSING_TIMEOUT: 'KNOWLEDGE_PROCESSING_TIMEOUT', // document failure: took too long twice
   KNOWLEDGE_DOWNLOAD_FAILED: 'KNOWLEDGE_DOWNLOAD_FAILED', // document failure: a crawled page or connector file could not be fetched
   KNOWLEDGE_LINK_UNREACHABLE: 'KNOWLEDGE_LINK_UNREACHABLE', // source failure: the link could not be reached
-  KNOWLEDGE_CONNECTION_EXPIRED: 'KNOWLEDGE_CONNECTION_EXPIRED', // source failure: the connector sign-in expired; syncing is paused
+  KNOWLEDGE_CONNECTION_EXPIRED: 'KNOWLEDGE_CONNECTION_EXPIRED', // source failure: the connector sign-in expired; syncing is paused. Also 409 when browsing folders
   KNOWLEDGE_REEMBED_FAILED: 'KNOWLEDGE_REEMBED_FAILED', // document failure: re-embedding kept failing after retries
+  KNOWLEDGE_CONNECTION_INVALID: 'KNOWLEDGE_CONNECTION_INVALID', // 422: not an active Google Drive or Notion connection the person may use
 } as const
 
 /** Codes a document or source can carry in `errorCode` (what the Sources table shows as the reason). */

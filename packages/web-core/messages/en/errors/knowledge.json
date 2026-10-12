@@ -17,5 +17,6 @@
   "KNOWLEDGE_DOWNLOAD_FAILED": "Couldn't download this page or file. Check that it is still available and try again.",
   "KNOWLEDGE_LINK_UNREACHABLE": "Couldn't reach this link. Check the address and try again.",
   "KNOWLEDGE_CONNECTION_EXPIRED": "The connection expired. Reconnect to keep syncing; existing passages stay searchable.",
-  "KNOWLEDGE_REEMBED_FAILED": "Couldn't re-index this document with the new model. Try again."
+  "KNOWLEDGE_REEMBED_FAILED": "Couldn't re-index this document with the new model. Try again.",
+  "KNOWLEDGE_CONNECTION_INVALID": "Pick an active Google Drive or Notion connection you can use."
 }

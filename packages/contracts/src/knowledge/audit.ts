@@ -14,6 +14,8 @@ export const KNOWLEDGE_AUDIT_ACTIONS = {
   KNOWLEDGE_BASE_EMBEDDING_CHANGED: 'knowledge_base.embedding_changed',
   KNOWLEDGE_BASE_REINDEXED: 'knowledge_base.reindexed',
   KNOWLEDGE_SOURCE_ADDED: 'knowledge_source.added',
+  /** A connector's folders or schedule, or a link's crawl settings, changed (before/after in the metadata). */
+  KNOWLEDGE_SOURCE_UPDATED: 'knowledge_source.updated',
   KNOWLEDGE_SOURCE_REMOVED: 'knowledge_source.removed',
   KNOWLEDGE_SOURCE_RESTORED: 'knowledge_source.restored',
   KNOWLEDGE_SOURCE_RETRIED: 'knowledge_source.retried',
