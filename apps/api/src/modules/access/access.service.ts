@@ -132,6 +132,23 @@ export class AccessService implements TenantAccessResolver {
     )
   }
 
+  /**
+   * The organization level with no permissions, for the anonymous visitors of a public channel
+   * (the website widget): its limits apply to the runs they start. Nothing for an organization
+   * that is not active.
+   */
+  async forOrganization(orgId: string): Promise<EffectiveAccess | null> {
+    const header = await this.deps.db.tenant(orgId, (tx) =>
+      this.deps.organizations.findAccessHeaderInTx(tx, orgId),
+    )
+    if (header?.status !== 'active') return null
+    return this.deps.cache.wrap(
+      versionedKey(orgScope(orgId), header.accessVersion, 'access', 'org'),
+      EFFECTIVE_ACCESS_TTL_SECONDS,
+      () => this.computeForApiKey(orgId, []),
+    )
+  }
+
   private async computeForApiKey(
     orgId: string,
     scopes: readonly Permission[],

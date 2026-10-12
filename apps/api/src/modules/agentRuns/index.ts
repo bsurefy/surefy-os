@@ -11,6 +11,7 @@ export {
   AgentRunAgentNotFoundError,
   AgentRunAgentNotPublishedError,
   AgentRunAgentPausedError,
+  AgentRunNotFoundError,
 } from './agentRuns.errors.js'
 export { createAgentRunSummaries } from './agentRuns.summaries.js'
 export type { AgentRunsQueries } from './agentRuns.queries.js'
@@ -25,6 +26,7 @@ export type {
   AgentRunsEvents,
   RunEventChunk,
   RunRow,
+  RunnableAgent,
   StartRunInput,
   StepRow,
 } from './agentRuns.types.js'

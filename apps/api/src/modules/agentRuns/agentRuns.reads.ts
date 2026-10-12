@@ -25,12 +25,16 @@ const likeTerm = (q: string): string => `%${q.replaceAll(/[\\%_]/g, (ch) => '\\'
 
 /**
  * Whose runs a caller reads: a person sees the runs of agents they can edit (Admins all) and the
- * runs they started; an API key sees only the runs it started.
+ * runs they started; an API key and a public channel see only the runs they started.
  */
-export type RunScope = { kind: 'person'; viewer: Viewer } | { kind: 'key'; keyId: string }
+export type RunScope =
+  | { kind: 'person'; viewer: Viewer }
+  | { kind: 'key'; keyId: string }
+  | { kind: 'channel'; channelId: string }
 
 export const scopeSql = (scope: RunScope): SQL => {
   if (scope.kind === 'key') return eq(r.apiKeyId, scope.keyId)
+  if (scope.kind === 'channel') return eq(r.channelId, scope.channelId)
   const { viewer } = scope
   const own = viewer.userId === null ? undefined : eq(r.startedByUserId, viewer.userId)
   return or(canEditSql(viewer), own) ?? sql`false`

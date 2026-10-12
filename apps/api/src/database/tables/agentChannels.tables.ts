@@ -27,8 +27,8 @@ import { bytea } from '../columnTypes.js'
 import { tenantPolicy } from '../policies.js'
 
 // Agent channels (database/agents-and-runs.md, §4): where a published agent answers. FORCE RLS and
-// the definer functions that resolve inbound widget, Slack and WhatsApp traffic are in the security
-// migration. `agent_runs.channel_id` has no foreign key: a channel is disconnected, never deleted.
+// the definer functions that resolve inbound widget, Slack and WhatsApp traffic are in custom
+// migrations. `agent_runs.channel_id` has no foreign key: a channel is disconnected, never deleted.
 
 export const agentChannels = pgTable(
   'agent_channels',

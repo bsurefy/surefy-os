@@ -14,7 +14,8 @@ WORKDIR /repo
 COPY . .
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @surefy/api...
-RUN pnpm --filter @surefy/api build
+# The website widget's script is served by the API from @surefy/widget's build output.
+RUN pnpm --filter @surefy/widget build && pnpm --filter @surefy/api build
 # Production dependencies only; the @surefy/* packages are bundled into dist.
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm --filter @surefy/api deploy --prod /out

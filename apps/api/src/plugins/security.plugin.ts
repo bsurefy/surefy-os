@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet'
 import fp from 'fastify-plugin'
 
 import { LOCAL_FILES_PATH } from '@/integrations/storage/index.js'
+import { WIDGET_CONVERSATION_HEADER, WIDGET_TOKEN_HEADER } from '@surefy/contracts'
 
 import type { Config } from '@/core/config/index.js'
 
@@ -14,10 +15,14 @@ export interface SecurityPluginOptions {
 /** The host of `API_PUBLIC_URL`: the only host that answers cross-origin browser requests. */
 export const publicApiHost = (config: Config): string => new URL(config.api.publicUrl).host
 
+/** The public widget endpoint, which answers CORS for the sites each widget channel allows. */
+const WIDGET_API_PATH = '/api/v1/widget/'
+
 /**
- * Security headers on every response, and CORS only on the public API host for the allow-listed
- * origins (api.md, §1). The web apps reach the API same-origin through their own proxies, so a
- * cross-origin request to those hosts gets no CORS headers at all.
+ * Security headers on every response, and CORS only on the public API host: for the allow-listed
+ * origins, and for the website widget's endpoint (api.md, §1). The web apps reach the API
+ * same-origin through their own proxies, so a cross-origin request to those hosts gets no CORS
+ * headers at all.
  */
 export const securityPlugin = fp<SecurityPluginOptions>(
   async (app, { config }) => {
@@ -29,16 +34,34 @@ export const securityPlugin = fp<SecurityPluginOptions>(
 
     const apiHost = publicApiHost(config)
     const allowedOrigins = new Set(config.api.publicCorsOrigins)
-    // Widget origins are configured per published agent and added to this check by the agents module.
     await app.register(cors, {
       delegator: (request, callback) => {
         const origin = request.headers.origin
+        const path = new URL(request.url, 'http://localhost').pathname
+        const onApiHost = request.host === apiHost && origin !== undefined
+        if (onApiHost && path.startsWith(WIDGET_API_PATH)) {
+          // The website widget runs on the sites of each published agent: a preflight carries no
+          // token, so every origin gets an answer here, and the widget endpoint itself refuses an
+          // origin that is not one of its channel's allowed origins. No cookies are ever allowed.
+          callback(null, {
+            origin,
+            credentials: false,
+            methods: ['GET', 'POST'],
+            allowedHeaders: [
+              'content-type',
+              'last-event-id',
+              'x-request-id',
+              WIDGET_TOKEN_HEADER,
+              WIDGET_CONVERSATION_HEADER,
+            ],
+            exposedHeaders: ['retry-after', 'x-request-id'],
+            maxAge: 600,
+          })
+          return
+        }
         // a signed storage link carries its own authorization and no cookies, so any origin may use it
-        const isSignedFile = new URL(request.url, 'http://localhost').pathname === LOCAL_FILES_PATH
-        const allowed =
-          request.host === apiHost &&
-          origin !== undefined &&
-          (isSignedFile || allowedOrigins.has(origin))
+        const isSignedFile = path === LOCAL_FILES_PATH
+        const allowed = onApiHost && (isSignedFile || allowedOrigins.has(origin))
         callback(null, {
           origin: allowed ? origin : false,
           methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],

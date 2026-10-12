@@ -253,6 +253,9 @@ importers:
       '@surefy/ml-client':
         specifier: workspace:*
         version: link:../../packages/ml-client
+      '@surefy/widget':
+        specifier: workspace:*
+        version: link:../../packages/widget
       ai:
         specifier: 7.0.127
         version: 7.0.127(zod@4.6.5)

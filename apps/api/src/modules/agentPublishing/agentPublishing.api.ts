@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { orgKey } from '@/core/cache/keys.js'
-import { ForbiddenError, TooManyRequestsError } from '@/core/errors/index.js'
+import { ForbiddenError } from '@/core/errors/index.js'
 import {
   AgentRunAgentNotFoundError,
   AgentRunAgentNotPublishedError,
@@ -12,8 +11,8 @@ import type { PublicRunDto, PublicRunInput } from '@surefy/contracts'
 import { API_CHANNEL_DEFAULT_RATE_PER_MINUTE } from './agentPublishing.constants.js'
 
 import type { Idempotency } from './agentPublishing.idempotency.js'
+import type { RateWindows } from './agentPublishing.limits.js'
 import type { AgentChannelsRepository } from './agentPublishing.repository.js'
-import type { Cache } from '@/core/cache/index.js'
 import type { Database } from '@/core/database/index.js'
 import type {
   AgentRunsContext,
@@ -25,13 +24,12 @@ import type {
 
 export interface ApiChannelDeps {
   db: Database
-  cache: Pick<Cache, 'client'>
   repository: AgentChannelsRepository
   agents: Pick<AgentRunsAgents, 'findById'>
   runs: Pick<AgentRunsService, 'start'>
   queries: Pick<AgentRunsQueries, 'getPublic' | 'access'>
   idempotency: Idempotency
-  now?: () => Date
+  limits: RateWindows
 }
 
 export interface StartedApiRun {
@@ -45,11 +43,7 @@ export interface StartedApiRun {
  * a run of a published agent whose API channel is active. It starts runs and never executes them.
  */
 export class ApiChannel {
-  private readonly now: () => Date
-
-  constructor(private readonly deps: ApiChannelDeps) {
-    this.now = deps.now ?? (() => new Date())
-  }
+  constructor(private readonly deps: ApiChannelDeps) {}
 
   async start(
     ctx: AgentRunsContext,
@@ -94,7 +88,11 @@ export class ApiChannel {
     body: PublicRunInput,
     channel: { id: string; ratePerMinute: number },
   ): Promise<StartedApiRun> {
-    await this.limit(ctx.orgId, channel)
+    await this.deps.limits.hit(ctx.orgId, {
+      scope: ['agent-channel', channel.id],
+      perMinute: channel.ratePerMinute,
+      message: 'This agent is called too often',
+    })
     const messages = body.messages ?? [{ role: 'user' as const, text: body.input ?? '' }]
     const run = await this.deps.runs.start(ctx, {
       agentId,
@@ -128,26 +126,5 @@ export class ApiChannel {
           channel.config.api?.rateLimitPerMinute ?? API_CHANNEL_DEFAULT_RATE_PER_MINUTE,
       }
     })
-  }
-
-  /** A fixed one-minute window per channel; the answer says when the next one opens. */
-  private async limit(
-    orgId: string,
-    channel: { id: string; ratePerMinute: number },
-  ): Promise<void> {
-    const minute = Math.floor(this.now().getTime() / 60_000)
-    const key = orgKey(orgId, 'agent-channel', channel.id, 'rate', minute)
-    try {
-      const count = await this.deps.cache.client.incr(key)
-      if (count === 1) await this.deps.cache.client.expire(key, 120)
-      if (count > channel.ratePerMinute) {
-        throw new TooManyRequestsError(undefined, 'This agent is called too often', {
-          details: [{ limitPerMinute: channel.ratePerMinute }],
-        })
-      }
-    } catch (error) {
-      // Redis down: the limit is skipped, the run is not refused for it
-      if (error instanceof TooManyRequestsError) throw error
-    }
   }
 }

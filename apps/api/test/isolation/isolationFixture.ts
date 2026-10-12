@@ -556,6 +556,8 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       approvalId: approval.id,
       agentId: agent.id,
       versionId: published.version.id,
+      // SurefyOS chat, the channel every published agent has
+      channelId: published.channels[0]?.id ?? '',
       runId: run.id,
       seq: '1',
       guardrailId: guardrail.id,

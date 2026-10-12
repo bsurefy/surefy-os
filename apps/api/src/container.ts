@@ -15,7 +15,11 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
-import { createAgentPublishingModule, createChannelStore } from './modules/agentPublishing/index.js'
+import {
+  createAgentPublishingModule,
+  createChannelStore,
+  type WidgetScript,
+} from './modules/agentPublishing/index.js'
 import {
   createAgentRunsAgents,
   createAgentRunsModule,
@@ -111,6 +115,8 @@ export interface ContainerOverrides {
   connections?: { http?: OutboundHttp }
   /** Replaces the access module's effective access in `app.authorize()` (tests). */
   tenants?: TenantAccessResolver
+  /** The website widget's script, without building `@surefy/widget` (tests). */
+  widgetScript?: () => Promise<WidgetScript | null>
 }
 
 /**
@@ -367,9 +373,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   const agentPublishing = createAgentPublishingModule({
     db,
     cache,
+    logger,
     store: channelStore,
+    users,
     agents: createAgentRunsAgents(agents.repository),
     runs: agentRuns,
+    organizations: organizations.service,
+    access: access.service,
+    audit: audit.service,
+    ...(overrides.widgetScript === undefined ? {} : { widgetScript: overrides.widgetScript }),
   })
   const chats = createChatsModule({
     db,

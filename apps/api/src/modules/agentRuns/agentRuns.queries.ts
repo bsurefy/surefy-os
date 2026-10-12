@@ -50,10 +50,11 @@ export interface AgentRunsQueriesDeps {
 type SortField = 'startedAt' | 'durationMs' | 'costMicros'
 
 /** Whose runs the caller reads: an API key its own, a person the runs of the agents they edit and their own. */
-export const scopeOf = (ctx: AgentRunsContext): RunScope =>
-  ctx.apiKey === undefined
-    ? { kind: 'person', viewer: viewerOf(ctx) }
-    : { kind: 'key', keyId: ctx.apiKey.id }
+export const scopeOf = (ctx: AgentRunsContext): RunScope => {
+  if (ctx.apiKey !== undefined) return { kind: 'key', keyId: ctx.apiKey.id }
+  if (ctx.channel !== undefined) return { kind: 'channel', channelId: ctx.channel.id }
+  return { kind: 'person', viewer: viewerOf(ctx) }
+}
 
 const hasPermission = (ctx: AgentRunsContext, key: string): boolean =>
   ctx.access.permissions.some((permission) => permission === key)

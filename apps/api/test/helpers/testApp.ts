@@ -43,6 +43,8 @@ export interface TestAppOptions {
   ml?: MlService
   /** Knowledge's file storage and web access (signed uploads, crawled pages). */
   knowledge?: NonNullable<ContainerOverrides['knowledge']>
+  /** The website widget's script; by default `@surefy/widget`'s build output, if it was built. */
+  widgetScript?: NonNullable<ContainerOverrides['widgetScript']>
 }
 
 export interface TestApp {
@@ -84,6 +86,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     ...(options.tenants === undefined ? {} : { tenants: options.tenants }),
     ml: options.ml ?? createDefaultFakeMl(config),
     ...(options.knowledge === undefined ? {} : { knowledge: options.knowledge }),
+    ...(options.widgetScript === undefined ? {} : { widgetScript: options.widgetScript }),
   })
   const container: Container = {
     ...base,

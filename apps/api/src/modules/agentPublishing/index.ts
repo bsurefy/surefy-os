@@ -8,3 +8,5 @@ export {
 } from './agentPublishing.module.js'
 export { createAgentChannels } from './agentPublishing.channels.js'
 export { AgentChannelsRepository, type ChannelRow } from './agentPublishing.repository.js'
+export { generateWidgetToken, hashWidgetToken } from './agentPublishing.tokens.js'
+export type { WidgetScript } from './agentPublishing.script.js'

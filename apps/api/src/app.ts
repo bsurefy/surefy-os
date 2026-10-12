@@ -78,6 +78,9 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
     extensions: () => container.extensions.names,
   })
 
+  // The website widget's script, for any site: outside /api/v1 and its access guards.
+  await app.register(container.modules.agentPublishing.scriptRoutes)
+
   await app.register(
     async (scope) => {
       const api = scope.withTypeProvider<ZodTypeProvider>()

@@ -50,6 +50,8 @@ export interface AgentRunsContext {
   ip?: string
   userAgent?: string
   apiKey?: { id: string }
+  /** An anonymous visitor of a public channel (the website widget): sees only the runs it started. */
+  channel?: { id: string }
   grantId?: string
   role?: OrgRole | null
   teamIds: readonly string[]

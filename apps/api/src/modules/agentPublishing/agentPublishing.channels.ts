@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { UnprocessableError } from '@/core/errors/index.js'
-import { ERROR_CODES } from '@surefy/contracts'
-import type { AgentChannelDto, AgentChannelRequest, UserRefDto } from '@surefy/contracts'
+import type {
+  AgentChannelConfig,
+  AgentChannelDto,
+  AgentChannelRequest,
+  UserRefDto,
+} from '@surefy/contracts'
 
 import { API_CHANNEL_DEFAULT_RATE_PER_MINUTE } from './agentPublishing.constants.js'
+import { channelNotAvailable } from './agentPublishing.errors.js'
+import { generateWidgetToken } from './agentPublishing.tokens.js'
 
 import type { AgentChannelsRepository, ChannelRow } from './agentPublishing.repository.js'
+import type { DbExecutor } from '@/core/database/index.js'
 import type { AgentChannels } from '@/modules/agents/index.js'
 
 export interface AgentChannelsDeps {
@@ -13,7 +19,10 @@ export interface AgentChannelsDeps {
   users: { findUserRefs(userIds: readonly string[]): Promise<ReadonlyMap<string, UserRefDto>> }
 }
 
-const channelDto = (row: ChannelRow, users: ReadonlyMap<string, UserRefDto>): AgentChannelDto => ({
+export const channelDto = (
+  row: ChannelRow,
+  users: ReadonlyMap<string, UserRefDto>,
+): AgentChannelDto => ({
   id: row.id,
   agentId: row.agentId,
   type: row.type,
@@ -32,27 +41,27 @@ const channelDto = (row: ChannelRow, users: ReadonlyMap<string, UserRefDto>): Ag
   updatedAt: row.updatedAt.toISOString(),
 })
 
-const notAvailable = (type: string) =>
-  new UnprocessableError(ERROR_CODES.VALIDATION_FAILED, 'This channel is not available', {
-    details: [{ field: 'channels', reason: type }],
-  })
+/** The channels with the people who requested and approved them. */
+export async function channelDtos(
+  users: AgentChannelsDeps['users'],
+  rows: readonly ChannelRow[],
+): Promise<AgentChannelDto[]> {
+  const ids = new Set<string>()
+  for (const row of rows) {
+    if (row.requestedByUserId !== null) ids.add(row.requestedByUserId)
+    if (row.approvedByUserId !== null) ids.add(row.approvedByUserId)
+  }
+  const refs = ids.size === 0 ? new Map<string, UserRefDto>() : await users.findUserRefs([...ids])
+  return rows.map((row) => channelDto(row, refs))
+}
 
 /**
  * The agents module's view of channels (database/agents-and-runs.md, §4): SurefyOS chat goes
- * active with the first publish, and an Admin or Owner can turn the API channel on. The widget,
- * Slack and WhatsApp channels, and the approval a Builder's request needs, come with their adapters.
+ * active with the first publish, and an Admin or Owner can turn the API and widget channels on.
+ * Slack and WhatsApp, and the approval a Builder's request needs, come with their adapters.
  */
 export function createAgentChannels(deps: AgentChannelsDeps): AgentChannels {
-  const dtos = async (rows: readonly ChannelRow[]): Promise<AgentChannelDto[]> => {
-    const ids = new Set<string>()
-    for (const row of rows) {
-      if (row.requestedByUserId !== null) ids.add(row.requestedByUserId)
-      if (row.approvedByUserId !== null) ids.add(row.approvedByUserId)
-    }
-    const users =
-      ids.size === 0 ? new Map<string, UserRefDto>() : await deps.users.findUserRefs([...ids])
-    return rows.map((row) => channelDto(row, users))
-  }
+  const dtos = (rows: readonly ChannelRow[]) => channelDtos(deps.users, rows)
 
   return {
     async list(tx, orgId, agentIds) {
@@ -65,8 +74,8 @@ export function createAgentChannels(deps: AgentChannelsDeps): AgentChannels {
 
     async publish(tx, ctx, agent, request) {
       for (const channel of request.channels) {
-        if (channel.type !== 'api') throw notAvailable(channel.type)
-        if (!request.external) throw notAvailable(channel.type)
+        if (!isEnableable(channel)) throw channelNotAvailable('channels', channel.type)
+        if (!request.external) throw channelNotAvailable('channels', channel.type)
       }
       await deps.repository.activate(tx, {
         orgId: ctx.orgId,
@@ -75,17 +84,19 @@ export function createAgentChannels(deps: AgentChannelsDeps): AgentChannels {
         config: { version: 1 },
         requestedByUserId: ctx.userId,
       })
+      const widgetTokens: Record<string, string> = {}
       for (const channel of request.channels) {
-        await deps.repository.activate(tx, {
+        if (!isEnableable(channel)) continue
+        const { row, token } = await enableChannel(deps.repository, tx, {
           orgId: ctx.orgId,
           agentId: agent.id,
-          type: 'api',
-          config: apiConfigOf(channel),
-          requestedByUserId: ctx.userId,
+          userId: ctx.userId,
+          channel,
         })
+        if (token !== null) widgetTokens[row.id] = token
       }
       const rows = await deps.repository.listForAgents(tx, ctx.orgId, [agent.id])
-      return { channels: await dtos(rows), widgetTokens: {} }
+      return { channels: await dtos(rows), widgetTokens }
     },
 
     async disconnectAll(tx, ctx, agentId) {
@@ -94,12 +105,53 @@ export function createAgentChannels(deps: AgentChannelsDeps): AgentChannels {
   }
 }
 
-const apiConfigOf = (channel: AgentChannelRequest) => ({
-  version: 1 as const,
-  api: {
-    rateLimitPerMinute:
-      channel.type === 'api'
-        ? (channel.config?.rateLimitPerMinute ?? API_CHANNEL_DEFAULT_RATE_PER_MINUTE)
-        : API_CHANNEL_DEFAULT_RATE_PER_MINUTE,
-  },
-})
+/** The channel requests this module can turn on today. */
+export type EnableableChannel = Extract<AgentChannelRequest, { type: 'api' | 'widget' }>
+
+export const isEnableable = (channel: AgentChannelRequest): channel is EnableableChannel =>
+  channel.type === 'api' || channel.type === 'widget'
+
+/** The stored config of a channel request: only the block of its own type. */
+export const configOf = (channel: EnableableChannel): AgentChannelConfig =>
+  channel.type === 'widget'
+    ? { version: 1, widget: channel.config }
+    : {
+        version: 1,
+        api: {
+          rateLimitPerMinute:
+            channel.config?.rateLimitPerMinute ?? API_CHANNEL_DEFAULT_RATE_PER_MINUTE,
+        },
+      }
+
+/**
+ * Turns an API or widget channel on (`active`). A widget channel that still has its token keeps
+ * it, so a site that embeds it keeps working; a new or disconnected one gets a token, returned
+ * once.
+ */
+export async function enableChannel(
+  repository: AgentChannelsRepository,
+  tx: DbExecutor,
+  input: { orgId: string; agentId: string; userId: string | null; channel: EnableableChannel },
+): Promise<{ row: ChannelRow; token: string | null }> {
+  const { orgId, agentId, channel } = input
+  const values = {
+    orgId,
+    agentId,
+    type: channel.type,
+    config: configOf(channel),
+    requestedByUserId: input.userId,
+  }
+  if (channel.type !== 'widget') return { row: await repository.activate(tx, values), token: null }
+  const existing = await repository.find(tx, orgId, agentId, 'widget')
+  if (existing?.publicTokenHash != null && existing.publicTokenPrefix !== null) {
+    // the row's CHECK sees the proposed row before the conflict: it carries the kept token
+    const kept = { hash: existing.publicTokenHash, prefix: existing.publicTokenPrefix }
+    return { row: await repository.activate(tx, { ...values, token: kept }), token: null }
+  }
+  const token = generateWidgetToken()
+  const row = await repository.activate(tx, {
+    ...values,
+    token: { hash: token.hash, prefix: token.prefix },
+  })
+  return { row, token: token.secret }
+}

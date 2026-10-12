@@ -401,6 +401,37 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     payload: () => ({ serverUrl: 'https://mcp.intruder.test/mcp', connectionId: null }),
   },
   // agent runs and the API channel
+  // agent channels and the website widget
+  'GET /api/v1/orgs/:orgId/agents/:agentId/channels': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels': {
+    class: 'orgScoped',
+    payload: () => ({ type: 'api' }),
+  },
+  'PATCH /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId': {
+    class: 'orgScoped',
+    payload: () => ({ api: { rateLimitPerMinute: 1 } }),
+  },
+  'DELETE /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId/pause': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId/resume': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId/rotate-token': {
+    class: 'orgScoped',
+  },
+  'GET /api/v1/widget/config': {
+    class: 'public',
+    reason: "Website widget: the channel's token names the channel, the origin must be allowed",
+  },
+  'POST /api/v1/widget/messages': {
+    class: 'public',
+    reason:
+      'Website widget: channel token and allowed origin, rate limited per channel and visitor',
+  },
+  'GET /api/v1/widget/runs/:runId/events': {
+    class: 'public',
+    reason:
+      'Website widget: channel token, allowed origin and the conversation that started the run',
+  },
+  'GET /widget/v1/widget.js': { class: 'public', reason: 'The website widget script, no data' },
   'GET /api/v1/orgs/:orgId/runs': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/agents/:agentId/runs': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/agents/:agentId/runs': {

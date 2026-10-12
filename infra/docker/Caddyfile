@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-# Reverse proxy of the self-hosted stack: /api to the API, the rest to the workspace.
+# Reverse proxy of the self-hosted stack: /api and the website widget's script (/widget) to the API,
+# the rest to the workspace.
 # The environment (set by compose.selfhost.yml from .env, written by install.sh) decides the mode:
 #   SUREFY_SITE_ADDRESS  the host name (Caddy gets a certificate for it), or :<port> for plain HTTP
 #   SUREFY_HTTP_PORT, SUREFY_HTTPS_PORT  the ports Caddy listens on; the host publishes the same numbers
@@ -15,7 +16,7 @@
 {$SUREFY_SITE_ADDRESS} {
 	encode zstd gzip
 
-	@api path /api/*
+	@api path /api/* /widget/*
 	handle @api {
 		reverse_proxy api:4000
 	}
