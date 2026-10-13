@@ -289,6 +289,8 @@ export class AgentRunExecutor {
     if (error instanceof AgentRunSupersededError || controller.signal.aborted) return
     const code = failureCodeOf(error)
     if (code !== null) {
+      // the run keeps only the code; what the provider or the check said goes to the log
+      this.deps.logger.warn({ err: error, orgId, runId, errorCode: code }, 'agent run failed')
       await this.deps.lifecycle.end({
         orgId,
         runId,

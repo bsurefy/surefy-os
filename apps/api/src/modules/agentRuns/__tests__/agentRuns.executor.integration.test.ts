@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { and, eq, sql } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import { auditLogs, outboxEvents } from '@/database/tables/index.js'
 import { ModelProviderUnavailableError } from '@/modules/modelGateway/index.js'
@@ -174,10 +174,16 @@ describe('executing a run', () => {
     const setup = await setupRuns()
     const { id } = await setup.agent()
     setup.gateway.scripts.push({ error: new ModelProviderUnavailableError(null) })
+    const warn = vi.spyOn(setup.container.logger, 'warn')
     const queued = await setup.startTest(id)
     await setup.execute(queued.id)
     const { run, steps } = await setup.read(queued.id)
     expect(run).toMatchObject({ status: 'failed', errorCode: 'MODEL_PROVIDER_UNAVAILABLE' })
+    // the run keeps the code only: the log says why
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ runId: queued.id, errorCode: 'MODEL_PROVIDER_UNAVAILABLE' }),
+      'agent run failed',
+    )
     expect(steps.at(-1)).toMatchObject({
       type: 'model',
       status: 'failed',
