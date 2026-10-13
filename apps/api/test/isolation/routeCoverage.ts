@@ -432,6 +432,18 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
       'Website widget: channel token, allowed origin and the conversation that started the run',
   },
   'GET /widget/v1/widget.js': { class: 'public', reason: 'The website widget script, no data' },
+  'POST /api/v1/channels/slack/events': {
+    class: 'public',
+    reason: "Slack's events: signed with the Slack app's secret, routed by workspace and bot",
+  },
+  'GET /api/v1/channels/whatsapp/webhook': {
+    class: 'public',
+    reason: "Meta's webhook set-up check: answers only a channel's verify token, no data",
+  },
+  'POST /api/v1/channels/whatsapp/webhook': {
+    class: 'public',
+    reason: "WhatsApp's messages: signed with the app secret of the number's connection",
+  },
   'GET /api/v1/orgs/:orgId/runs': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/agents/:agentId/runs': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/agents/:agentId/runs': {

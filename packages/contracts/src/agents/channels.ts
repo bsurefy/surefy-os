@@ -86,13 +86,25 @@ export const agentChannelConfigSchema = z.object({
 })
 export type AgentChannelConfig = z.infer<typeof agentChannelConfigSchema>
 
+/** Where the provider delivers events, for the Publish tab's set-up steps (Slack, WhatsApp). */
+export const agentChannelWebhookDtoSchema = z.object({
+  url: z.url(),
+  /** WhatsApp only: the token Meta's webhook set-up asks for. */
+  verifyToken: z.string().nullable(),
+})
+export type AgentChannelWebhookDto = z.infer<typeof agentChannelWebhookDtoSchema>
+
 export const agentChannelDtoSchema = z.object({
   id: z.uuid(),
   agentId: z.uuid(),
   type: z.enum(AGENT_CHANNEL_TYPES),
   status: z.enum(AGENT_CHANNEL_STATUSES),
   config: agentChannelConfigSchema,
-  /** First characters of the widget token; the token itself is shown once, when it is created or rotated. */
+  /**
+   * First characters of the widget token; the token itself is shown once, when it is created or
+   * rotated. Null on an active widget channel approved after a Builder's request: its token is
+   * not issued yet, and anyone who can edit the agent may issue it once (`rotate-token`).
+   */
   publicTokenPrefix: z.string().nullable(),
   /** Slack workspace and bot, or the WhatsApp phone number the channel is routed by. */
   externalAccountId: z.string().nullable(),
@@ -110,6 +122,7 @@ export const agentChannelDtoSchema = z.object({
   approvedBy: userRefDtoSchema.nullable(),
   /** An API error code shown on the row with Reconnect. */
   lastErrorCode: z.string().nullable(),
+  webhook: agentChannelWebhookDtoSchema.nullable(),
   lastActiveAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),

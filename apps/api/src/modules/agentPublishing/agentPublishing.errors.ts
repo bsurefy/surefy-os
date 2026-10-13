@@ -74,3 +74,24 @@ export class ChannelRateLimitedError extends TooManyRequestsError {
     super(undefined, message, { details: [{ limitPerMinute }] })
   }
 }
+
+export class ChannelAccountInUseError extends ConflictError {
+  constructor() {
+    super(
+      AGENTS_ERROR_CODES.AGENT_CHANNEL_ACCOUNT_IN_USE,
+      'This account already answers for another agent',
+    )
+  }
+}
+
+export class ChannelSignatureInvalidError extends UnauthorizedError {
+  constructor() {
+    super(AGENTS_ERROR_CODES.AGENT_CHANNEL_SIGNATURE_INVALID, 'The event signature is not valid')
+  }
+}
+
+export class ChannelVerifyTokenInvalidError extends ForbiddenError {
+  constructor() {
+    super(AGENTS_ERROR_CODES.AGENT_CHANNEL_VERIFY_TOKEN_INVALID, 'The verify token is not valid')
+  }
+}

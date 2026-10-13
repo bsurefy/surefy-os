@@ -246,6 +246,7 @@ function channel(
     requestedBy: type === 'api' ? MAYA : null,
     approvedBy: status === 'active' ? ANA : null,
     lastErrorCode: null,
+    webhook: null,
     lastActiveAt: null,
     createdAt: PUBLISHED_AT,
     updatedAt: PUBLISHED_AT,

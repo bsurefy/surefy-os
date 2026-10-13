@@ -18,4 +18,7 @@ export const AGENTS_ERROR_CODES = {
   AGENT_TOOL_BAD_RESPONSE: 'AGENT_TOOL_BAD_RESPONSE', // status reason: the answer was not what the tool kind expects (an MCP server that does not speak MCP)
   AGENT_WIDGET_TOKEN_INVALID: 'AGENT_WIDGET_TOKEN_INVALID', // 401: unknown, rotated or disconnected widget token
   AGENT_WIDGET_ORIGIN_NOT_ALLOWED: 'AGENT_WIDGET_ORIGIN_NOT_ALLOWED', // 403: the page's origin is not in the widget's allowed origins
+  AGENT_CHANNEL_SIGNATURE_INVALID: 'AGENT_CHANNEL_SIGNATURE_INVALID', // 401: a Slack or WhatsApp event without a valid signature
+  AGENT_CHANNEL_VERIFY_TOKEN_INVALID: 'AGENT_CHANNEL_VERIFY_TOKEN_INVALID', // 403: WhatsApp's webhook set-up sent another verify token
+  AGENT_CHANNEL_ACCOUNT_IN_USE: 'AGENT_CHANNEL_ACCOUNT_IN_USE', // 409: the Slack workspace or WhatsApp number already answers for another agent
 } as const

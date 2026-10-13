@@ -76,6 +76,8 @@ export interface Config {
   connections: {
     oauthApps: Partial<Record<ConnectionOauthAppKey, OauthProviderConfig>>
     localHosts: readonly string[]
+    /** The Slack app's signing secret; without it the Slack channels receive no events. */
+    slackSigningSecret?: string
   }
   setup: { token?: string }
   storage: StorageConfig

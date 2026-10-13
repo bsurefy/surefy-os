@@ -13,8 +13,8 @@ import type { DbExecutor } from '@/core/database/index.js'
 
 export type ChannelRow = typeof agentChannels.$inferSelect
 
-/** What `agent_channel_resolve_token` returns for a widget token. */
-export interface ResolvedWidgetToken {
+/** What the definer functions return for a widget token or an inbound account. */
+export interface ResolvedChannel {
   orgId: string
   agentId: string
   channelId: string
@@ -22,11 +22,36 @@ export interface ResolvedWidgetToken {
   agentStatus: AgentStatus
 }
 
+interface ResolvedRow extends Record<string, unknown> {
+  organization_id: string
+  agent_id: string
+  channel_id: string
+  channel_status: AgentChannelStatus
+  agent_status: AgentStatus
+}
+
+const resolvedOf = (row: ResolvedRow): ResolvedChannel => ({
+  orgId: row.organization_id,
+  agentId: row.agent_id,
+  channelId: row.channel_id,
+  channelStatus: row.channel_status,
+  agentStatus: row.agent_status,
+})
+
 /** The columns a channel route changes. */
 export type ChannelChanges = Partial<
   Pick<
     ChannelRow,
-    'status' | 'config' | 'publicTokenHash' | 'publicTokenPrefix' | 'lastErrorCode' | 'lastActiveAt'
+    | 'status'
+    | 'config'
+    | 'publicTokenHash'
+    | 'publicTokenPrefix'
+    | 'lastErrorCode'
+    | 'lastActiveAt'
+    | 'approvalId'
+    | 'approvedByUserId'
+    | 'connectionId'
+    | 'externalAccountId'
   >
 >
 
@@ -89,9 +114,12 @@ export class AgentChannelsRepository {
       type: Extract<AgentChannelType, 'workspace_chat' | 'api' | 'widget'>
       config: AgentChannelConfig
       requestedByUserId: string | null
-      token?: { hash: Buffer; prefix: string }
+      token?: { hash: Buffer; prefix: string | null }
+      /** `pending_approval` for a Builder's request; `active` by default. */
+      status?: Extract<AgentChannelStatus, 'active' | 'pending_approval'>
     },
   ): Promise<ChannelRow> {
+    const status = values.status ?? 'active'
     const token =
       values.token === undefined
         ? {}
@@ -102,7 +130,7 @@ export class AgentChannelsRepository {
         organizationId: values.orgId,
         agentId: values.agentId,
         type: values.type,
-        status: 'active',
+        status,
         config: values.config,
         requestedByUserId: values.requestedByUserId,
         ...token,
@@ -111,8 +139,11 @@ export class AgentChannelsRepository {
         target: [c.organizationId, c.agentId, c.type],
         targetWhere: sql`${c.type} in ('workspace_chat', 'api', 'widget')`,
         set: {
-          status: 'active',
+          status,
           config: values.config,
+          requestedByUserId: values.requestedByUserId,
+          approvalId: null,
+          approvedByUserId: null,
           lastErrorCode: null,
           updatedAt: new Date(),
           ...token,
@@ -121,6 +152,69 @@ export class AgentChannelsRepository {
       .returning()
     if (row === undefined) throw new Error('channel upsert returned no row')
     return row
+  }
+
+  /** A Slack or WhatsApp channel: an agent may have several, each with its own account. */
+  async insertExternal(
+    tx: DbExecutor,
+    values: {
+      orgId: string
+      agentId: string
+      type: Extract<AgentChannelType, 'slack' | 'whatsapp'>
+      status: Extract<AgentChannelStatus, 'active' | 'pending_approval'>
+      config: AgentChannelConfig
+      connectionId: string
+      externalAccountId: string
+      requestedByUserId: string | null
+    },
+  ): Promise<ChannelRow> {
+    const [row] = await tx
+      .insert(c)
+      .values({
+        organizationId: values.orgId,
+        agentId: values.agentId,
+        type: values.type,
+        status: values.status,
+        config: values.config,
+        connectionId: values.connectionId,
+        externalAccountId: values.externalAccountId.toLowerCase(),
+        requestedByUserId: values.requestedByUserId,
+      })
+      .returning()
+    if (row === undefined) throw new Error('channel insert returned no row')
+    return row
+  }
+
+  /** Any channel of the organization by id (the approval of its publish names only the channel). */
+  async findInOrg(
+    tx: DbExecutor,
+    orgId: string,
+    channelId: string,
+  ): Promise<ChannelRow | undefined> {
+    const [row] = await tx
+      .select()
+      .from(c)
+      .where(and(eq(c.organizationId, orgId), eq(c.id, channelId)))
+      .limit(1)
+    return row
+  }
+
+  /** The Slack and WhatsApp channels that send and receive through a connection. */
+  async listByConnection(
+    tx: DbExecutor,
+    orgId: string,
+    connectionId: string,
+  ): Promise<ChannelRow[]> {
+    return tx
+      .select()
+      .from(c)
+      .where(
+        and(
+          eq(c.organizationId, orgId),
+          eq(c.connectionId, connectionId),
+          sql`${c.status} <> 'disconnected'`,
+        ),
+      )
   }
 
   async update(
@@ -156,25 +250,25 @@ export class AgentChannelsRepository {
   async resolveToken(
     executor: DbExecutor,
     tokenHash: Buffer,
-  ): Promise<ResolvedWidgetToken | undefined> {
-    const result = await executor.execute<{
-      organization_id: string
-      agent_id: string
-      channel_id: string
-      channel_status: AgentChannelStatus
-      agent_status: AgentStatus
-    }>(
+  ): Promise<ResolvedChannel | undefined> {
+    const result = await executor.execute<ResolvedRow>(
       sql`select organization_id, agent_id, channel_id, channel_status, agent_status from agent_channel_resolve_token(${tokenHash})`,
     )
     const row = result.rows[0]
-    if (row === undefined) return
-    return {
-      orgId: row.organization_id,
-      agentId: row.agent_id,
-      channelId: row.channel_id,
-      channelStatus: row.channel_status,
-      agentStatus: row.agent_status,
-    }
+    return row === undefined ? undefined : resolvedOf(row)
+  }
+
+  /** Definer `agent_channel_resolve_external`: the Slack or WhatsApp channel of an account. */
+  async resolveExternal(
+    executor: DbExecutor,
+    type: Extract<AgentChannelType, 'slack' | 'whatsapp'>,
+    account: string,
+  ): Promise<ResolvedChannel | undefined> {
+    const result = await executor.execute<ResolvedRow>(
+      sql`select organization_id, agent_id, channel_id, channel_status, agent_status from agent_channel_resolve_external(${type}, ${account.toLowerCase()})`,
+    )
+    const row = result.rows[0]
+    return row === undefined ? undefined : resolvedOf(row)
   }
 
   /** Every channel of the agent goes `disconnected` and its widget token stops resolving. */

@@ -11,9 +11,10 @@ import { ApprovalsRepository } from './approvals.repository.js'
 import { approvalsRoutes } from './approvals.routes.js'
 import { ApprovalsService } from './approvals.service.js'
 import { ApprovalTimeouts } from './approvals.timeouts.js'
-import { DEFAULT_GUARD, DEFAULT_SUBJECTS } from './approvals.types.js'
+import { DEFAULT_GUARD, DEFAULT_SUBJECTS, NO_REQUESTS } from './approvals.types.js'
 
 import type {
+  ApprovalRequests,
   ApprovalSubjects,
   ApprovalsAccess,
   ApprovalsGuard,
@@ -40,6 +41,8 @@ export interface ApprovalsModuleDeps {
   guard?: ApprovalsGuard
   /** Agent and flow names and access; none until `agents` and `flows` provide them. */
   subjects?: ApprovalSubjects
+  /** The modules behind the request kinds, built after this; nothing else changes without them. */
+  requests?: () => ApprovalRequests
 }
 
 /** Approvals: the queue, decisions with step-up, timeouts, notifications and the resume events. */
@@ -47,6 +50,7 @@ export function createApprovalsModule(deps: ApprovalsModuleDeps) {
   const repository = new ApprovalsRepository()
   const guard = deps.guard ?? DEFAULT_GUARD
   const subjects = deps.subjects ?? DEFAULT_SUBJECTS
+  const requests = deps.requests ?? (() => NO_REQUESTS)
   // events are written through the outbox, which is built after the modules that handle them
   const outbox: ApprovalsOutbox = {
     write: (tx, event) => deps.outbox().write(tx, event),
@@ -69,6 +73,7 @@ export function createApprovalsModule(deps: ApprovalsModuleDeps) {
     users: deps.users,
     audit: deps.audit,
     outbox,
+    requests,
   })
   const timeouts = new ApprovalTimeouts({
     db: deps.db,
@@ -77,6 +82,7 @@ export function createApprovalsModule(deps: ApprovalsModuleDeps) {
     audit: deps.audit,
     outbox,
     logger: deps.logger,
+    requests,
   })
   return {
     /** Guard, the bridge and agent publishing create approvals through `service.create`. */

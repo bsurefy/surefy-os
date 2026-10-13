@@ -143,9 +143,10 @@ describe('getSignInMethods', () => {
 })
 
 describe('getExtraFields', () => {
-  it('asks WhatsApp for both IDs and requires the phone number ID', () => {
+  it('asks WhatsApp for both IDs and the app secret, and requires the number and the secret', () => {
     expect(getExtraFields(provider('whatsapp'))).toEqual([
       { key: 'phoneNumberId', isRequired: true },
+      { key: 'appSecret', isRequired: true },
       { key: 'businessAccountId', isRequired: false },
     ])
     expect(getExtraFields(provider('slack'))).toEqual([])

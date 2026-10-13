@@ -836,6 +836,7 @@
       "extra": {
         "whatsapp": {
           "phoneNumberId": "Phone number ID",
+          "appSecret": "App secret",
           "businessAccountId": "Business account ID"
         }
       }

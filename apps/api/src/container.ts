@@ -210,6 +210,8 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     ...(overrides.approvals?.subjects === undefined
       ? {}
       : { subjects: overrides.approvals.subjects }),
+    // channel publishing is built later: its hook is read when an approval is settled
+    requests: () => channelStore.requests,
   })
   // the vault's repository is shared: member removal revokes personal keys through it
   const vaultRepository = new VaultRepository()
@@ -315,7 +317,13 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   // agents and their templates; channels, dependency edges and runs join as their modules land
   const agentModels = createAgentsModels({ grants: modelGrants, access: access.service })
   const templates = createTemplatesModule({ db, models: agentModels })
-  const channelStore = createChannelStore(users)
+  const channelStore = createChannelStore({
+    db,
+    users,
+    connections: connections.service,
+    approvals: approvals.service,
+    webhooks: { publicUrl: config.api.publicUrl, verifyKey: config.crypto.encryptionKey },
+  })
   const agents = createAgentsModule({
     db,
     teams: teams.service,
@@ -381,6 +389,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     organizations: organizations.service,
     access: access.service,
     audit: audit.service,
+    connections: connections.service,
+    http: connections.http,
+    inbound: {
+      verifyKey: config.crypto.encryptionKey,
+      ...(config.connections.slackSigningSecret === undefined
+        ? {}
+        : { slackSigningSecret: config.connections.slackSigningSecret }),
+    },
     ...(overrides.widgetScript === undefined ? {} : { widgetScript: overrides.widgetScript }),
   })
   const chats = createChatsModule({
@@ -422,6 +438,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       ...approvals.outboxHandlers,
       ...guard.outboxHandlers,
       ...agentRuns.outboxHandlers,
+      ...agentPublishing.outboxHandlers,
     ],
     hooks,
   })

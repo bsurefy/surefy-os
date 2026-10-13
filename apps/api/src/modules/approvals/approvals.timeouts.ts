@@ -5,7 +5,7 @@ import { MIN_ESCALATION_WAIT_MS, SYSTEM_REASON, TIMEOUT_BATCH } from './approval
 import { DEFAULT_ESCALATION } from './approvals.types.js'
 
 import type { ApprovalsRepository } from './approvals.repository.js'
-import type { ApprovalsGuard, ApprovalsOutbox } from './approvals.types.js'
+import type { ApprovalRequests, ApprovalsGuard, ApprovalsOutbox } from './approvals.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
@@ -17,6 +17,7 @@ export interface ApprovalTimeoutsDeps {
   audit: AuditRecorder
   outbox: ApprovalsOutbox
   logger: Logger
+  requests: () => ApprovalRequests
 }
 
 export interface TimeoutRun {
@@ -110,6 +111,7 @@ export class ApprovalTimeouts {
         },
       },
     })
+    await this.deps.requests().settled(tx, ctx, expired, 'expired')
     await this.deps.outbox.write(tx, {
       orgId,
       topic: 'approval.expired',

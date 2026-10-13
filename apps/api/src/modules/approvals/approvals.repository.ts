@@ -166,6 +166,8 @@ export interface DecisionValues {
 
 /** What a cancel by the system matches: the pending approvals of a run, an agent or a flow. */
 export interface CancelScope {
+  /** One request (a removed channel takes back its publish request). */
+  approvalId?: string
   agentRunId?: string
   flowRunId?: string
   agentId?: string
@@ -464,6 +466,7 @@ export class ApprovalsRepository {
   /** The system cancels what a canceled run, an archived agent or a deleted flow left waiting. */
   async cancelPending(tx: DbExecutor, orgId: string, scope: CancelScope): Promise<ApprovalRow[]> {
     const target = or(
+      scope.approvalId === undefined ? undefined : eq(a.id, scope.approvalId),
       scope.agentRunId === undefined ? undefined : eq(a.agentRunId, scope.agentRunId),
       scope.flowRunId === undefined ? undefined : eq(a.flowRunId, scope.flowRunId),
       scope.agentId === undefined ? undefined : eq(a.agentId, scope.agentId),

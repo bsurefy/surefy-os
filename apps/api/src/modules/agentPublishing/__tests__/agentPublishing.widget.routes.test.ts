@@ -283,11 +283,13 @@ describe('widget channels', () => {
       403,
       ERROR_CODES.ACCESS_FORBIDDEN,
     )
-    expectError(
+    // a Builder's channel is a request
+    const requested = expectData(
       await setup.call('bella', 'POST', channelsUrl(agent.id), { type: 'api' }),
-      403,
-      ERROR_CODES.ACCESS_FORBIDDEN,
+      201,
+      agentChannelCreatedDtoSchema,
     )
+    expect(requested.channel.status).toBe('pending_approval')
     const list = expectData(
       await setup.call('adam', 'GET', channelsUrl(agent.id)),
       200,

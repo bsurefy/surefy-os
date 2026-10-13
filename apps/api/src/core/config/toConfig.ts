@@ -121,6 +121,9 @@ export function toConfig(env: Env, processName: ProcessName): Config {
     connections: {
       oauthApps: connectionOauthApps(env),
       localHosts: splitList(env.CONNECTIONS_LOCAL_HOSTS).map((host) => host.toLowerCase()),
+      ...(env.CONNECTIONS_SLACK_SIGNING_SECRET === undefined
+        ? {}
+        : { slackSigningSecret: env.CONNECTIONS_SLACK_SIGNING_SECRET }),
     },
     setup: env.SETUP_TOKEN === undefined ? {} : { token: env.SETUP_TOKEN },
     storage: toStorage(env),

@@ -27,6 +27,8 @@ export const connectionsEnvSchema = z
     CONNECTIONS_OAUTH_NOTION_CLIENT_SECRET: z.string().min(1).optional(),
     CONNECTIONS_OAUTH_SLACK_CLIENT_ID: z.string().min(1).optional(),
     CONNECTIONS_OAUTH_SLACK_CLIENT_SECRET: z.string().min(1).optional(),
+    // the Slack app's signing secret: checks the events Slack delivers to the agents' Slack channels
+    CONNECTIONS_SLACK_SIGNING_SECRET: z.string().min(1).optional(),
     CONNECTIONS_LOCAL_HOSTS: z.string().default(''),
   })
   .superRefine((env, ctx) => {

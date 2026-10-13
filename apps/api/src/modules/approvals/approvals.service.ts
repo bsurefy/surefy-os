@@ -40,6 +40,7 @@ import { resolutionOf } from './approvals.resolution.js'
 import type { ApprovalPresenter } from './approvals.presenter.js'
 import type { ApprovalRow, ApprovalsRepository, CancelScope } from './approvals.repository.js'
 import type {
+  ApprovalRequests,
   ApprovalResolution,
   ApprovalSubjects,
   ApprovalsAccess,
@@ -63,6 +64,8 @@ export interface ApprovalsServiceDeps {
   users: ApprovalsUserRefs
   audit: AuditRecorder
   outbox: ApprovalsOutbox
+  /** The modules behind the request kinds; read late, because they are built after this. */
+  requests: () => ApprovalRequests
   /** The clock; tests pass a fixed one. */
   now?: () => Date
 }
@@ -268,6 +271,7 @@ export class ApprovalsService {
         target: { type: 'approval', id: row.id },
         metadata: { labels: { kind: row.kind, by: 'requester' } },
       })
+      await this.deps.requests().settled(tx, ctx, row, 'canceled')
     })
     return this.get(ctx, approvalId)
   }
@@ -379,6 +383,7 @@ export class ApprovalsService {
         target: { type: 'approval', id: row.id },
         metadata: { labels: { kind: row.kind, by: 'system' } },
       })
+      await this.deps.requests().settled(tx, ctx, row, 'canceled')
     }
     return rows.map((row) => row.id)
   }
@@ -460,6 +465,7 @@ export class ApprovalsService {
       },
       ...(row.confidence === null ? {} : { confidence: row.confidence }),
     })
+    await this.deps.requests().settled(tx, ctx, row, decision.status)
     await this.deps.outbox.write(tx, {
       orgId: ctx.orgId,
       topic: 'approval.decided',

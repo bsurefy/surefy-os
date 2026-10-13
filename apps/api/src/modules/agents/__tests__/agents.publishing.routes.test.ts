@@ -15,6 +15,7 @@ import {
   agentVersionDtoSchema,
   AGENTS_ERROR_CODES,
   connectionDtoSchema,
+  CONNECTIONS_ERROR_CODES,
   ERROR_CODES,
 } from '@surefy/contracts'
 import type { AgentDefinition, AgentReadinessItemKey, AgentTool } from '@surefy/contracts'
@@ -432,16 +433,22 @@ describe('publishing', () => {
     expect(result.version.version).toBe(2)
   })
 
-  it('does not create an external channel without the channel module, and rolls the publish back', async () => {
+  it('rolls the publish back when a channel cannot be turned on', async () => {
     const setup = await setupAgents()
     const agent = await setup.create('bella')
     expectError(
-      await setup.call('bella', 'POST', `/${agent.id}/publish`, {
+      await setup.call('adam', 'POST', `/${agent.id}/publish`, {
         baseRevision: agent.draft.revision,
-        channels: [{ type: 'api' }],
+        channels: [
+          {
+            type: 'slack',
+            connectionId: '0198f2c0-0000-7000-8000-00000000c0de',
+            config: { channelIds: [], respondTo: 'mentions' },
+          },
+        ],
       }),
-      422,
-      ERROR_CODES.VALIDATION_FAILED,
+      404,
+      CONNECTIONS_ERROR_CODES.CONNECTION_NOT_FOUND,
     )
     expect(await versionRows(setup, agent.id)).toEqual([])
     expect(await rowOf(setup, agent.id)).toMatchObject({ status: 'draft' })

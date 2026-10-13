@@ -95,7 +95,9 @@ describe('checks', () => {
     http.on('api.notion.com/v1/users/me', {
       body: { bot: { workspace_name: 'Acme Notes', workspace_id: 'w-1' } },
     })
-    http.on('slack.com/api/auth.test', { body: { ok: true, team: 'Acme Slack', team_id: 'T1' } })
+    http.on('slack.com/api/auth.test', {
+      body: { ok: true, team: 'Acme Slack', team_id: 'T1', user_id: 'U0BOT' },
+    })
     expect(await check('google-drive', { accessToken: 'x' })).toMatchObject({
       ok: true,
       account: { id: 'p-1', label: 'maya@acme.com' },
@@ -106,7 +108,7 @@ describe('checks', () => {
     })
     expect(await check('slack', { accessToken: 'x' })).toMatchObject({
       ok: true,
-      account: { id: 'T1', label: 'Acme Slack' },
+      account: { id: 'T1/U0BOT', label: 'Acme Slack' },
     })
   })
 

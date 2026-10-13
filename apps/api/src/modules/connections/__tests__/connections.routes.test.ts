@@ -38,7 +38,7 @@ const whatsapp = (extra: Record<string, unknown> = {}) => ({
   providerKey: 'whatsapp',
   authType: 'bearer',
   secret: 'test-whatsapp-whatsapp-token',
-  extra: { phoneNumberId: '105500112233' },
+  extra: { phoneNumberId: '105500112233', appSecret: 'meta-app-secret' },
   scope: 'personal',
   ...extra,
 })
@@ -427,7 +427,7 @@ describe('who sees which connections', () => {
     expect(byKey('google-drive')).toMatchObject({ oauthConfigured: false, oauthFlows: [] })
     expect(byKey('whatsapp')).toMatchObject({
       connectionCount: 1,
-      requiredExtra: ['phoneNumberId'],
+      requiredExtra: ['phoneNumberId', 'appSecret'],
     })
     // client credentials need no app registered at the install
     expect(byKey('http')).toMatchObject({

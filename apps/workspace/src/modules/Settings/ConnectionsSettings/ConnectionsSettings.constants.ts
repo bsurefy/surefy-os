@@ -87,8 +87,11 @@ export const SIGN_IN_METHOD_ORDER: readonly SignInMethod[] = [
  * business account ID next to the phone number ID). Required ones come from `requiredExtra`.
  */
 export const PROVIDER_EXTRA_FIELDS: Readonly<Record<string, readonly string[]>> = {
-  whatsapp: ['phoneNumberId', 'businessAccountId'],
+  whatsapp: ['phoneNumberId', 'appSecret', 'businessAccountId'],
 }
+
+/** Extra fields that hold a secret: typed into a masked field. */
+export const SECRET_EXTRA_FIELDS: ReadonlySet<string> = new Set(['appSecret'])
 
 /** API tools and MCP servers share one group of cards: "Tools". */
 export const PROVIDER_GROUP_OF_KIND: Record<ConnectionKind, 'knowledge' | 'channels' | 'tools'> = {

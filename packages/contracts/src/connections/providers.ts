@@ -87,7 +87,8 @@ export const BUILT_IN_CONNECTION_PROVIDERS = [
     authTypes: ['bearer'],
     oauthFlows: [],
     requiresBaseUrl: false,
-    requiredExtra: ['phoneNumberId'],
+    // the app secret checks the signature of the events Meta delivers
+    requiredExtra: ['phoneNumberId', 'appSecret'],
   },
   {
     key: 'http',

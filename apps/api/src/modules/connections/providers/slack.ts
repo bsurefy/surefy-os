@@ -88,10 +88,16 @@ export const slack: ProviderAdapter = {
             latencyMs: result.latencyMs,
           }
         }
+        // the workspace and the app's bot user in it: an agent's Slack channel is routed by both
+        const team = asString(body.team_id)
+        const bot = asString(body.user_id)
         return {
           ok: true,
           latencyMs: result.latencyMs,
-          account: { id: asString(body.team_id), label: asString(body.team) },
+          account: {
+            id: team === null || bot === null ? team : `${team}/${bot}`,
+            label: asString(body.team),
+          },
         }
       },
     ),

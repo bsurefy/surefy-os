@@ -267,6 +267,13 @@
       "when": 1791823821831,
       "tag": "0037_agent-channels-widget-token",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791829204014,
+      "tag": "0038_agent-channels-external",
+      "breakpoints": true
     }
   ]
 }

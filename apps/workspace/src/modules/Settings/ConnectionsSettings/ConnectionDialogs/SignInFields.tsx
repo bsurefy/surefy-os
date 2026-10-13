@@ -14,7 +14,7 @@ import {
 } from '@surefy/ui/primitives/form'
 import { Input } from '@surefy/ui/primitives/input'
 
-import { SIGN_IN_METHOD } from '../ConnectionsSettings.constants'
+import { SECRET_EXTRA_FIELDS, SIGN_IN_METHOD } from '../ConnectionsSettings.constants'
 
 import type { SignInMethod } from '../ConnectionsSettings.constants'
 import type { ExtraField, SignInValues } from '../ConnectionsSettings.schema'
@@ -145,7 +145,11 @@ export default function SignInFields({
                   {isRequired ? '' : ` ${t('optionalSuffix')}`}
                 </FormLabel>
                 <FormControl>
-                  <Input autoComplete="off" {...field} />
+                  <Input
+                    type={SECRET_EXTRA_FIELDS.has(key) ? 'password' : 'text'}
+                    autoComplete="off"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

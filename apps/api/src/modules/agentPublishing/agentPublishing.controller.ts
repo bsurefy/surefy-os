@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { NotFoundError } from '@/core/errors/index.js'
 import { resumePoint } from '@/modules/agentRuns/index.js'
-import { ERROR_CODES, WIDGET_CONVERSATION_HEADER, WIDGET_TOKEN_HEADER } from '@surefy/contracts'
+import {
+  ERROR_CODES,
+  SLACK_SIGNATURE_HEADER,
+  SLACK_TIMESTAMP_HEADER,
+  WHATSAPP_SIGNATURE_HEADER,
+  WIDGET_CONVERSATION_HEADER,
+  WIDGET_TOKEN_HEADER,
+} from '@surefy/contracts'
 
 import { ChannelRateLimitedError } from './agentPublishing.errors.js'
 
 import type { ApiChannel } from './agentPublishing.api.js'
+import type { InboundChannels } from './agentPublishing.inbound.js'
 import type { ChannelManager } from './agentPublishing.manage.js'
 import type {
   createChannelRoute,
@@ -15,8 +23,11 @@ import type {
   resumeChannelRoute,
   rotateChannelTokenRoute,
   sendWidgetMessageRoute,
+  slackEventsRoute,
   startPublicRunRoute,
   updateChannelRoute,
+  whatsappEventsRoute,
+  whatsappVerifyRoute,
   widgetConfigRoute,
   widgetRunEventsRoute,
 } from './agentPublishing.schema.js'
@@ -196,3 +207,47 @@ export class WidgetController {
     return reply.type('text/javascript; charset=utf-8').send(script.body)
   }
 }
+
+/** Slack and WhatsApp deliveries: raw bodies, provider signatures, an answer at once. */
+export class ChannelWebhooksController {
+  constructor(private readonly inbound: InboundChannels) {}
+
+  slack = async (
+    request: ZodRequest<typeof slackEventsRoute>,
+    reply: ZodReply<typeof slackEventsRoute>,
+  ) => {
+    const answer = await this.inbound.slack({
+      body: rawBody(request.body),
+      signature: request.headers[SLACK_SIGNATURE_HEADER],
+      timestamp: request.headers[SLACK_TIMESTAMP_HEADER],
+    })
+    if (answer === null) return raw(reply).status(200).send()
+    return raw(reply).status(200).type('text/plain; charset=utf-8').send(answer.challenge)
+  }
+
+  whatsappVerify = async (
+    request: ZodRequest<typeof whatsappVerifyRoute>,
+    reply: ZodReply<typeof whatsappVerifyRoute>,
+  ) => {
+    const { query } = request
+    const challenge = this.inbound.whatsappVerify({
+      ...(query['hub.mode'] === undefined ? {} : { mode: query['hub.mode'] }),
+      ...(query['hub.verify_token'] === undefined ? {} : { token: query['hub.verify_token'] }),
+      ...(query['hub.challenge'] === undefined ? {} : { challenge: query['hub.challenge'] }),
+    })
+    return raw(reply).status(200).type('text/plain; charset=utf-8').send(challenge)
+  }
+
+  whatsapp = async (
+    request: ZodRequest<typeof whatsappEventsRoute>,
+    reply: ZodReply<typeof whatsappEventsRoute>,
+  ) => {
+    await this.inbound.whatsapp({
+      body: rawBody(request.body),
+      signature: request.headers[WHATSAPP_SIGNATURE_HEADER],
+    })
+    return raw(reply).status(200).send()
+  }
+}
+
+const rawBody = (body: unknown): Buffer => (Buffer.isBuffer(body) ? body : Buffer.alloc(0))

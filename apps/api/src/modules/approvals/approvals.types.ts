@@ -207,3 +207,22 @@ export interface ApprovalResolution {
   agentRunId: string | null
   decidedAt: Date | null
 }
+
+/** How a request ended, for the module that owns what was requested. */
+export type ApprovalRequestOutcome = 'approved' | 'rejected' | 'canceled' | 'expired'
+
+/**
+ * The module behind a request kind (a channel publish, a bridge install) applies the outcome to
+ * its own row in the same transaction as the decision, the withdrawal, the cancel or the expiry.
+ */
+export interface ApprovalRequests {
+  settled(
+    tx: DbExecutor,
+    ctx: Pick<ApprovalsContext, 'orgId' | 'userId'>,
+    approval: ApprovalRow,
+    outcome: ApprovalRequestOutcome,
+  ): Promise<void>
+}
+
+/** Until a module handles its request kinds, an outcome changes nothing else. */
+export const NO_REQUESTS: ApprovalRequests = { settled: () => Promise.resolve() }

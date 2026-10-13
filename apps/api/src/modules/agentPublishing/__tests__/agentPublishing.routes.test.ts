@@ -75,14 +75,17 @@ describe('publishing to the API channel', () => {
     })
   })
 
-  it('refuses channels that need an approval or an adapter that does not exist yet', async () => {
+  it('makes a Builder’s API channel a request that waits for an Admin', async () => {
     const setup = await setupAgents()
     const agent = await setup.create('bella')
-    const response = await setup.call('bella', 'POST', `/${agent.id}/publish`, {
+    const result = await setup.publish('bella', agent.id, {
       baseRevision: agent.draft.revision,
       channels: [{ type: 'api' }],
     })
-    expectError(response, 422, ERROR_CODES.VALIDATION_FAILED)
+    const api = result.channels.find((channel) => channel.type === 'api')
+    expect(api).toMatchObject({ status: 'pending_approval' })
+    expect(api?.approvalId).not.toBeNull()
+    expect(result.agent.approvalsWaiting).toBe(1)
   })
 })
 

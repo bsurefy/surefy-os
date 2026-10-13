@@ -43,7 +43,10 @@ describe('connection providers', () => {
       expect(flows.length > 0).toBe(oauth.includes('oauth2'))
     }
     expect(findBuiltInConnectionProvider('mcp')?.requiresBaseUrl).toBe(true)
-    expect(findBuiltInConnectionProvider('whatsapp')?.requiredExtra).toEqual(['phoneNumberId'])
+    expect(findBuiltInConnectionProvider('whatsapp')?.requiredExtra).toEqual([
+      'phoneNumberId',
+      'appSecret',
+    ])
     expect(findBuiltInConnectionProvider('unknown')).toBeUndefined()
   })
 })

@@ -3,6 +3,8 @@ export { createApprovalsModule, type ApprovalsModule } from './approvals.module.
 export { APPROVALS_JOBS, TIMEOUTS_EVERY_MS } from './approvals.constants.js'
 export type {
   ApprovalLimits,
+  ApprovalRequestOutcome,
+  ApprovalRequests,
   ApprovalResolution,
   ApprovalSubjects,
   ApprovalsContext,

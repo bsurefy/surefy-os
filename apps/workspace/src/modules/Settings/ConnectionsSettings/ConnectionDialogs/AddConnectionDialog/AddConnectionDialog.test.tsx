@@ -244,18 +244,20 @@ describe('AddConnectionDialog', () => {
     expect(within(signIn).getByText("You won't be able to see this again.")).toBeVisible()
   })
 
-  it('asks WhatsApp for the phone number ID and the business account ID', async () => {
+  it('asks WhatsApp for the phone number ID, the app secret and the business account ID', async () => {
     const { user } = renderConnections()
     const dialog = await openAdd(user)
     await user.click(await within(dialog).findByRole('button', { name: 'WhatsApp' }))
     const signIn = await screen.findByRole('dialog', { name: 'Connect WhatsApp' })
     expect(within(signIn).getByLabelText('Phone number ID')).toBeVisible()
+    expect(within(signIn).getByLabelText('App secret')).toHaveAttribute('type', 'password')
     expect(within(signIn).getByLabelText('Business account ID (optional)')).toBeVisible()
     await user.type(within(signIn).getByLabelText('Name'), 'Support line')
     await user.type(within(signIn).getByLabelText('Token'), 'EAAG-token-1234')
     await user.click(within(signIn).getByRole('button', { name: 'Next' }))
-    expect(await within(signIn).findByText('This field is required.')).toBeVisible()
+    expect(await within(signIn).findAllByText('This field is required.')).toHaveLength(2)
     await user.type(within(signIn).getByLabelText('Phone number ID'), '1055')
+    await user.type(within(signIn).getByLabelText('App secret'), 'meta-app-secret')
     await user.click(within(signIn).getByRole('button', { name: 'Next' }))
     expect(await screen.findByRole('radiogroup', { name: 'Who can use it' })).toBeVisible()
   })

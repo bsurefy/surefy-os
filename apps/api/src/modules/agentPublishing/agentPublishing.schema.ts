@@ -14,7 +14,10 @@ import {
   publicRunInputSchema,
   publicRunParamsSchema,
   sendWidgetMessageInputSchema,
+  SLACK_SIGNATURE_HEADER,
+  SLACK_TIMESTAMP_HEADER,
   updateAgentChannelInputSchema,
+  WHATSAPP_SIGNATURE_HEADER,
   WIDGET_CONVERSATION_HEADER,
   WIDGET_TOKEN_HEADER,
   widgetConfigDtoSchema,
@@ -123,4 +126,34 @@ export const widgetRunEventsRoute = {
     'last-event-id': z.string().max(100).optional(),
   }),
   params: widgetRunParamsSchema,
+}
+
+// ── Slack and WhatsApp (public) ─────────────────────────────────────────────────────────────────
+
+const CHANNEL_WEBHOOK_TAGS = ['agent channel webhooks']
+
+/** The body stays raw bytes: the signature is over them. */
+export const slackEventsRoute = {
+  tags: CHANNEL_WEBHOOK_TAGS,
+  summary: "Slack's events for the agents' Slack channels (signed with the Slack app's secret)",
+  headers: z.object({
+    [SLACK_SIGNATURE_HEADER]: z.string().max(200).optional(),
+    [SLACK_TIMESTAMP_HEADER]: z.string().max(20).optional(),
+  }),
+}
+
+export const whatsappVerifyRoute = {
+  tags: CHANNEL_WEBHOOK_TAGS,
+  summary: "Meta's webhook set-up check for a WhatsApp channel (the channel's verify token)",
+  querystring: z.object({
+    'hub.mode': z.string().max(50).optional(),
+    'hub.verify_token': z.string().max(200).optional(),
+    'hub.challenge': z.string().max(200).optional(),
+  }),
+}
+
+export const whatsappEventsRoute = {
+  tags: CHANNEL_WEBHOOK_TAGS,
+  summary: "WhatsApp's messages for the agents' WhatsApp channels (signed with the app secret)",
+  headers: z.object({ [WHATSAPP_SIGNATURE_HEADER]: z.string().max(200).optional() }),
 }
