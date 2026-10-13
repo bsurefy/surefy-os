@@ -2,5 +2,5 @@
 // The Insights module: usage and cost, runs and the approvals queue.
 export { ApprovalDetail, default as Approvals } from './Approvals'
 export { default as InsightsOverview } from './InsightsOverview'
-export { default as Runs } from './Runs'
+export { default as Runs, RunDetail } from './Runs'
 export { commands } from './Insights.commands'

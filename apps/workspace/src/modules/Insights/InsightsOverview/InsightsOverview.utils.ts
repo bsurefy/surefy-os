@@ -5,14 +5,24 @@ import type {
   InsightsBreakdownDto,
   InsightsCostDto,
   InsightsInterval,
+  InsightsRunsInterval,
+  InsightsRunsTimeseriesDto,
   InsightsTimeseriesDto,
 } from '@surefy/contracts'
 import type { ChartDatum } from '@surefy/ui/components/DataDisplay'
 
-import { MICROS_PER_UNIT, RANGE_DAYS } from './InsightsOverview.constants'
+import {
+  BASIS_POINTS,
+  MICROS_PER_UNIT,
+  MS_PER_MINUTE,
+  MS_PER_SECOND,
+  RANGE_DAYS,
+  RUNS_DAILY_MAX_DAYS,
+  RUNS_INTERVALS,
+} from './InsightsOverview.constants'
 
 import type { CostGroup, InsightsOverviewFilters } from './InsightsOverview.types'
-import type { InsightsQuery } from '@/api/usage'
+import type { InsightsBudgetMeterQuery, InsightsQuery, InsightsRunsQuery } from '@/api/usage'
 
 const DAY_MS = 86_400_000
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/
@@ -99,15 +109,45 @@ export function toInsightsQuery(
     ...(filters.team ? { teamId: filters.team } : {}),
     ...(filters.person ? { userId: filters.person } : {}),
     ...(filters.model ? { modelKey: filters.model } : {}),
+    ...(filters.agent ? { agentId: filters.agent } : {}),
   }
 }
+
+/** The run reads: run rollups have no team, person or model, so only the agent filter applies. */
+export function toRunsQuery(query: InsightsQuery): InsightsRunsQuery {
+  return {
+    from: query.from,
+    to: query.to,
+    timeZone: query.timeZone,
+    ...(query.agentId ? { agentId: query.agentId } : {}),
+  }
+}
+
+/** Days for up to four months, weeks for longer ranges. */
+export const runsIntervalFor = (query: InsightsRunsQuery): InsightsRunsInterval =>
+  (Date.parse(query.to) - Date.parse(query.from)) / DAY_MS > RUNS_DAILY_MAX_DAYS
+    ? RUNS_INTERVALS.long
+    : RUNS_INTERVALS.short
+
+/** The budget of the person filter, else of the team filter, else the organization's. */
+export function toBudgetMeterQuery(
+  filters: Pick<InsightsOverviewFilters, 'team' | 'person'>,
+): InsightsBudgetMeterQuery {
+  if (filters.person) return { userId: filters.person }
+  if (filters.team) return { teamId: filters.team }
+  return {}
+}
+
+/** Filters the run numbers ignore. */
+export const hasUsageOnlyFilters = (filters: InsightsOverviewFilters): boolean =>
+  Boolean(filters.team ?? filters.person ?? filters.model)
 
 /** Hours for a single day, days for anything longer. */
 export const intervalFor = (query: InsightsQuery): InsightsInterval =>
   defaultInsightsInterval(query)
 
 export const hasActiveFilters = (filters: InsightsOverviewFilters): boolean =>
-  Boolean(filters.team ?? filters.person ?? filters.model)
+  Boolean(filters.team ?? filters.person ?? filters.model ?? filters.agent)
 
 /** Micros across currencies; ranges almost always hold one currency. */
 export const costMicrosOf = (cost: InsightsCostDto): number =>
@@ -156,12 +196,31 @@ export const toTokenData = (series: InsightsTimeseriesDto): ChartDatum[] =>
     output: point.outputTokens,
   }))
 
+/** Runs per bucket by outcome; "needed a person" overlaps the other two, so bars sit side by side. */
+export const toRunsData = (series: InsightsRunsTimeseriesDto): ChartDatum[] =>
+  series.points.map((point) => ({
+    start: point.start,
+    succeeded: point.succeeded,
+    neededHuman: point.neededHuman,
+    failed: point.failed,
+  }))
+
+export const basisPointsToShare = (bp: number): number => bp / BASIS_POINTS
+
+/** A duration as a number and its unit: 420 ms, 6.4 s, 2.5 min. */
+export function splitDuration(ms: number): { unit: 'ms' | 's' | 'min'; value: number } {
+  if (ms < MS_PER_SECOND) return { unit: 'ms', value: Math.round(ms) }
+  if (ms < MS_PER_MINUTE) return { unit: 's', value: ms / MS_PER_SECOND }
+  return { unit: 'min', value: ms / MS_PER_MINUTE }
+}
+
 /** The `usage_csv` export of what is on screen: the range, the time zone and the filters. */
 export function toExportParams(query: InsightsQuery): ExportParams {
   const filters: Record<string, string[]> = {}
   if (query.teamId) filters.teamId = [query.teamId]
   if (query.userId) filters.userId = [query.userId]
   if (query.modelKey) filters.modelKey = [query.modelKey]
+  if (query.agentId) filters.agentId = [query.agentId]
   return {
     version: 1,
     format: 'csv',

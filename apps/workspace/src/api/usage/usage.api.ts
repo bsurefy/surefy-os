@@ -3,8 +3,12 @@ import type {
   InsightsBreakdownDimension,
   InsightsBreakdownDto,
   InsightsBreakdownSort,
+  InsightsBudgetMeterDto,
   InsightsInterval,
   InsightsOverviewDto,
+  InsightsRunsInterval,
+  InsightsRunsOverviewDto,
+  InsightsRunsTimeseriesDto,
   InsightsTimeseriesDto,
   UsageSourceModule,
 } from '@surefy/contracts'
@@ -23,6 +27,7 @@ export interface InsightsQuery {
   userId?: string
   modelKey?: string
   sourceModule?: UsageSourceModule
+  agentId?: string
 }
 
 export interface InsightsBreakdownQuery extends InsightsQuery {
@@ -35,7 +40,25 @@ export interface InsightsTimeseriesQuery extends InsightsQuery {
   interval: InsightsInterval
 }
 
-/** Insights › Overview: KPIs, cost by group and the series over time. */
+/** The run reads take the range and the agent only: run rollups have no team, person or model. */
+export interface InsightsRunsQuery {
+  from: string
+  to: string
+  timeZone: string
+  agentId?: string
+}
+
+export interface InsightsRunsTimeseriesQuery extends InsightsRunsQuery {
+  interval: InsightsRunsInterval
+}
+
+/** One team or one person picks their budget; neither picks the organization budget. */
+export interface InsightsBudgetMeterQuery {
+  teamId?: string
+  userId?: string
+}
+
+/** Insights › Overview: KPIs, cost by group, the series over time, runs and the budget meter. */
 export const usageApi = {
   overview: (http: HttpClient, orgId: string, query: InsightsQuery, signal?: AbortSignal) =>
     http.get<InsightsOverviewDto>(`/orgs/${orgId}/insights/overview`, {
@@ -59,6 +82,31 @@ export const usageApi = {
     signal?: AbortSignal,
   ) =>
     http.get<InsightsTimeseriesDto>(`/orgs/${orgId}/insights/timeseries`, {
+      params: { ...query },
+      signal,
+    }),
+  runsOverview: (http: HttpClient, orgId: string, query: InsightsRunsQuery, signal?: AbortSignal) =>
+    http.get<InsightsRunsOverviewDto>(`/orgs/${orgId}/insights/runs-overview`, {
+      params: { ...query },
+      signal,
+    }),
+  runsTimeseries: (
+    http: HttpClient,
+    orgId: string,
+    query: InsightsRunsTimeseriesQuery,
+    signal?: AbortSignal,
+  ) =>
+    http.get<InsightsRunsTimeseriesDto>(`/orgs/${orgId}/insights/runs-timeseries`, {
+      params: { ...query },
+      signal,
+    }),
+  budgetMeter: (
+    http: HttpClient,
+    orgId: string,
+    query: InsightsBudgetMeterQuery,
+    signal?: AbortSignal,
+  ) =>
+    http.get<InsightsBudgetMeterDto>(`/orgs/${orgId}/insights/budget-meter`, {
       params: { ...query },
       signal,
     }),

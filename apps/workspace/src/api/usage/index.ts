@@ -8,5 +8,12 @@ export {
 } from './budgets.mutations'
 export { budgetKeys, budgetQueries } from './budgets.queries'
 export { usageApi } from './usage.api'
-export type { InsightsBreakdownQuery, InsightsQuery, InsightsTimeseriesQuery } from './usage.api'
+export type {
+  InsightsBreakdownQuery,
+  InsightsBudgetMeterQuery,
+  InsightsQuery,
+  InsightsRunsQuery,
+  InsightsRunsTimeseriesQuery,
+  InsightsTimeseriesQuery,
+} from './usage.api'
 export { usageKeys, usageQueries } from './usage.queries'

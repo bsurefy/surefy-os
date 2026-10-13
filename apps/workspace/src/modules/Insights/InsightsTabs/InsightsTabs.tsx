@@ -21,7 +21,10 @@ export default function InsightsTabs({ active }: Readonly<{ active: InsightsTabV
   const { data: access } = useEffectiveAccess()
 
   const visible = INSIGHTS_TABS.filter(
-    (tab) => tab.released && access && hasPermission(access, tab.permission),
+    (tab) =>
+      tab.released &&
+      access &&
+      tab.anyPermission.some((permission) => hasPermission(access, permission)),
   )
   // a single tab is no navigation
   if (visible.length < 2) return null

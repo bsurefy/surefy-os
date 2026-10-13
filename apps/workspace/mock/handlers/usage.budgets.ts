@@ -154,6 +154,21 @@ export function resetBudgetsMock(): void {
   budgets = seedBudgets()
 }
 
+/**
+ * The meter of the enabled budget of the `teamId` or `userId` in the query, or of the
+ * organization without either; null when that scope has none. Insights' budget meter reads it.
+ */
+export function budgetMeterFor(query: URLSearchParams): BudgetDto['meter'] {
+  const teamId = query.get('teamId')
+  const userId = query.get('userId')
+  const matches = (budget: BudgetDto) => {
+    if (teamId) return budget.team?.id === teamId
+    if (userId) return budget.user?.id === userId
+    return budget.scope === 'organization'
+  }
+  return budgets.find((budget) => budget.isEnabled && matches(budget))?.meter ?? null
+}
+
 const SCOPE_ORDER: Record<BudgetScope, number> = { organization: 0, team: 1, user: 2 }
 const nameOf = (budget: BudgetDto) => budget.team?.name ?? budget.user?.name ?? ''
 const sameTarget = (budget: BudgetDto, target: BudgetTarget) =>

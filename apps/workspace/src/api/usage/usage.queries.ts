@@ -6,7 +6,14 @@ import type { HttpClient } from '@surefy/web-core/http'
 
 import { usageApi } from './usage.api'
 
-import type { InsightsBreakdownQuery, InsightsQuery, InsightsTimeseriesQuery } from './usage.api'
+import type {
+  InsightsBreakdownQuery,
+  InsightsBudgetMeterQuery,
+  InsightsQuery,
+  InsightsRunsQuery,
+  InsightsRunsTimeseriesQuery,
+  InsightsTimeseriesQuery,
+} from './usage.api'
 
 /** Query keys of the `usage` domain (services-api.md §3): usage and cost for Insights. */
 export const usageKeys = {
@@ -17,6 +24,12 @@ export const usageKeys = {
     [...usageKeys.all(orgId), 'breakdown', query] as const,
   timeseries: (orgId: string, query: InsightsTimeseriesQuery) =>
     [...usageKeys.all(orgId), 'timeseries', query] as const,
+  runsOverview: (orgId: string, query: InsightsRunsQuery) =>
+    [...usageKeys.all(orgId), 'runs-overview', query] as const,
+  runsTimeseries: (orgId: string, query: InsightsRunsTimeseriesQuery) =>
+    [...usageKeys.all(orgId), 'runs-timeseries', query] as const,
+  budgetMeter: (orgId: string, query: InsightsBudgetMeterQuery) =>
+    [...usageKeys.all(orgId), 'budget-meter', query] as const,
 }
 
 // `http` defaults to the browser client; server components pass getServerHttpClient().
@@ -38,6 +51,28 @@ export const usageQueries = {
     queryOptions({
       queryKey: usageKeys.timeseries(orgId, query),
       queryFn: ({ signal }) => usageApi.timeseries(http, orgId, query, signal),
+      placeholderData: keepPreviousData,
+    }),
+  runsOverview: (orgId: string, query: InsightsRunsQuery, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: usageKeys.runsOverview(orgId, query),
+      queryFn: ({ signal }) => usageApi.runsOverview(http, orgId, query, signal),
+      placeholderData: keepPreviousData,
+    }),
+  runsTimeseries: (
+    orgId: string,
+    query: InsightsRunsTimeseriesQuery,
+    http: HttpClient = apiClient,
+  ) =>
+    queryOptions({
+      queryKey: usageKeys.runsTimeseries(orgId, query),
+      queryFn: ({ signal }) => usageApi.runsTimeseries(http, orgId, query, signal),
+      placeholderData: keepPreviousData,
+    }),
+  budgetMeter: (orgId: string, query: InsightsBudgetMeterQuery, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: usageKeys.budgetMeter(orgId, query),
+      queryFn: ({ signal }) => usageApi.budgetMeter(http, orgId, query, signal),
       placeholderData: keepPreviousData,
     }),
 }

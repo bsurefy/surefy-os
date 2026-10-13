@@ -37,6 +37,12 @@ describe('InsightsTabs', () => {
     expect(screen.queryByRole('link', { name: 'Runs' })).not.toBeInTheDocument()
   })
 
+  it('gives Builders the overview of their agents', async () => {
+    renderTabs('builder')
+    await screen.findByRole('navigation', { name: 'Insights sections' })
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeVisible()
+  })
+
   it('shows no bar to an approver who may not read the usage numbers', () => {
     renderTabs('user')
     expect(screen.queryByRole('navigation', { name: 'Insights sections' })).not.toBeInTheDocument()

@@ -7,11 +7,12 @@
   },
   "overview": {
     "title": "Insights",
-    "description": "AI usage and cost in your organization, by team, person and model.",
+    "description": "AI usage, cost and agent runs in your organization, by team, person, agent and model.",
     "empty": {
       "title": "Usage appears after the first chat",
       "description": "Messages, tokens and cost show here once people start chatting.",
-      "action": "Start a chat"
+      "action": "Start a chat",
+      "createAgent": "Create an agent"
     },
     "filters": {
       "range": "Date range",
@@ -34,6 +35,10 @@
       "anyPerson": "All people",
       "personSearch": "Search people",
       "personEmpty": "No people found",
+      "agent": "Agent",
+      "anyAgent": "All agents",
+      "agentSearch": "Search agents",
+      "agentEmpty": "No agents found",
       "model": "Model",
       "anyModel": "All models",
       "modelSearch": "Search models",
@@ -49,6 +54,44 @@
       "restricted": "Restricted",
       "loadError": "Couldn't load the key numbers"
     },
+    "runKpis": {
+      "label": "Agent runs",
+      "runs": "Runs",
+      "successRate": "Success rate",
+      "averageDuration": "Average duration",
+      "approvalsByPeople": "Approvals by people",
+      "approvalsDetail": "{approved} approved · {rejected} rejected",
+      "duration": {
+        "ms": "{value} ms",
+        "s": "{value} s",
+        "min": "{value} min"
+      },
+      "restricted": "Restricted",
+      "unavailable": "Unavailable",
+      "loadError": "Couldn't load the run numbers",
+      "scope": "Run numbers follow the date range and the agent filter only."
+    },
+    "budget": {
+      "title": "Budget this month · {scope}",
+      "scopes": {
+        "organization": "Organization",
+        "team": "Team",
+        "person": "Person"
+      },
+      "value": "{spent} of {amount} · {percent}",
+      "resets": "Starts again on {date}",
+      "reached": {
+        "notify_only": "Reached · alerts were sent and calls go on until {date}",
+        "switch_to_local": "Reached · calls use local models until {date}",
+        "pause_cloud_models": "Reached · cloud models are paused until {date}"
+      },
+      "capped": "capped by the organization budget of {amount}",
+      "none": "No budget",
+      "setOne": "Set one in Settings",
+      "manage": "Manage budgets",
+      "restricted": "Restricted",
+      "loadError": "Couldn't load the budget"
+    },
     "dataThrough": "Includes usage up to {time}",
     "unpriced": {
       "title": "Some costs are missing",
@@ -62,23 +105,26 @@
       "error": "This chart couldn't load"
     },
     "cost": {
-      "title": "Cost by {by, select, team {team} person {person} other {model}}",
+      "title": "Cost by {by, select, team {team} person {person} agent {agent} other {model}}",
       "description": "Total {total} in the selected range.",
       "groupBy": "Group cost by",
       "dimensions": {
         "team": "Team",
         "person": "Person",
-        "model": "Model"
+        "model": "Model",
+        "agent": "Agent"
       },
-      "label": "Cost per {by, select, team {team} person {person} other {model}}",
+      "label": "Cost per {by, select, team {team} person {person} agent {agent} other {model}}",
       "empty": "No cost in this range.",
       "series": "Cost",
       "tokens": "Tokens",
       "requests": "Requests",
       "noTeam": "No team",
       "noPerson": "API keys and channels",
+      "noAgent": "Chat and knowledge",
       "deletedTeam": "Deleted team",
       "formerMember": "Former member",
+      "deletedAgent": "Deleted agent",
       "others": "Others ({count})",
       "local": "$0 · on your hardware",
       "filterBy": "Show only {label}",
@@ -91,6 +137,17 @@
       "output": "Output",
       "period": "Period",
       "empty": "No tokens in this range."
+    },
+    "runsChart": {
+      "title": "Runs over time",
+      "description": "Finished runs by outcome. A run that needed a person also counts as succeeded or failed.",
+      "label": "Runs per {interval, select, day {day} week {week} other {month}}",
+      "succeeded": "Succeeded",
+      "neededHuman": "Needed a person",
+      "failed": "Failed",
+      "period": "Period",
+      "empty": "No finished runs in this range.",
+      "seeRuns": "See runs"
     },
     "export": {
       "open": "Export CSV",
@@ -116,10 +173,207 @@
   },
   "runs": {
     "title": "Runs",
-    "description": "Every agent run, with status, cost and duration.",
+    "description": "Every agent run, with its status, cost and duration.",
     "empty": {
       "title": "No runs yet",
-      "description": "Runs appear here once agents are used."
+      "description": "Runs appear here once agents answer in chat, through the API or on a channel.",
+      "createAgent": "Create an agent"
+    },
+    "noResults": {
+      "title": "No runs match",
+      "description": "Try other filters or search words.",
+      "clear": "Clear filters"
+    },
+    "search": {
+      "label": "Search runs",
+      "placeholder": "Run ID, agent or person"
+    },
+    "filters": {
+      "status": "Status",
+      "trigger": "Started from",
+      "agent": "Agent",
+      "team": "Team",
+      "model": "Model",
+      "range": "Started",
+      "neededHuman": "Needed a person",
+      "clear": "Clear filters",
+      "customRange": "{from} – {to}",
+      "ranges": {
+        "any": "Any time",
+        "today": "Today",
+        "7d": "Last 7 days",
+        "30d": "Last 30 days",
+        "90d": "Last 90 days",
+        "custom": "Custom"
+      },
+      "any": {
+        "status": "All statuses",
+        "trigger": "All sources",
+        "agent": "All agents",
+        "team": "All teams",
+        "model": "All models"
+      },
+      "search": {
+        "agent": "Search agents",
+        "team": "Search teams",
+        "model": "Search models"
+      },
+      "empty": {
+        "agent": "No agents found",
+        "team": "No teams found",
+        "model": "No models found"
+      }
+    },
+    "columns": {
+      "run": "Run",
+      "agent": "Agent",
+      "trigger": "Started from",
+      "startedBy": "Started by",
+      "model": "Model",
+      "status": "Status",
+      "confidence": "Confidence",
+      "duration": "Duration",
+      "cost": "Cost",
+      "started": "Started"
+    },
+    "tableLabel": "Runs",
+    "statuses": {
+      "queued": "Queued",
+      "running": "Running",
+      "waiting_approval": "Waiting for approval",
+      "succeeded": "Done",
+      "failed": "Failed",
+      "canceled": "Stopped",
+      "timed_out": "Timed out"
+    },
+    "triggers": {
+      "chat": "SurefyOS chat",
+      "test": "Test",
+      "api": "API",
+      "widget": "Website widget",
+      "slack": "Slack",
+      "whatsapp": "WhatsApp",
+      "flow": "Flow"
+    },
+    "bands": {
+      "high": "Automatic",
+      "medium": "AI double-check",
+      "low": "Needs a person"
+    },
+    "duration": {
+      "ms": "{value} ms",
+      "s": "{value} s",
+      "min": "{value} min"
+    },
+    "neededHuman": "Needed a person",
+    "deletedAgent": "Deleted agent",
+    "draft": "Draft",
+    "version": "v{version}",
+    "noPerson": "API or channel",
+    "local": "$0 · on your hardware",
+    "loadError": "Couldn't load the runs",
+    "loadMore": "Load more runs",
+    "timeZone": "Times in {timeZone}.",
+    "detail": {
+      "title": "Run {id}",
+      "back": "Runs",
+      "loadError": "Couldn't load this run",
+      "notFound": {
+        "title": "This run isn't available",
+        "description": "It may have been deleted, or it belongs to an agent you can't see."
+      },
+      "startedBy": "Started by {name}",
+      "testRun": "Test run",
+      "retryOf": "Re-run of",
+      "ended": {
+        "failed": "The run failed",
+        "timed_out": "The run timed out"
+      },
+      "waiting": {
+        "title": "Waiting for a person",
+        "description": "The run goes on once the approval is decided.",
+        "open": "Open approval"
+      },
+      "cancel": {
+        "open": "Stop run",
+        "title": "Stop run {id}?",
+        "description": "The run stops where it is. Steps already done aren't undone.",
+        "confirm": "Stop run",
+        "done": "Run stopped"
+      },
+      "rerun": {
+        "open": "Re-run in test mode",
+        "started": "A new run started"
+      },
+      "facts": {
+        "title": "Facts",
+        "started": "Started",
+        "notStarted": "Not started yet",
+        "duration": "Duration",
+        "cost": "Cost",
+        "tokens": "Tokens",
+        "tokensValue": "{input} in · {output} out",
+        "model": "Model",
+        "dataLocation": "Data location",
+        "dataLocations": {
+          "local": "Your server",
+          "provider": "AI provider",
+          "platform": "SurefyOS Cloud"
+        }
+      },
+      "steps": {
+        "title": "Steps",
+        "count": "{count, plural, one {# step} other {# steps}}",
+        "tokens": "{count, plural, one {# token} other {# tokens}}",
+        "expand": "Show the input and output of {name}",
+        "collapse": "Hide the input and output of {name}",
+        "empty": "No steps yet.",
+        "loadError": "Couldn't load the steps",
+        "expired": {
+          "title": "Step details are kept for {days} days",
+          "description": "The steps of this run were deleted; its totals stay.",
+          "link": "Data & privacy"
+        },
+        "types": {
+          "retrieval": "Knowledge",
+          "model": "Model",
+          "tool": "Tool",
+          "decision": "Decision",
+          "approval": "Approval",
+          "guard": "Guard check",
+          "web_search": "Web search"
+        },
+        "statuses": {
+          "succeeded": "Done",
+          "failed": "Failed",
+          "skipped": "Reused",
+          "waiting": "Waiting",
+          "blocked": "Blocked"
+        }
+      },
+      "side": {
+        "label": "About this run",
+        "why": "Why this happened",
+        "whyPending": "The summary appears when the run ends.",
+        "whyNone": "This run has no summary.",
+        "toolsUsed": "Tools",
+        "noTools": "None",
+        "sources": "Sources",
+        "dataTitle": "Input and output",
+        "data": "Open a step to see what went in and what came out.",
+        "guard": "Guard checks",
+        "noGuard": "No Guard checks in this run.",
+        "checks": "{count, plural, one {# check} other {# checks}}",
+        "outcomes": {
+          "auto": "Automatic",
+          "double_check": "AI double-check",
+          "human": "Needs a person",
+          "blocked": "Blocked"
+        },
+        "approvals": "Approval history",
+        "noApprovals": "No approvals in this run.",
+        "openApproval": "Open approval"
+      }
     }
   },
   "approvals": {

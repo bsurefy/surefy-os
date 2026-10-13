@@ -1,18 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
+  InsightsApprovalsDto,
   InsightsBreakdownDimension,
   InsightsBreakdownDto,
   InsightsBreakdownRowDto,
   InsightsCostDto,
   InsightsInterval,
   InsightsOverviewDto,
+  InsightsRunsOverviewDto,
+  InsightsRunsPointDto,
   InsightsTotalsDto,
   ModelRefDto,
   UsageSourceModule,
 } from '@surefy/contracts'
 import {
   insightsBreakdownDtoSchema,
+  insightsBudgetMeterDtoSchema,
   insightsOverviewDtoSchema,
+  insightsRunsOverviewDtoSchema,
+  insightsRunsTimeseriesDtoSchema,
   insightsTimeseriesDtoSchema,
   localModelKey,
   okResponse,
@@ -25,9 +31,10 @@ import {
   mockOk,
 } from '@surefy/web-core/testing/mock'
 
+import { READ_ONLY_AGENT_ID, SUPPORT_AGENT_ID } from './agentIds'
 import { MAYA, OMAR } from './shell.fixtures'
 import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
-import { budgetHandlers } from './usage.budgets'
+import { budgetHandlers, budgetMeterFor } from './usage.budgets'
 import { OLLAMA_SERVER_ID } from './vault'
 
 const HOUR_MS = 3_600_000
@@ -41,6 +48,10 @@ const PEOPLE: Record<string, string> = {
   [MAYA.id]: MAYA.name,
   [OMAR.id]: OMAR.name,
   [ANA.id]: ANA.name,
+}
+const AGENTS: Record<string, string> = {
+  [SUPPORT_AGENT_ID]: 'Support triage',
+  [READ_ONLY_AGENT_ID]: 'HR helper',
 }
 
 const GPT: ModelRefDto = {
@@ -75,6 +86,8 @@ interface Stream {
   teamId: string | null
   model: ModelRefDto
   sourceModule: UsageSourceModule
+  /** Calls made for an agent; null for chat. */
+  agentId?: string
   costPerRequest: number
 }
 
@@ -107,8 +120,24 @@ const STREAMS: readonly Stream[] = [
     sourceModule: 'chat',
     costPerRequest: 0,
   },
-  // an API key: no person, no team
-  { userId: null, teamId: null, model: GPT_MINI, sourceModule: 'agent', costPerRequest: 900 },
+  // an agent on an API key: no person, no team
+  {
+    userId: null,
+    teamId: null,
+    model: GPT_MINI,
+    sourceModule: 'agent',
+    agentId: SUPPORT_AGENT_ID,
+    costPerRequest: 900,
+  },
+  // an agent in chat
+  {
+    userId: OMAR.id,
+    teamId: SALES_TEAM_ID,
+    model: GPT,
+    sourceModule: 'agent',
+    agentId: READ_ONLY_AGENT_ID,
+    costPerRequest: 4200,
+  },
 ]
 
 interface UsageRow extends Stream {
@@ -151,8 +180,10 @@ function filtered(params: URLSearchParams): UsageRow[] {
   const user = params.getAll('userId')
   const model = params.getAll('modelKey')
   const source = params.getAll('sourceModule')
+  const agent = params.getAll('agentId')
   return rowsBetween(from, to).filter(
     (row) =>
+      (agent.length === 0 || (row.agentId !== undefined && agent.includes(row.agentId))) &&
       (team.length === 0 || (row.teamId !== null && team.includes(row.teamId))) &&
       (user.length === 0 || (row.userId !== null && user.includes(row.userId))) &&
       (model.length === 0 || model.includes(row.model.modelKey)) &&
@@ -223,12 +254,13 @@ const KEY_OF: Record<InsightsBreakdownDimension, (row: UsageRow) => string | nul
   team: (row) => row.teamId,
   person: (row) => row.userId,
   model: (row) => row.model.modelKey,
-  agent: () => null,
+  agent: (row) => row.agentId ?? null,
 }
 
 function labelOf(by: InsightsBreakdownDimension, key: string): string | null {
   if (by === 'team') return TEAMS[key] ?? null
   if (by === 'person') return PEOPLE[key] ?? null
+  if (by === 'agent') return AGENTS[key] ?? null
   return MODELS.find((model) => model.modelKey === key)?.displayName ?? null
 }
 
@@ -306,6 +338,91 @@ function timeseries(params: URLSearchParams) {
   return { interval, points: [...points.values()] }
 }
 
+// ── V1: runs and the budget meter ─────────────────────────────────────────────────────────────────
+
+/** Finished runs of one agent on one UTC day; the same day always has the same numbers. */
+function runsOfDay(day: number, agentIndex: number): Omit<InsightsRunsPointDto, 'start'> {
+  return {
+    succeeded: 3 + ((day * 7 + agentIndex * 3) % 5),
+    failed: (day + agentIndex) % 3 === 0 ? 1 : 0,
+    canceled: (day * 5 + agentIndex) % 7 === 0 ? 1 : 0,
+    neededHuman: 1 + ((day + agentIndex) % 2),
+  }
+}
+
+/** Run rollups are whole UTC days of the run's finish, up to the start of today. */
+function runDays(params: URLSearchParams, now = Date.now()) {
+  const from = Date.parse(params.get('from') ?? '')
+  const to = Math.min(Date.parse(params.get('to') ?? ''), Math.floor(now / DAY_MS) * DAY_MS)
+  const agents = params.getAll('agentId')
+  const days: { at: number; counts: Omit<InsightsRunsPointDto, 'start'> }[] = []
+  for (let day = Math.ceil(from / DAY_MS); day * DAY_MS < to; day += 1) {
+    for (const [index, agentId] of Object.keys(AGENTS).entries()) {
+      if (agents.length > 0 && !agents.includes(agentId)) continue
+      days.push({ at: day * DAY_MS, counts: runsOfDay(day, index) })
+    }
+  }
+  return days
+}
+
+function runsOverview(params: URLSearchParams, now = new Date()): InsightsRunsOverviewDto {
+  const totals = { succeeded: 0, failed: 0, canceled: 0, neededHuman: 0 }
+  for (const { counts } of runDays(params, now.getTime())) {
+    totals.succeeded += counts.succeeded
+    totals.failed += counts.failed
+    totals.canceled += counts.canceled
+    totals.neededHuman += counts.neededHuman
+  }
+  const runs = totals.succeeded + totals.failed + totals.canceled
+  const settled = totals.succeeded + totals.failed
+  const rejected = Math.floor(totals.neededHuman / 5)
+  const expired = Math.floor(totals.neededHuman / 12)
+  const approvals: InsightsApprovalsDto = {
+    requested: totals.neededHuman,
+    decidedByPeople: totals.neededHuman - expired,
+    approved: totals.neededHuman - rejected - expired,
+    rejected,
+    expired,
+    medianMinutesToDecide: totals.neededHuman > 0 ? 14.5 : null,
+  }
+  return {
+    runs: { state: 'value', value: runs },
+    successRateBp: {
+      state: 'value',
+      value: settled > 0 ? Math.round((totals.succeeded * 10_000) / settled) : null,
+    },
+    averageDurationMs: { state: 'value', value: runs > 0 ? 6400 : null },
+    approvals: { state: 'value', value: approvals },
+    hasRuns: true,
+    dataThrough: new Date(Math.floor(now.getTime() / DAY_MS) * DAY_MS).toISOString(),
+  }
+}
+
+function runsTimeseries(params: URLSearchParams) {
+  const interval = (params.get('interval') ?? 'day') as 'day' | 'week' | 'month'
+  const from = Date.parse(params.get('from') ?? '')
+  const to = Date.parse(params.get('to') ?? '')
+  const points = new Map<number, InsightsRunsPointDto>()
+  for (let start = bucketStart(from, interval); start < to; start = nextBucket(start, interval)) {
+    points.set(start, {
+      start: new Date(start).toISOString(),
+      succeeded: 0,
+      failed: 0,
+      canceled: 0,
+      neededHuman: 0,
+    })
+  }
+  for (const { at, counts } of runDays(params)) {
+    const point = points.get(bucketStart(at, interval))
+    if (!point) continue
+    point.succeeded += counts.succeeded
+    point.failed += counts.failed
+    point.canceled += counts.canceled
+    point.neededHuman += counts.neededHuman
+  }
+  return { interval, points: [...points.values()] }
+}
+
 const HTTP_UNAVAILABLE = 503
 const chartError = () =>
   mockError(HTTP_UNAVAILABLE, ERROR_CODES.SERVICE_UNAVAILABLE, 'Usage is unavailable')
@@ -314,12 +431,15 @@ const searchOf = (request: Request) => new URL(request.url).searchParams
 const path = '/orgs/:orgId/insights'
 
 /**
- * Insights › Overview on synthetic usage: three people in two teams and an API key, on three cloud
- * models and a local one, three times a day; the same instant always has the same numbers.
- * Scenarios: `empty` is an organization without usage; `restricted` hides the cost KPIs;
- * `unpriced` flags a model without a known price; `chart-error` fails both charts while the KPIs
- * load (a partial failure). Live on the real API (B3-04's routes, I4-06); the handlers stay for
- * component tests and for `MOCK_DOMAINS=usage`, to look at the states. Budgets: `usage.budgets.ts`.
+ * Insights › Overview on synthetic usage: three people in two teams, an agent on an API key and an
+ * agent in chat, on three cloud models and a local one, three times a day; runs of two agents per
+ * day. The same instant always has the same numbers. Scenarios: `empty` is an organization without usage, runs or budget; `restricted`
+ * hides the cost KPIs, the approvals and the meter; `unpriced` flags a model without a known
+ * price; `chart-error` fails the charts and the run KPIs while the usage KPIs load (a partial
+ * failure); `budget-reached` pauses cloud models. The MVP routes are live on the real API (B3-04,
+ * I4-06) and the V1 routes arrive with B6-10 and B6-11; `MOCK_DOMAINS=usage` serves all of them
+ * here, and the handlers stay for component tests. Budgets: `usage.budgets.ts`, which the meter
+ * reads.
  */
 export const usageDomain = defineMockDomain(
   'usage',
@@ -380,6 +500,74 @@ export const usageDomain = defineMockDomain(
       },
     }),
     ...budgetHandlers,
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs-overview`,
+      response: okResponse(insightsRunsOverviewDtoSchema),
+      scenarios: {
+        default: ({ request }) => mockOk(runsOverview(searchOf(request))),
+        empty: () =>
+          mockOk({
+            runs: { state: 'value', value: 0 },
+            successRateBp: { state: 'value', value: null },
+            averageDurationMs: { state: 'value', value: null },
+            approvals: {
+              state: 'value',
+              value: {
+                requested: 0,
+                decidedByPeople: 0,
+                approved: 0,
+                rejected: 0,
+                expired: 0,
+                medianMinutesToDecide: null,
+              },
+            },
+            hasRuns: false,
+            dataThrough: null,
+          } satisfies InsightsRunsOverviewDto),
+        restricted: ({ request }) =>
+          mockOk({
+            ...runsOverview(searchOf(request)),
+            approvals: { state: 'restricted' },
+          } satisfies InsightsRunsOverviewDto),
+        'chart-error': chartError,
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs-timeseries`,
+      response: okResponse(insightsRunsTimeseriesDtoSchema),
+      scenarios: {
+        default: ({ request }) => mockOk(runsTimeseries(searchOf(request))),
+        'chart-error': chartError,
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/budget-meter`,
+      response: okResponse(insightsBudgetMeterDtoSchema),
+      scenarios: {
+        default: ({ request }) =>
+          mockOk({ meter: { state: 'value', value: budgetMeterFor(searchOf(request)) } }),
+        empty: () => mockOk({ meter: { state: 'value', value: null } }),
+        restricted: () => mockOk({ meter: { state: 'restricted' } }),
+        'budget-reached': ({ request }) => {
+          const meter = budgetMeterFor(searchOf(request)) ?? budgetMeterFor(new URLSearchParams())
+          return mockOk({
+            meter: {
+              state: 'value',
+              value: meter && {
+                ...meter,
+                spentMicros: meter.effectiveAmountMicros,
+                usedBp: 10_000,
+                state: 'reached',
+                onReached: 'pause_cloud_models',
+              },
+            },
+          })
+        },
+      },
+    }),
   ],
   { isLive: true },
 )

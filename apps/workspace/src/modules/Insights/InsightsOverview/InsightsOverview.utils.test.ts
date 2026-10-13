@@ -7,12 +7,18 @@ import {
   addDays,
   dayIn,
   getRangeDays,
+  hasUsageOnlyFilters,
   intervalFor,
   isValidCustomRange,
+  runsIntervalFor,
+  splitDuration,
   startOfDay,
+  toBudgetMeterQuery,
   toCostGroups,
   toExportParams,
   toInsightsQuery,
+  toRunsData,
+  toRunsQuery,
 } from './InsightsOverview.utils'
 
 import type { InsightsOverviewFilters } from './InsightsOverview.types'
@@ -25,6 +31,7 @@ const filters = (over: Partial<InsightsOverviewFilters> = {}): InsightsOverviewF
   team: null,
   person: null,
   model: null,
+  agent: null,
   by: 'team',
   ...over,
 })
@@ -121,5 +128,73 @@ describe('cost groups', () => {
       ['No team', 0, false],
       ['Others (3)', 500_000, true],
     ])
+  })
+})
+
+describe('the V1 reads', () => {
+  const AGENT = '00000000-0000-4000-8000-000000000a01'
+
+  it('narrows usage to an agent, and keeps only the range and agent for the run reads', () => {
+    const query = toInsightsQuery(
+      filters({ team: 'team-1', model: 'openai/gpt-4.1', agent: AGENT }),
+      NOW,
+      'UTC',
+    )
+    expect(query.agentId).toBe(AGENT)
+    expect(toRunsQuery(query)).toEqual({
+      from: query.from,
+      to: query.to,
+      timeZone: 'UTC',
+      agentId: AGENT,
+    })
+    expect(toExportParams(query).filters.agentId).toEqual([AGENT])
+  })
+
+  it('says when a filter does not apply to the run numbers', () => {
+    expect(hasUsageOnlyFilters(filters({ agent: AGENT }))).toBe(false)
+    expect(hasUsageOnlyFilters(filters({ model: 'openai/gpt-4.1' }))).toBe(true)
+  })
+
+  it('shows runs per day up to four months, then per week', () => {
+    const query = (range: '30d' | '90d') =>
+      toRunsQuery(toInsightsQuery(filters({ range }), NOW, 'UTC'))
+    expect(runsIntervalFor(query('90d'))).toBe('day')
+    const year = toRunsQuery(
+      toInsightsQuery(
+        filters({ range: 'custom', from: '2025-10-06', to: '2026-10-05' }),
+        NOW,
+        'UTC',
+      ),
+    )
+    expect(runsIntervalFor(year)).toBe('week')
+  })
+
+  it('reads the budget of the person, else the team, else the organization', () => {
+    expect(toBudgetMeterQuery({ team: 'team-1', person: 'user-1' })).toEqual({ userId: 'user-1' })
+    expect(toBudgetMeterQuery({ team: 'team-1', person: null })).toEqual({ teamId: 'team-1' })
+    expect(toBudgetMeterQuery({ team: null, person: null })).toEqual({})
+  })
+
+  it('charts runs by outcome per bucket', () => {
+    expect(
+      toRunsData({
+        interval: 'day',
+        points: [
+          {
+            start: '2026-10-01T00:00:00.000Z',
+            succeeded: 4,
+            failed: 1,
+            canceled: 1,
+            neededHuman: 2,
+          },
+        ],
+      }),
+    ).toEqual([{ start: '2026-10-01T00:00:00.000Z', succeeded: 4, neededHuman: 2, failed: 1 }])
+  })
+
+  it('names durations in milliseconds, seconds or minutes', () => {
+    expect(splitDuration(420)).toEqual({ unit: 'ms', value: 420 })
+    expect(splitDuration(6400)).toEqual({ unit: 's', value: 6.4 })
+    expect(splitDuration(150_000)).toEqual({ unit: 'min', value: 2.5 })
   })
 })

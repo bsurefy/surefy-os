@@ -8,11 +8,15 @@ import type { ProviderOptions } from '@surefy/web-core/testing'
 import { renderWithProviders, setupTestServer } from '@surefy/web-core/testing'
 
 import InsightsOverview from './InsightsOverview'
+import { SUPPORT_AGENT_ID } from '../../../../mock/handlers/agentIds'
+import { agentsDomain, resetAgentsMock } from '../../../../mock/handlers/agents'
 import { dataControlDomain, resetDataControlMock } from '../../../../mock/handlers/dataControl'
 import { membersDomain, resetMembersMock } from '../../../../mock/handlers/members'
 import { modelsDomain, resetModelsMock } from '../../../../mock/handlers/models'
+import { OMAR } from '../../../../mock/handlers/shell.fixtures'
 import { resetTeamsMock, SUPPORT_TEAM_ID, teamsDomain } from '../../../../mock/handlers/teams'
 import { usageDomain } from '../../../../mock/handlers/usage'
+import { resetBudgetsMock } from '../../../../mock/handlers/usage.budgets'
 
 const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
@@ -26,6 +30,7 @@ const server = setupTestServer(
   ...membersDomain.handlers,
   ...teamsDomain.handlers,
   ...modelsDomain.handlers,
+  ...agentsDomain.handlers,
 )
 
 function renderInsights({
@@ -60,6 +65,8 @@ beforeEach(() => {
   resetMembersMock()
   resetTeamsMock()
   resetModelsMock()
+  resetAgentsMock()
+  resetBudgetsMock()
 })
 
 afterEach(() => {
@@ -161,8 +168,91 @@ describe('InsightsOverview', () => {
     renderInsights()
     expect(await screen.findByRole('region', { name: 'Key numbers' })).toBeVisible()
     const errors = await screen.findAllByText("This chart couldn't load")
-    expect(errors).toHaveLength(2)
-    expect(screen.getAllByRole('button', { name: /try again/i }).length).toBeGreaterThanOrEqual(2)
+    // cost, tokens and runs over time
+    expect(errors).toHaveLength(3)
+    expect(await screen.findByText("Couldn't load the run numbers")).toBeVisible()
+    expect(screen.getAllByRole('button', { name: /try again/i }).length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('shows the run numbers next to the usage numbers', async () => {
+    renderInsights()
+    const runs = await screen.findByRole('region', { name: 'Agent runs' })
+    for (const label of ['Runs', 'Success rate', 'Average duration', 'Approvals by people']) {
+      expect(within(runs).getByText(label)).toBeVisible()
+    }
+    await waitFor(() => {
+      expect(within(runs).getByText('Average duration').parentElement).toHaveTextContent('6.4 s')
+    })
+    expect(within(runs).getByText(/approved · \d+ rejected/)).toBeVisible()
+    expect(within(runs).queryByText(/agent filter only/)).not.toBeInTheDocument()
+  })
+
+  it('says the run numbers ignore the team, person and model filters', async () => {
+    renderInsights({ searchParams: '?model=openai%2Fgpt-4.1' })
+    const runs = await screen.findByRole('region', { name: 'Agent runs' })
+    expect(
+      within(runs).getByText('Run numbers follow the date range and the agent filter only.'),
+    ).toBeVisible()
+  })
+
+  it('meters the organization budget, or the budget of the person in the filters', async () => {
+    const { unmount } = renderInsights()
+    const meter = await screen.findByRole('meter', { name: 'Budget this month · Organization' })
+    expect(meter).toHaveAttribute('aria-valuetext', expect.stringMatching(/ of \$2,000\.00 · /))
+    expect(screen.getByRole('link', { name: 'Manage budgets' })).toHaveAttribute(
+      'href',
+      '/acme/settings/usage',
+    )
+    unmount()
+    renderInsights({ searchParams: `?person=${OMAR.id}` })
+    expect(
+      await screen.findByRole('meter', { name: `Budget this month · ${OMAR.name}` }),
+    ).toHaveAttribute('aria-valuetext', expect.stringMatching(/ of \$50\.00 · /))
+  })
+
+  it('says what happens once the budget is reached', async () => {
+    useScenario('budget-reached')
+    renderInsights()
+    expect(await screen.findByText(/Reached · cloud models are paused until/)).toBeVisible()
+  })
+
+  it('offers to set a budget when the scope has none', async () => {
+    useScenario('empty')
+    renderInsights({ searchParams: '?range=7d&team=00000000-0000-4000-8000-0000000000aa' })
+    const budget = await screen.findByRole('region', { name: 'Budget this month · Team' })
+    expect(within(budget).getByText(/No budget/)).toBeVisible()
+    expect(within(budget).getByRole('link', { name: 'Set one in Settings' })).toBeVisible()
+  })
+
+  it('breaks cost down by agent, with the calls made outside any agent', async () => {
+    const { user } = renderInsights({ searchParams: '?by=agent' })
+    const cost = await card('Cost by agent')
+    await user.click(await within(cost).findByRole('radio', { name: 'Table' }))
+    const table = await within(cost).findByRole('table', { name: 'Cost per agent' })
+    await within(table).findByText('Support triage')
+    expect(within(table).getByText('HR helper')).toBeVisible()
+    expect(within(table).getByText('Chat and knowledge')).toBeVisible()
+  })
+
+  it('lists runs by outcome and links to the runs of the same range and agent', async () => {
+    const { user } = renderInsights({ searchParams: `?range=7d&agent=${SUPPORT_AGENT_ID}` })
+    const runs = await card('Runs over time')
+    await user.click(await within(runs).findByRole('radio', { name: 'Table' }))
+    const table = await within(runs).findByRole('table', { name: 'Runs per day' })
+    for (const header of ['Succeeded', 'Needed a person', 'Failed']) {
+      expect(within(table).getByRole('columnheader', { name: header })).toBeVisible()
+    }
+    expect(within(runs).getByRole('link', { name: 'See runs' })).toHaveAttribute(
+      'href',
+      `/acme/insights/runs?agent=${SUPPORT_AGENT_ID}&range=7d`,
+    )
+  })
+
+  it('shows restricted approvals as a dash, never zero', async () => {
+    useScenario('restricted')
+    renderInsights()
+    const runs = await screen.findByRole('region', { name: 'Agent runs' })
+    expect(await within(runs).findByText('Restricted')).toBeVisible()
   })
 
   it('exports the range and filters on screen as CSV after the personal-data notice', async () => {
