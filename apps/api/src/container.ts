@@ -67,7 +67,7 @@ import { createOutboxModule } from './modules/outbox/index.js'
 import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
 import { createTemplatesModule } from './modules/templates/index.js'
-import { createUsageModule } from './modules/usage/index.js'
+import { createUsageAgents, createUsageModule } from './modules/usage/index.js'
 import {
   createModelGrants,
   createVaultMemberRemoval,
@@ -254,6 +254,9 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     teams: teams.service,
     users,
     models: modelGrants.modelsRepository,
+    // the agents module is built below; Insights reads it per request
+    agents: () => usageAgents,
+    approvals: approvals.service,
   })
   const access = createAccessModule({
     db,
@@ -343,6 +346,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     channels: channelStore.channels,
     runs: createAgentRunSummaries(),
   })
+  const usageAgents = createUsageAgents(agents.repository)
   const knowledge = createKnowledgeModule({
     db,
     logger,

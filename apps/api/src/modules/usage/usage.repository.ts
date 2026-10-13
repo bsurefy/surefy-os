@@ -3,7 +3,12 @@ import { type SQL, sql } from 'drizzle-orm'
 
 import { usageEvents } from '@/database/tables/index.js'
 import { uuidv7 } from '@/lib/uuidv7.js'
-import type { InsightsFilters, InsightsInterval, UsageEvent } from '@surefy/contracts'
+import type {
+  InsightsFilters,
+  InsightsInterval,
+  InsightsRunsInterval,
+  UsageEvent,
+} from '@surefy/contracts'
 
 import type { DbExecutor } from '@/core/database/index.js'
 import type { UsageRollup } from '@/database/tables/index.js'
@@ -30,6 +35,32 @@ export interface GroupRow extends TotalsRow {
 export interface BucketRow extends Omit<TotalsRow, 'currency'> {
   start: string
   currency: string | null
+}
+
+/** Finished runs of a range, summed over agents, flows and currencies. */
+export interface RunTotalsRow {
+  runs: number
+  succeeded: number
+  failed: number
+  timedOut: number
+  canceled: number
+  durationMsSum: number
+}
+
+/** One bucket of runs by outcome; `failed` includes timed-out runs. */
+export interface RunBucketRow {
+  start: string
+  succeeded: number
+  failed: number
+  canceled: number
+  neededHuman: number
+}
+
+/** UTC days `[fromDay, toDay)`, and `agentIds` to keep only those agents' runs. */
+export interface RunStatsRange {
+  fromDay: string
+  toDay: string
+  agentIds?: readonly string[]
 }
 
 export interface UsageCsvRow {
@@ -59,9 +90,16 @@ const list = (values: readonly string[]): SQL =>
     sql`, `,
   )
 
+/** Calls made for these agents; none when the list is empty. */
+const agentSql = (agentIds: readonly string[]): SQL =>
+  agentIds.length === 0
+    ? sql`and false`
+    : sql`and subject_type = 'agent' and subject_id in (${list(agentIds)})`
+
 /** The Insights filters as SQL conditions; the events and daily tables share the column names. */
 function filterSql(filters: InsightsFilters): SQL {
   const parts: SQL[] = []
+  if (filters.agentId !== undefined) parts.push(agentSql(filters.agentId))
   if (filters.teamId !== undefined) parts.push(sql`and team_id in (${list(filters.teamId)})`)
   if (filters.userId !== undefined) parts.push(sql`and user_id in (${list(filters.userId)})`)
   if (filters.modelKey !== undefined) parts.push(sql`and model_key in (${list(filters.modelKey)})`)
@@ -77,7 +115,8 @@ function filterSql(filters: InsightsFilters): SQL {
 function sourceSql(orgId: string, source: UsageSource, filters: InsightsFilters): SQL {
   if (source.table === 'events') {
     return sql`
-      select created_at as at, user_id, team_id, model_key, source_module, billed_via, currency,
+      select created_at as at, user_id, team_id, model_key, source_module, subject_type,
+             subject_id, billed_via, currency,
              1::bigint as requests, input_tokens, output_tokens, cached_input_tokens, cost_micros,
              (source_module = 'chat' and kind = 'generation' and outcome = 'success')::int as messages
       from usage_events
@@ -87,13 +126,23 @@ function sourceSql(orgId: string, source: UsageSource, filters: InsightsFilters)
   }
   return sql`
     select (day::timestamp at time zone 'UTC') as at, user_id, team_id, model_key, source_module,
-           billed_via, currency, requests, input_tokens, output_tokens, cached_input_tokens,
-           cost_micros,
+           subject_type, subject_id, billed_via, currency, requests, input_tokens, output_tokens,
+           cached_input_tokens, cost_micros,
            case when source_module = 'chat' then requests - errors - blocked else 0 end as messages
     from usage_daily
     where organization_id = ${orgId}
       and day >= ${source.fromDay}::date and day < ${source.toDay}::date
       ${filterSql(filters)}`
+}
+
+/** The `run_stats_daily` rows of a range. */
+function runStatsSql(orgId: string, range: RunStatsRange): SQL {
+  const agents = range.agentIds === undefined ? sql`` : agentSql(range.agentIds)
+  return sql`
+    select * from run_stats_daily
+    where organization_id = ${orgId}
+      and day >= ${range.fromDay}::date and day < ${range.toDay}::date
+      ${agents}`
 }
 
 const GROUP_KEYS = {
@@ -103,7 +152,7 @@ const GROUP_KEYS = {
   agent: sql.raw("case when subject_type = 'agent' then subject_id::text end"),
 } as const
 
-/** `usage_events`, `usage_daily`, `usage_monthly` and `usage_rollup_state`. */
+/** `usage_events`, `usage_daily`, `usage_monthly`, `run_stats_daily` and `usage_rollup_state`. */
 export class UsageRepository {
   // ── Metering ──────────────────────────────────────────────────────────────────────────────────
 
@@ -398,6 +447,82 @@ export class UsageRepository {
       outputTokens: n(row.output_tokens),
       cachedInputTokens: n(row.cached_input_tokens),
       costMicros: n(row.cost),
+    }))
+  }
+
+  // ── Run stats (tenant scope) ────────────────────────────────────────────────────────────────
+
+  async hasRuns(tx: DbExecutor, orgId: string): Promise<boolean> {
+    const result = await tx.execute<{ found: boolean }>(sql`
+      select exists (
+        select 1 from run_stats_daily where organization_id = ${orgId} and runs_total > 0
+      ) as found`)
+    return result.rows[0]?.found === true
+  }
+
+  async runTotals(tx: DbExecutor, orgId: string, range: RunStatsRange): Promise<RunTotalsRow> {
+    const result = await tx.execute<{
+      runs: string | null
+      succeeded: string | null
+      failed: string | null
+      timed_out: string | null
+      canceled: string | null
+      duration: string | null
+    }>(sql`
+      select sum(runs_total) as runs, sum(runs_succeeded) as succeeded,
+             sum(runs_failed) as failed, sum(runs_timed_out) as timed_out,
+             sum(runs_canceled) as canceled, sum(duration_ms_sum) as duration
+      from (${runStatsSql(orgId, range)}) r`)
+    const row = result.rows[0]
+    return {
+      runs: n(row?.runs),
+      succeeded: n(row?.succeeded),
+      failed: n(row?.failed),
+      timedOut: n(row?.timed_out),
+      canceled: n(row?.canceled),
+      durationMsSum: n(row?.duration),
+    }
+  }
+
+  /** Every bucket from the range start to its end, in UTC (the rollup's days are UTC). */
+  async runBuckets(
+    tx: DbExecutor,
+    orgId: string,
+    range: RunStatsRange & { from: string; to: string; interval: InsightsRunsInterval },
+  ): Promise<RunBucketRow[]> {
+    const { interval } = range
+    const result = await tx.execute<{
+      start: string
+      succeeded: string | null
+      failed: string | null
+      canceled: string | null
+      needed_human: string | null
+    }>(sql`
+      with b as (
+        select g as start
+        from generate_series(
+          date_trunc(${interval}, ${range.from}::timestamptz, 'UTC'),
+          ${range.to}::timestamptz - interval '1 microsecond',
+          ('1 ' || ${interval})::interval,
+          'UTC') g
+      ),
+      a as (
+        select date_trunc(${interval}, day::timestamp at time zone 'UTC', 'UTC') as start,
+               sum(runs_succeeded) as succeeded, sum(runs_failed + runs_timed_out) as failed,
+               sum(runs_canceled) as canceled, sum(runs_needed_human) as needed_human
+        from (${runStatsSql(orgId, range)}) r
+        group by 1
+      )
+      select to_char(b.start at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as start,
+             a.succeeded, a.failed, a.canceled, a.needed_human
+      from b left join a on a.start = b.start
+      order by b.start`)
+    return result.rows.map((row) => ({
+      start: row.start,
+      succeeded: n(row.succeeded),
+      failed: n(row.failed),
+      canceled: n(row.canceled),
+      neededHuman: n(row.needed_human),
     }))
   }
 

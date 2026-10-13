@@ -11,6 +11,7 @@ import type {
   ApproveApprovalInput,
   BulkDecideInput,
   BulkDecideResultDto,
+  InsightsApprovalsDto,
   ListApprovalsQuery,
   RejectApprovalInput,
 } from '@surefy/contracts'
@@ -149,6 +150,15 @@ export class ApprovalsService {
     agentIds: readonly string[],
   ): Promise<ReadonlyMap<string, number>> {
     return this.deps.repository.pendingCountsByAgent(tx, orgId, agentIds)
+  }
+
+  /** Insights' approval KPIs for a range (usage module), optionally narrowed to some agents. */
+  insightsStats(
+    tx: DbExecutor,
+    orgId: string,
+    range: { from: Date; to: Date; agentIds?: readonly string[] },
+  ): Promise<InsightsApprovalsDto> {
+    return this.deps.repository.insightsStats(tx, orgId, range)
   }
 
   /** The badge and the queue header, over the same rows the queue shows. */

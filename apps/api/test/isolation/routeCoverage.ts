@@ -252,6 +252,14 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     class: 'orgScoped',
     query: { ...INSIGHTS_RANGE, interval: 'day' },
   },
+  'GET /api/v1/orgs/:orgId/insights/runs-overview': {
+    class: 'orgScoped',
+    query: INSIGHTS_RANGE,
+  },
+  'GET /api/v1/orgs/:orgId/insights/runs-timeseries': {
+    class: 'orgScoped',
+    query: { ...INSIGHTS_RANGE, interval: 'day' },
+  },
 
   'GET /api/v1/orgs/:orgId/audit/entries': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/entries/:entryId': { class: 'orgScoped' },

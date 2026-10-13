@@ -4,6 +4,10 @@ import {
   insightsBreakdownQuerySchema,
   insightsOverviewDtoSchema,
   insightsOverviewQuerySchema,
+  insightsRunsOverviewDtoSchema,
+  insightsRunsQuerySchema,
+  insightsRunsTimeseriesDtoSchema,
+  insightsRunsTimeseriesQuerySchema,
   insightsTimeseriesDtoSchema,
   insightsTimeseriesQuerySchema,
   okResponse,
@@ -22,7 +26,7 @@ export const getInsightsOverviewRoute = {
 
 export const getInsightsBreakdownRoute = {
   tags: TAGS,
-  summary: 'Cost and tokens by team, person or model',
+  summary: 'Cost and tokens by team, person, model or agent',
   params: orgParamsSchema,
   querystring: insightsBreakdownQuerySchema,
   response: { 200: okResponse(insightsBreakdownDtoSchema) },
@@ -34,4 +38,20 @@ export const getInsightsTimeseriesRoute = {
   params: orgParamsSchema,
   querystring: insightsTimeseriesQuerySchema,
   response: { 200: okResponse(insightsTimeseriesDtoSchema) },
+}
+
+export const getInsightsRunsOverviewRoute = {
+  tags: TAGS,
+  summary: 'Runs, success rate, average duration and approvals for a range',
+  params: orgParamsSchema,
+  querystring: insightsRunsQuerySchema,
+  response: { 200: okResponse(insightsRunsOverviewDtoSchema) },
+}
+
+export const getInsightsRunsTimeseriesRoute = {
+  tags: TAGS,
+  summary: 'Finished runs over time by outcome',
+  params: orgParamsSchema,
+  querystring: insightsRunsTimeseriesQuerySchema,
+  response: { 200: okResponse(insightsRunsTimeseriesDtoSchema) },
 }

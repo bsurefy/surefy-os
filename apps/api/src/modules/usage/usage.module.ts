@@ -10,7 +10,13 @@ import { createUsageCsvProducer } from './usageExport.js'
 import { UsageMeter } from './usageMeter.js'
 import { UsageRollupService } from './usageRollup.service.js'
 
-import type { UsageModels, UsageTeams, UsageUserRefs } from './usage.types.js'
+import type {
+  UsageAgents,
+  UsageApprovals,
+  UsageModels,
+  UsageTeams,
+  UsageUserRefs,
+} from './usage.types.js'
 import type { Cache } from '@/core/cache/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
@@ -23,6 +29,9 @@ export interface UsageModuleDeps {
   teams: UsageTeams
   users: UsageUserRefs
   models: UsageModels
+  /** Read per request: the agents module is built after this one. */
+  agents: () => UsageAgents
+  approvals: UsageApprovals
 }
 
 /**
@@ -41,6 +50,8 @@ export function createUsageModule(deps: UsageModuleDeps) {
     teams: deps.teams,
     users: deps.users,
     models: deps.models,
+    agents: deps.agents,
+    approvals: deps.approvals,
   })
   const vaultUsage: VaultUsage = {
     async spendThisMonth(tx, orgId, credentialIds) {

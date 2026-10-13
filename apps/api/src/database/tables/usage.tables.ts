@@ -25,7 +25,8 @@ import { systemOnlyPolicy, tenantPolicy } from '../policies.js'
 // Usage rollups (database/usage-budgets-and-audit.md, §6–7, §10). Rebuilt from `usage_events` by
 // the `aggregateUsage` job; ids are snapshots without foreign keys, so rows survive member removal
 // and team deletion. The partitioned `usage_events` parent is custom SQL; its typed definition is
-// in partitioned/usage.tables.ts. Budgets, run and Guard stats arrive with their V1 modules.
+// in partitioned/usage.tables.ts. `run_stats_daily` is rebuilt from finished runs. Budgets and Guard
+// stats arrive with their V1 modules.
 
 const count = () => bigint({ mode: 'number' }).notNull().default(0)
 
@@ -126,6 +127,49 @@ export const usageMonthly = pgTable(
     check('usage_monthly_month_check', sql`extract(day from ${t.month}) = 1`),
     enumCheck('usage_monthly_scope_check', t.scope, USAGE_MONTHLY_SCOPES),
     tenantPolicy('usage_monthly', t.organizationId),
+  ],
+)
+
+/** Daily run outcomes per agent and flow: runs over time, success rate, duration, trust score. */
+export const runStatsDaily = pgTable(
+  'run_stats_daily',
+  {
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    /** UTC day of the run's `finished_at`. */
+    day: date({ mode: 'string' }).notNull(),
+    subjectType: text().$type<UsageSubjectType>().notNull(),
+    /** Agent or flow id; no foreign key, so the stats outlive a purged agent. */
+    subjectId: uuid().notNull(),
+    currency: char({ length: 3 }).notNull(),
+    /** Finished non-test runs. */
+    runsTotal: count(),
+    runsSucceeded: count(),
+    /** Succeeded and not corrected by a person: the trust score numerator. */
+    runsSucceededUncorrected: count(),
+    runsFailed: count(),
+    runsTimedOut: count(),
+    runsCanceled: count(),
+    runsNeededHuman: count(),
+    runsHumanCorrected: count(),
+    /** Guard-checked steps by band. */
+    actionsAuto: count(),
+    actionsDoubleCheck: count(),
+    actionsHuman: count(),
+    actionsBlocked: count(),
+    /** Average duration = `duration_ms_sum / runs_total`. */
+    durationMsSum: count(),
+    costMicros: count(),
+  },
+  (t) => [
+    primaryKey({
+      name: 'run_stats_daily_pkey',
+      columns: [t.organizationId, t.subjectType, t.subjectId, t.day, t.currency],
+    }),
+    index('run_stats_daily_organization_id_day_idx').on(t.organizationId, t.day),
+    enumCheck('run_stats_daily_subject_type_check', t.subjectType, USAGE_SUBJECT_TYPES),
+    tenantPolicy('run_stats_daily', t.organizationId),
   ],
 )
 

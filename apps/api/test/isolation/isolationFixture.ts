@@ -18,6 +18,7 @@ import {
   organizationPurges,
   organizationSlugHistory,
   outboxEvents,
+  runStatsDaily,
 } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
@@ -397,6 +398,17 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
   )
   await setup.db.tenant(a.id, (tx) =>
     tx.insert(guardStatsDaily).values({ organizationId: a.id, day: '2026-10-01', actionsAuto: 7 }),
+  )
+  await setup.db.tenant(a.id, (tx) =>
+    tx.insert(runStatsDaily).values({
+      organizationId: a.id,
+      day: '2026-10-01',
+      subjectType: 'agent',
+      subjectId: agent.id,
+      currency: 'USD',
+      runsTotal: 3,
+      runsSucceeded: 3,
+    }),
   )
 
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export

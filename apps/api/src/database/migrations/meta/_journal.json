@@ -274,6 +274,20 @@
       "when": 1791829204014,
       "tag": "0038_agent-channels-external",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791898050483,
+      "tag": "0039_run-stats-daily",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791898057879,
+      "tag": "0040_run-stats-daily-security",
+      "breakpoints": true
     }
   ]
 }
