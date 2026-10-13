@@ -224,7 +224,7 @@ describe('PublishTab publishing', () => {
     await user.click(await screen.findByRole('switch', { name: 'Turn on the API' }))
     await user.click(await publishButton())
     expect(
-      await screen.findByText('Waiting for an admin to approve turning on the API', {
+      await screen.findByText('Waiting for an admin to approve publishing to the API', {
         selector: 'p, div, span',
       }),
     ).toBeVisible()

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
   AgentAccessDto,
+  AgentChannelCreatedDto,
+  AgentChannelDto,
   AgentDetailDto,
   AgentDto,
   AgentImpactDto,
@@ -22,6 +24,7 @@ import type {
   SaveAgentDraftInput,
   TestAgentToolDto,
   TestAgentToolInput,
+  UpdateAgentChannelInput,
   UpdateAgentInput,
 } from '@surefy/contracts'
 import type { HttpClient } from '@surefy/web-core/http'
@@ -98,6 +101,38 @@ export const agentsApi = {
   /** One transaction: a version, the live pointer, the channels. A failed publish changes nothing. */
   publish: (http: HttpClient, orgId: string, agentId: string, input: PublishAgentInput) =>
     http.post<PublishAgentResultDto>(`/orgs/${orgId}/agents/${agentId}/publish`, input),
+  /** A live channel's settings (Admins); a channel waiting for an approval cannot change yet. */
+  updateChannel: (
+    http: HttpClient,
+    orgId: string,
+    agentId: string,
+    channelId: string,
+    input: UpdateAgentChannelInput,
+  ) => http.patch<AgentChannelDto>(`/orgs/${orgId}/agents/${agentId}/channels/${channelId}`, input),
+  /** `pause` stops the channel answering; `resume` turns it on again, or retries one in error. */
+  channelAction: (
+    http: HttpClient,
+    orgId: string,
+    agentId: string,
+    channelId: string,
+    action: 'pause' | 'resume',
+  ) =>
+    http.post<AgentChannelDto>(
+      `/orgs/${orgId}/agents/${agentId}/channels/${channelId}/${action}`,
+      {},
+    ),
+  /**
+   * A new widget token, returned once; the previous one stops working at once. Anyone who can edit
+   * the agent issues the first token of a widget approved after their request.
+   */
+  rotateChannelToken: (http: HttpClient, orgId: string, agentId: string, channelId: string) =>
+    http.post<AgentChannelCreatedDto>(
+      `/orgs/${orgId}/agents/${agentId}/channels/${channelId}/rotate-token`,
+      {},
+    ),
+  /** Turns a channel off; a Builder takes back a request that waits. */
+  removeChannel: (http: HttpClient, orgId: string, agentId: string, channelId: string) =>
+    http.delete(`/orgs/${orgId}/agents/${agentId}/channels/${channelId}`),
   /** Points the live version at an earlier one (T2); creates no version and leaves the draft alone. */
   rollback: (http: HttpClient, orgId: string, agentId: string, input: RollbackAgentInput) =>
     http.post<AgentDto>(`/orgs/${orgId}/agents/${agentId}/rollback`, input),

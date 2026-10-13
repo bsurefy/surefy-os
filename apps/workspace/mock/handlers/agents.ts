@@ -18,6 +18,7 @@ import {
   mockOk,
 } from '@surefy/web-core/testing/mock'
 
+import { scenarioChannels } from './agentChannels'
 import { AGENT_KIND, SUPPORT_AGENT_ID } from './agentIds'
 import { agentPublishingHandlers, resetAgentPublishingMock } from './agentPublishing'
 import { resetAgentRunsMock, setAgentLookup } from './agentRuns'
@@ -185,6 +186,25 @@ export function resetAgentsMock(): void {
   resetAgentRunsMock()
 }
 
+/** Gives an agent these channels, as if they had been published and approved before. */
+export function setMockAgentChannels(agentId: string, channels: AgentDetailDto['channels']): void {
+  agents = agents.map((agent) => (agent.id === agentId ? { ...agent, channels } : agent))
+}
+
+/**
+ * The agent with the channels of a scenario, kept so the Publish tab can act on them; a live agent
+ * that has external channels already keeps its own.
+ */
+function withScenarioChannels(id: unknown, scenario: Parameters<typeof scenarioChannels>[1]) {
+  const found = find(id)
+  if (!found) return notFound()
+  const hasExternal = found.channels.some(({ type }) => type !== 'workspace_chat')
+  if (found.liveVersion === null || hasExternal) return mockOk(found)
+  const updated = { ...found, channels: [...found.channels, ...scenarioChannels(found, scenario)] }
+  agents = agents.map((agent) => (agent.id === updated.id ? updated : agent))
+  return mockOk(updated)
+}
+
 const path = '/orgs/:orgId/agents'
 const find = (id: unknown) => agents.find((agent) => agent.id === id)
 setAgentLookup((id) => {
@@ -217,7 +237,8 @@ const store = {
  * with unpublished changes, "New agent" was never published, "Old invoice checker" is archived and
  * "HR helper" is shared for reading only; "Sales assistant" uses a model that is no longer allowed.
  * Scenarios: on a draft save, `conflict` answers that someone else changed the draft first (the
- * agent then holds their newer revision) and `error` fails the save.
+ * agent then holds their newer revision) and `error` fails the save. On reading a live agent,
+ * `channels-live`, `channel-error` and `widget-approved` give it external channels in that state.
  */
 export const agentsDomain = defineMockDomain(
   'agents',
@@ -233,6 +254,9 @@ export const agentsDomain = defineMockDomain(
           const found = find(params.agentId)
           return found ? mockOk(found) : notFound()
         },
+        'channels-live': ({ params }) => withScenarioChannels(params.agentId, 'channels-live'),
+        'channel-error': ({ params }) => withScenarioChannels(params.agentId, 'channel-error'),
+        'widget-approved': ({ params }) => withScenarioChannels(params.agentId, 'widget-approved'),
       },
     }),
     defineMockHandler({

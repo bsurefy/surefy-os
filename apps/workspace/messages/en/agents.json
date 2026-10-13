@@ -761,7 +761,7 @@
     },
     "publish": {
       "published": "Version {version} is live",
-      "waitingForAdmin": "Waiting for an admin to approve turning on the API. The rest is live.",
+      "waitingForAdmin": "Waiting for an admin to approve publishing to {channels}. The rest is live.",
       "publishing": "Publishing…",
       "action": "Publish v{version}",
       "blocked": {
@@ -848,14 +848,77 @@
       },
       "channels": {
         "title": "Channels",
-        "description": "Where the agent answers. Channels go live when you publish.",
+        "description": "Where the agent answers. A new channel goes live when you publish; a live one changes at once.",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyValue": "{action} {label}",
+        "names": {
+          "api": "the API",
+          "widget": "the website widget",
+          "slack": "Slack",
+          "whatsapp": "WhatsApp"
+        },
         "status": {
           "off": "Off",
           "active": "Live",
           "pending_approval": "Waiting for an admin",
           "paused": "Paused",
           "error": "Error",
-          "disconnected": "Off"
+          "disconnected": "Off",
+          "next": "With the next publish"
+        },
+        "exposure": {
+          "api": "Anyone with a key that can run agents can get answers from {names}. There is no signed-in person on the API, so the agent uses its own knowledge and tools.",
+          "widget": "Anyone using the website widget can get answers from {names}. There is no signed-in person on the widget, so the agent uses its own knowledge and tools.",
+          "slack": "Anyone who can message the agent in Slack can get answers from {names}. The agent uses its own knowledge and tools, not each person's.",
+          "whatsapp": "Anyone who messages the WhatsApp number can get answers from {names}. The agent uses its own knowledge and tools.",
+          "nothing": "The agent has no knowledge or tools, so it answers from the model alone."
+        },
+        "queued": {
+          "live": "Goes live when you publish.",
+          "request": "When you publish, an admin is asked to approve publishing to {channel}. The rest goes live meanwhile.",
+          "edit": "Edit",
+          "drop": "Don't add"
+        },
+        "live": {
+          "waiting": {
+            "title": "Waiting for an admin to approve publishing to {channel}",
+            "description": "It starts answering once an admin approves it in Insights › Approvals."
+          },
+          "error": {
+            "title": "Stopped answering on {channel}",
+            "reconnect": "Reconnect"
+          },
+          "pausedHelp": "Paused: it doesn't answer until it is resumed.",
+          "edit": "Edit",
+          "pause": "Pause",
+          "resume": "Resume",
+          "retry": "Try again",
+          "turnOff": "Turn off",
+          "withdraw": "Withdraw request",
+          "getCode": "Get embed code",
+          "newCode": "New embed code",
+          "withdrawn": "Withdrew the request to publish to {channel}",
+          "resumed": "Answering again on {channel}",
+          "paused": "Paused {channel}",
+          "turnedOff": "Turned off {channel}",
+          "confirm": {
+            "pause": {
+              "title": "Pause {channel}?",
+              "description": "The agent stops answering on {channel} until you resume it. Nothing else changes.",
+              "action": "Pause"
+            },
+            "turnOff": {
+              "title": "Turn off {channel}?",
+              "description": "The agent stops answering on {channel} at once. Setting it up again needs a new publish, and an admin's approval for Builders.",
+              "action": "Turn off"
+            },
+            "newCode": {
+              "title": "Get a new embed code?",
+              "description": "The current code stops working at once: the widget disappears from every site that uses it until you replace the code there.",
+              "action": "Get new code"
+            }
+          }
         },
         "chat": {
           "name": "SurefyOS chat",
@@ -867,10 +930,6 @@
           "turnOn": "Turn on the API",
           "turnOnHelp": "The API goes live with the next publish.",
           "requestHelp": "An admin approves turning on the API. The rest of the publish goes live meanwhile.",
-          "waiting": {
-            "title": "Waiting for an admin to approve turning on the API",
-            "description": "The agent is live in SurefyOS chat. The API starts answering once an admin approves it in Insights › Approvals."
-          },
           "unavailable": {
             "notPublished": {
               "title": "Publish the agent to turn the API on",
@@ -885,16 +944,131 @@
               "description": "The API doesn't answer for an archived agent."
             }
           },
-          "exposes": "Anyone with a key that can run agents can get answers from {names}. There is no signed-in person on the API, so the agent uses its own knowledge and tools.",
-          "exposesNothing": "The agent has no knowledge or tools, so it answers from the model alone.",
           "rateLimit": "{count} requests a minute, per key.",
           "howTo": "How to call it",
           "streamHelp": "Add ?stream=true to stream the answer as it is written.",
-          "copy": "Copy",
-          "copied": "Copied",
           "keysAdmin": "Keys that can run agents are made in Settings › API keys.",
           "keysBuilder": "Ask an admin for a key in Settings › API keys.",
           "createKey": "Create a key"
+        },
+        "widget": {
+          "name": "Website widget",
+          "help": "A chat button on your own website.",
+          "setUp": "Set up the widget",
+          "saved": "Website widget saved",
+          "origins": "Loads on {origins}",
+          "look": "{theme} theme · {position}",
+          "dialog": {
+            "titleNew": "Set up the website widget",
+            "title": "Website widget",
+            "exposes": "Anyone using the widget can get answers from {names}.",
+            "exposesNothing": "The agent has no knowledge or tools, so it answers from the model alone.",
+            "origins": {
+              "label": "Websites",
+              "help": "The addresses the widget may load on, one per line. Elsewhere it stays hidden.",
+              "required": "Enter at least one website.",
+              "invalid": "Not a website address: {addresses}",
+              "tooMany": "Enter at most {count} websites."
+            },
+            "greeting": {
+              "label": "Greeting",
+              "help": "Shown when a visitor opens the chat. Leave it empty for \"Hi! How can I help?\".",
+              "tooLong": "Keep the greeting under 300 characters."
+            },
+            "theme": {
+              "label": "Theme",
+              "light": "Light",
+              "dark": "Dark",
+              "auto": "Match the visitor"
+            },
+            "position": {
+              "label": "Corner",
+              "bottom_right": "Bottom right",
+              "bottom_left": "Bottom left"
+            },
+            "cancel": "Cancel",
+            "add": "Add widget",
+            "save": "Save"
+          },
+          "embed": {
+            "title": "Your embed code",
+            "warning": "You won't be able to see this again. If it is lost, an admin can make a new one.",
+            "howTo": "Paste it before the closing </body> tag on every page that should show the chat.",
+            "codeLabel": "Embed code",
+            "copy": "Copy code",
+            "copied": "Copied",
+            "done": "Done",
+            "closeWithoutCopying": {
+              "title": "Close without copying?",
+              "description": "The code can't be shown again.",
+              "keep": "Keep open",
+              "close": "Close anyway"
+            }
+          }
+        },
+        "messaging": {
+          "saved": "Saved the {channel} settings",
+          "through": "Answers through {connection}",
+          "throughState": "Answers through {connection} · {state}",
+          "noConnection": "No connection: choose one to answer again.",
+          "exposesNothing": "The agent has no knowledge or tools, so it answers from the model alone.",
+          "cancel": "Cancel",
+          "add": "Add",
+          "save": "Save",
+          "connection": {
+            "label": "Connection",
+            "required": "Choose a connection.",
+            "add": "Add connection"
+          },
+          "slack": {
+            "name": "Slack",
+            "help": "Answer in Slack channels and direct messages.",
+            "setUp": "Set up Slack",
+            "titleNew": "Set up Slack",
+            "title": "Slack",
+            "exposes": "Anyone who can message the agent in Slack can get answers from {names}.",
+            "connectionHelp": "The Slack workspace the agent answers in. Each workspace answers for one agent.",
+            "setUpSteps": "In your Slack app's Event Subscriptions, turn events on and paste this request URL.",
+            "webhookLabel": "Request URL",
+            "answers": {
+              "mentions": "{count, plural, =0 {Answers when mentioned, in every channel the app is in} other {Answers when mentioned in {channels}}}",
+              "direct_messages": "{count, plural, =0 {Answers direct messages and mentions in every channel the app is in} other {Answers direct messages and mentions in {channels}}}"
+            },
+            "respondTo": {
+              "label": "Answers",
+              "help": "In a thread, the agent replies to follow-ups that mention it.",
+              "mentions": "When mentioned",
+              "direct_messages": "Direct messages too"
+            },
+            "channels": {
+              "label": "Channel IDs",
+              "help": "Optional. One per line; leave empty to answer in every channel the app is in.",
+              "tooMany": "Enter at most 100 channels."
+            }
+          },
+          "whatsapp": {
+            "name": "WhatsApp",
+            "help": "Answer messages sent to a WhatsApp Business number.",
+            "setUp": "Set up WhatsApp",
+            "titleNew": "Set up WhatsApp",
+            "title": "WhatsApp",
+            "exposes": "Anyone who messages the number can get answers from {names}.",
+            "connectionHelp": "The WhatsApp Business number the agent answers on. Each number answers for one agent.",
+            "setUpSteps": "In Meta's webhook set-up for your app, paste this callback URL and verify token, then subscribe to messages.",
+            "webhookLabel": "Callback URL",
+            "verifyToken": "Verify token",
+            "answers": "Answers on phone number ID {number}",
+            "businessAccount": {
+              "label": "WhatsApp Business account ID",
+              "help": "From Meta's WhatsApp Manager.",
+              "required": "Enter the WhatsApp Business account ID."
+            },
+            "welcome": {
+              "label": "Welcome message",
+              "help": "Optional. Sent before the first answer to someone new.",
+              "tooLong": "Keep the welcome message under 1000 characters."
+            }
+          }
         }
       },
       "changes": {

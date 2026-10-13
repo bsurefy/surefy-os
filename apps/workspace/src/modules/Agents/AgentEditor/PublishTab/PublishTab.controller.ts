@@ -1,20 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 import { agentKeys, agentQueries, usePublishAgentMutation } from '@/api/agents'
 import { ROUTES } from '@/constants/routes'
 import { diffAgentDefinitions, ERROR_CODES, PERMISSIONS } from '@surefy/contracts'
-import type { AgentDetailDto, AgentReadinessItemDto } from '@surefy/contracts'
+import type {
+  AgentChannelRequest,
+  AgentDetailDto,
+  AgentReadinessItemDto,
+  ExternalChannelType,
+} from '@surefy/contracts'
 import { toast } from '@surefy/ui/components/Feedback'
 import { useCan, useCurrentOrgId } from '@surefy/web-core/access'
 import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 
 import { toSaveableDefinition } from '../AgentEditor.utils'
+import { currentChannelOf } from './ChannelsSection/ChannelsSection.utils'
 import { getBlockedReason } from './PublishTab.utils'
 
+import type { ChannelRequests } from './ChannelsSection'
 import type { PublishTabProps } from './PublishTab.types'
 
 /**
@@ -32,6 +39,8 @@ export function usePublishTabController({
   onConflict,
 }: PublishTabProps) {
   const t = useTranslations('agents.editor.publish')
+  const tChannels = useTranslations('agents.editor.publish.channels')
+  const format = useFormatter()
   const tErrors = useTranslations('errors')
   const { orgSlug } = useParams<{ orgSlug: string }>()
   const orgId = useCurrentOrgId()
@@ -44,7 +53,8 @@ export function usePublishTabController({
   })
   const publish = usePublishAgentMutation(orgId, agent.id, { silent: true })
   const [notes, setNotes] = useState('')
-  const [wantsApi, setWantsApi] = useState(false)
+  const [requests, setRequests] = useState<ChannelRequests>([])
+  const [widgetToken, setWidgetToken] = useState<string | null>(null)
   const [failure, setFailure] = useState<{ error: unknown } | { notSaved: true } | null>(null)
 
   // The check reads the saved draft: save what is pending, then read it again
@@ -54,13 +64,16 @@ export function usePublishTabController({
     )
   }, [onFlush, queryClient, orgId, agent.id])
 
-  const hasApi = agent.channels.some((channel) => channel.type === 'api')
+  // a channel that exists already is changed on its card, not with a publish
+  const channelsToAdd = requests.filter(
+    (request) => currentChannelOf(agent.channels, request.type) === null,
+  )
   const changes = live.data
     ? diffAgentDefinitions(live.data.definition, toSaveableDefinition(definition))
     : null
   const isFirst = agent.liveVersion === null
   const hasNothingToPublish =
-    !isFirst && changes !== null && changes.length === 0 && !(wantsApi && !hasApi)
+    !isFirst && changes !== null && changes.length === 0 && channelsToAdd.length === 0
 
   const blockingCount =
     readiness.data?.items.filter((item) => item.severity === 'blocking' && !item.passed).length ?? 0
@@ -84,17 +97,26 @@ export function usePublishTabController({
       const result = await publish.mutateAsync({
         baseRevision: revision,
         notes: notes.trim() === '' ? undefined : notes.trim(),
-        channels: wantsApi && !hasApi ? [{ type: 'api' }] : [],
+        channels: channelsToAdd,
       })
       // the publish moved the draft's revision; the agent was read again
       const detail = queryClient.getQueryData<AgentDetailDto>(agentKeys.detail(orgId, agent.id))
       if (detail) onPublished(detail.draft.revision)
       setNotes('')
-      setWantsApi(false)
+      setRequests([])
       toast.success(t('published', { version: result.version.version }))
-      if (result.channels.some((channel) => channel.status === 'pending_approval')) {
-        toast.info(t('waitingForAdmin'))
+      const waiting = result.channels.filter(
+        (channel) =>
+          channel.status === 'pending_approval' &&
+          channelsToAdd.some((request) => request.type === channel.type),
+      )
+      if (waiting.length > 0) {
+        const names = waiting.map((channel) => tChannels(`names.${channel.type}`))
+        toast.info(t('waitingForAdmin', { channels: format.list(names, { type: 'conjunction' }) }))
       }
+      // the token of a widget that went live is in this answer only
+      const [token] = Object.values(result.widgetTokens)
+      if (token !== undefined) setWidgetToken(token)
     } catch (error) {
       if (isApiError(error) && error.code === ERROR_CODES.AGENT_EDIT_CONFLICT) {
         await onConflict(error)
@@ -127,8 +149,15 @@ export function usePublishTabController({
     liveVersion: agent.liveVersion,
     notes,
     onNotesChange: setNotes,
-    wantsApi,
-    onWantsApiChange: setWantsApi,
+    requests,
+    onRequestChange: (type: ExternalChannelType, request: AgentChannelRequest | null) => {
+      setRequests((current) => [
+        ...current.filter((entry) => entry.type !== type),
+        ...(request ? [request] : []),
+      ])
+    },
+    widgetToken,
+    onWidgetTokenChange: setWidgetToken,
     canChange,
     blockedReason: reason && t(`blocked.${reason}`, { count: blockingCount }),
     isPublishing: publish.isPending || saveStatus.kind === 'saving',

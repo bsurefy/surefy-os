@@ -12,6 +12,7 @@ import type {
   ReplaceAgentAccessInput,
   SaveAgentDraftInput,
   TestAgentToolInput,
+  UpdateAgentChannelInput,
   UpdateAgentInput,
 } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
@@ -111,6 +112,75 @@ export function useRollbackAgentMutation(
       await queryClient.invalidateQueries({ queryKey: agentKeys.detail(orgId, agentId) })
       await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
     },
+  })
+}
+
+/** A channel changed: the agent is read again for its channels, the lists for "Needs attention". */
+function useChannelChanged(orgId: string, agentId: string) {
+  const queryClient = useQueryClient()
+  return async () => {
+    await queryClient.invalidateQueries({ queryKey: agentKeys.detail(orgId, agentId) })
+    await queryClient.invalidateQueries({ queryKey: agentKeys.lists(orgId) })
+  }
+}
+
+/** Saves a live channel's settings (Admins). */
+export function useUpdateAgentChannelMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const onSuccess = useChannelChanged(orgId, agentId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: ({ channelId, input }: { channelId: string; input: UpdateAgentChannelInput }) =>
+      agentsApi.updateChannel(apiClient, orgId, agentId, channelId, input),
+    onSuccess,
+  })
+}
+
+/** Pauses a live channel, or resumes it (a channel in error once its connection works again). */
+export function useAgentChannelActionMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const onSuccess = useChannelChanged(orgId, agentId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: ({ channelId, action }: { channelId: string; action: 'pause' | 'resume' }) =>
+      agentsApi.channelAction(apiClient, orgId, agentId, channelId, action),
+    onSuccess,
+  })
+}
+
+/** A new widget token, in the answer once; the previous one stops working. */
+export function useRotateAgentChannelTokenMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const onSuccess = useChannelChanged(orgId, agentId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: (channelId: string) =>
+      agentsApi.rotateChannelToken(apiClient, orgId, agentId, channelId),
+    onSuccess,
+  })
+}
+
+/** Turns a channel off, or takes back a request that waits for an admin. */
+export function useRemoveAgentChannelMutation(
+  orgId: string,
+  agentId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const onSuccess = useChannelChanged(orgId, agentId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: (channelId: string) =>
+      agentsApi.removeChannel(apiClient, orgId, agentId, channelId),
+    onSuccess,
   })
 }
 

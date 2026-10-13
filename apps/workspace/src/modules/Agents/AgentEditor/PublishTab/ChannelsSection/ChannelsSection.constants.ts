@@ -5,3 +5,6 @@ export const DEFAULT_API_RATE_LIMIT = 60
 
 /** Knowledge bases named in "what it exposes" come from the first page of this size. */
 export const KNOWLEDGE_LOOKUP_LIMIT = 100
+
+/** Slack and WhatsApp connections offered come from the first page of this size. */
+export const CONNECTION_LOOKUP_LIMIT = 100

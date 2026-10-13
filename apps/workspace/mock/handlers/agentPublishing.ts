@@ -19,7 +19,6 @@ import {
 } from '@surefy/contracts'
 import type {
   AgentAccessEntryDto,
-  AgentChannelDto,
   AgentDefinition,
   AgentDetailDto,
   AgentReadinessItemDto,
@@ -28,13 +27,13 @@ import type {
 import { fixtureUuid } from '@surefy/web-core/testing'
 import { defineMockHandler, mockError, mockOk, mockPage } from '@surefy/web-core/testing/mock'
 
+import { agentChannelFixture, agentChannelHandlers, resetAgentChannelsMock } from './agentChannels'
 import { hasTestRunSince } from './agentRuns'
 import { MAYA, OMAR } from './shell.fixtures'
 import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
 
 const VERSION_KIND = 71
 const ACCESS_KIND = 72
-const CHANNEL_KIND = 73
 const HTTP_NOT_FOUND = 404
 const HTTP_CONFLICT = 409
 const HTTP_SERVER_ERROR = 500
@@ -76,6 +75,7 @@ export function resetAgentPublishingMock(): void {
   sequence = 0
   versions = new Map()
   accessByAgent = new Map()
+  resetAgentChannelsMock()
 }
 
 function seedVersions(store: AgentMockStore, agent: AgentDetailDto): AgentVersionDetailDto[] {
@@ -219,38 +219,6 @@ function readinessOf(agent: AgentDetailDto): AgentReadinessItemDto[] {
       unguarded.map((tool) => ({ type: 'tool', id: tool.id, name: tool.name })),
     ),
   ]
-}
-
-function channel(
-  agent: AgentDetailDto,
-  type: AgentChannelDto['type'],
-  status: AgentChannelDto['status'],
-): AgentChannelDto {
-  return {
-    id: nextId(CHANNEL_KIND),
-    agentId: agent.id,
-    type,
-    status,
-    config: {
-      version: 1,
-      ...(type === 'api' ? { api: { rateLimitPerMinute: 60 } } : {}),
-      exposure: {
-        knowledgeBases: [],
-        tools: [],
-      },
-    },
-    publicTokenPrefix: null,
-    externalAccountId: null,
-    connection: null,
-    approvalId: status === 'pending_approval' ? fixtureUuid(74, sequence) : null,
-    requestedBy: type === 'api' ? MAYA : null,
-    approvedBy: status === 'active' ? ANA : null,
-    lastErrorCode: null,
-    webhook: null,
-    lastActiveAt: null,
-    createdAt: PUBLISHED_AT,
-    updatedAt: PUBLISHED_AT,
-  }
 }
 
 const userOf = (userId: string) => [MAYA, OMAR, ANA].find(({ id }) => id === userId) ?? MAYA
@@ -435,6 +403,7 @@ export function agentPublishingHandlers(store: AgentMockStore) {
           ),
       },
     }),
+    ...agentChannelHandlers(store),
   ]
 }
 
@@ -467,16 +436,24 @@ async function publish(
     definition: agent.draft.definition,
   }
   versions.set(agent.id, [version, ...previous.map((entry) => ({ ...entry, isLive: false }))])
-  const existing = agent.channels
-  const channels = [
-    ...existing,
-    ...(existing.some(({ type }) => type === 'workspace_chat')
-      ? []
-      : [channel(agent, 'workspace_chat', 'active')]),
-    ...input.channels
-      .filter(({ type }) => !existing.some((entry) => entry.type === type))
-      .map(({ type }) => channel(agent, type, needsApproval ? 'pending_approval' : 'active')),
-  ]
+  // a channel that was turned off is set up again as a new one
+  const existing = agent.channels.filter(({ status }) => status !== 'disconnected')
+  const widgetTokens: Record<string, string> = {}
+  const added = input.channels
+    .filter(({ type }) => !existing.some((entry) => entry.type === type))
+    .map((request) => {
+      const { channel, token } = agentChannelFixture(
+        agent,
+        request,
+        needsApproval ? 'pending_approval' : 'active',
+      )
+      if (token !== null) widgetTokens[channel.id] = token
+      return channel
+    })
+  const chat = existing.some(({ type }) => type === 'workspace_chat')
+    ? []
+    : [agentChannelFixture(agent, { type: 'workspace_chat' }, 'active').channel]
+  const channels = [...agent.channels, ...chat, ...added]
   const published: AgentDetailDto = {
     ...agent,
     status: 'active',
@@ -491,7 +468,7 @@ async function publish(
       agent: published,
       version,
       channels,
-      widgetTokens: {},
+      widgetTokens,
     }),
   )
 }

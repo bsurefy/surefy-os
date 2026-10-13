@@ -36,8 +36,10 @@ export default function PublishTab(props: Readonly<PublishTabProps>) {
         agent={agent}
         definition={definition}
         canChange={c.canChange}
-        wantsApi={c.wantsApi}
-        onWantsApiChange={c.onWantsApiChange}
+        requests={c.requests}
+        onRequestChange={c.onRequestChange}
+        widgetToken={c.widgetToken}
+        onWidgetTokenChange={c.onWidgetTokenChange}
       />
       <ChangesSection liveVersion={c.liveVersion} changes={c.changes} />
       <Section title={t('form.title')}>

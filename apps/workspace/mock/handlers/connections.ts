@@ -203,6 +203,8 @@ export function resetConnectionsMock(): void {
 
 const path = '/orgs/:orgId/connections'
 const find = (id: unknown) => connections.find((connection) => connection.id === id)
+/** A connection as the mock holds it now: agent channels show its name and state. */
+export const findMockConnection = (id: unknown): ConnectionDto | undefined => find(id)
 const replace = (updated: ConnectionDto) => {
   connections = connections.map((connection) =>
     connection.id === updated.id ? updated : connection,
