@@ -1158,9 +1158,172 @@
   "usage": {
     "title": "Usage & budgets",
     "description": "AI cost budgets for the organization, teams and people.",
-    "empty": {
-      "title": "No budgets yet",
-      "description": "Set a budget to cap what AI usage can cost."
+    "viewOnly": {
+      "title": "View only",
+      "description": "Only Admins and Owners can change budgets."
+    },
+    "loadMore": "Load more",
+    "formerTarget": "Removed team or person",
+    "noPrimaryTeam": "No team",
+    "noAlerts": "No alerts",
+    "lastAlert": "{percent}% alert · {date}",
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "status": {
+      "on": "On",
+      "off": "Off"
+    },
+    "columns": {
+      "team": "Team",
+      "person": "Person",
+      "chargedTo": "Charged to",
+      "thisMonth": "This month",
+      "onReached": "When reached",
+      "alerts": "Alerts",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "tables": {
+      "team": "Team budgets",
+      "user": "Personal limits"
+    },
+    "onReached": {
+      "notify_only": {
+        "label": "Notify only",
+        "description": "Usage continues; the alerts still go out."
+      },
+      "switch_to_local": {
+        "label": "Switch to local models",
+        "description": "Calls move to the first allowed local model in the Vault fallback order. Without one, cloud calls stop."
+      },
+      "pause_cloud_models": {
+        "label": "Pause cloud models",
+        "description": "Cloud models stop until next month. Local models keep working."
+      }
+    },
+    "meter": {
+      "used": "{percent}% used",
+      "of": "{spent} of {amount}",
+      "off": "Off",
+      "capped": "Capped by the organization budget · own budget {amount}",
+      "reached": {
+        "notify_only": "Reached · usage continues",
+        "switch_to_local": "Reached · local models until {date}",
+        "pause_cloud_models": "Reached · cloud models paused until {date}"
+      }
+    },
+    "organization": {
+      "title": "Organization budget",
+      "description": "Every AI call counts toward it, including calls made with API keys and through the widget, Slack or WhatsApp. Team budgets and personal limits can't be higher.",
+      "empty": "No organization budget. Team budgets and personal limits still apply.",
+      "set": "Set a budget",
+      "delete": "Delete the organization budget",
+      "lastAlert": "Last alert",
+      "resets": "Starts again",
+      "loadError": "Couldn't load the organization budget"
+    },
+    "teams": {
+      "title": "Team budgets",
+      "description": "A monthly limit for each team.",
+      "add": "Add team budget",
+      "empty": {
+        "title": "No team budgets",
+        "description": "Give a team its own monthly limit."
+      },
+      "loadError": "Couldn't load the team budgets"
+    },
+    "people": {
+      "title": "Personal limits",
+      "description": "A monthly limit for one person, on top of their primary team's budget.",
+      "add": "Add personal limit",
+      "empty": {
+        "title": "No personal limits",
+        "description": "Limit what one person's AI usage can cost each month."
+      },
+      "loadError": "Couldn't load the personal limits",
+      "search": {
+        "label": "Search people",
+        "placeholder": "Search by name or email"
+      },
+      "noResults": {
+        "title": "No one matches",
+        "description": "Try another name or email.",
+        "clear": "Clear search"
+      }
+    },
+    "charging": {
+      "rule": "A person's AI usage counts against their own limit, their primary team's budget and the organization budget. Someone in several teams is charged only to their primary team.",
+      "withoutPerson": "Calls without a person (API keys, the widget, Slack and WhatsApp) count toward the organization budget only.",
+      "example": "{name} is in {teams}; usage counts toward {primary}, the primary team.",
+      "exampleNoPrimary": "{name} is in {teams} and has no primary team; usage counts only toward a personal limit and the organization budget.",
+      "changeLink": "Change primary teams in Members"
+    },
+    "form": {
+      "createTitle": {
+        "organization": "Set the organization budget",
+        "team": "Add a team budget",
+        "user": "Add a personal limit"
+      },
+      "editTitle": {
+        "organization": "Edit the organization budget",
+        "team": "Edit the {name} budget",
+        "user": "Edit the limit for {name}"
+      },
+      "description": {
+        "organization": "A monthly limit for all AI usage in the organization. Months start on the 1st (UTC).",
+        "team": "A monthly limit for the people whose primary team this is.",
+        "user": "A monthly limit for one person's AI usage."
+      },
+      "team": "Team",
+      "teamPlaceholder": "Choose a team",
+      "teamSearch": "Search teams",
+      "teamEmpty": "Every team has a budget",
+      "person": "Person",
+      "personPlaceholder": "Choose a person",
+      "personSearch": "Search people",
+      "personEmpty": "No one matches",
+      "personHelp": "Their usage also counts toward their primary team's budget.",
+      "loading": "Loading…",
+      "amount": "Monthly amount",
+      "amountHelp": "Spend counts from the 1st of each month (UTC).",
+      "organizationCap": "Up to {amount}, the organization budget.",
+      "aboveOrganization": "Can't be more than the organization budget ({amount}).",
+      "aboveOrganizationUnknown": "Can't be more than the organization budget.",
+      "onReached": "When it's reached",
+      "alerts": "Alerts",
+      "alertAt": "At {percent}%",
+      "alertsHelp": {
+        "organization": "Sent to Admins and Owners.",
+        "team": "Sent to Admins, Owners and the team lead.",
+        "user": "Sent to Admins, Owners and the person."
+      },
+      "enabled": "Budget on",
+      "enabledHelp": "When it's off, nothing is limited and no alerts go out.",
+      "cancel": "Cancel",
+      "create": "Add budget",
+      "save": "Save changes",
+      "saved": "Budget saved",
+      "created": "Budget added"
+    },
+    "lower": {
+      "title": "{scope, select, organization {Lower the organization budget below this month's spend?} other {Lower the budget for {name} below this month's spend?}}",
+      "notify_only": "{scope, select, organization {The organization has} other {{name} has}} used {spent}; the 100% alert goes out and usage continues.",
+      "switch_to_local": "{scope, select, organization {The organization has} other {{name} has}} used {spent}; {scope, select, organization {the organization switches} other {{name} switches}} to local models until next month.",
+      "pause_cloud_models": "{scope, select, organization {The organization has} other {{name} has}} used {spent}; cloud models stop for {scope, select, organization {the organization} other {{name}}} until next month.",
+      "confirm": "Lower budget"
+    },
+    "delete": {
+      "title": "{scope, select, organization {Delete the organization budget?} user {Delete the limit for {name}?} other {Delete the {name} budget?}}",
+      "description": {
+        "organization": "Nothing caps the organization's total AI cost. Team budgets and personal limits stay.",
+        "team": "Usage charged to {name} stops counting against a team budget. The organization budget and personal limits still apply.",
+        "user": "{name}'s usage has no limit of its own. The primary team's budget and the organization budget still apply."
+      },
+      "confirm": "{scope, select, user {Delete limit} other {Delete budget}}",
+      "deleted": "{scope, select, organization {Organization budget deleted} user {Limit for {name} deleted} other {{name} budget deleted}}"
     }
   }
 }

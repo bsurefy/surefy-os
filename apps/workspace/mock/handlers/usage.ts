@@ -27,6 +27,7 @@ import {
 
 import { MAYA, OMAR } from './shell.fixtures'
 import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
+import { budgetHandlers } from './usage.budgets'
 import { OLLAMA_SERVER_ID } from './vault'
 
 const HOUR_MS = 3_600_000
@@ -318,7 +319,7 @@ const path = '/orgs/:orgId/insights'
  * Scenarios: `empty` is an organization without usage; `restricted` hides the cost KPIs;
  * `unpriced` flags a model without a known price; `chart-error` fails both charts while the KPIs
  * load (a partial failure). Live on the real API (B3-04's routes, I4-06); the handlers stay for
- * component tests and for `MOCK_DOMAINS=usage`, to look at the states.
+ * component tests and for `MOCK_DOMAINS=usage`, to look at the states. Budgets: `usage.budgets.ts`.
  */
 export const usageDomain = defineMockDomain(
   'usage',
@@ -378,6 +379,7 @@ export const usageDomain = defineMockDomain(
         'chart-error': chartError,
       },
     }),
+    ...budgetHandlers,
   ],
   { isLive: true },
 )
