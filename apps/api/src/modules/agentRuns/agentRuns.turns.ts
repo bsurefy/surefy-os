@@ -240,7 +240,7 @@ export class ModelTurns {
       const code = failureCodeOf(error)
       if (code === null) throw error
       await this.recordFailedTurn(session, seq, startedAt, summary, code)
-      throw new RunFailure(code)
+      throw new RunFailure(code, { cause: error })
     }
 
     const call = await model.call

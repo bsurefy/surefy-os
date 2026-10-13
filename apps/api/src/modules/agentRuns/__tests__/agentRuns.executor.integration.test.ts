@@ -180,10 +180,9 @@ describe('executing a run', () => {
     const { run, steps } = await setup.read(queued.id)
     expect(run).toMatchObject({ status: 'failed', errorCode: 'MODEL_PROVIDER_UNAVAILABLE' })
     // the run keeps the code only: the log says why
-    expect(warn).toHaveBeenCalledWith(
-      expect.objectContaining({ runId: queued.id, errorCode: 'MODEL_PROVIDER_UNAVAILABLE' }),
-      'agent run failed',
-    )
+    const logged = warn.mock.calls.find((call) => call[1] === 'agent run failed')?.[0]
+    expect(logged).toMatchObject({ runId: queued.id, errorCode: 'MODEL_PROVIDER_UNAVAILABLE' })
+    expect((logged as { err: Error }).err.cause).toBeInstanceOf(ModelProviderUnavailableError)
     expect(steps.at(-1)).toMatchObject({
       type: 'model',
       status: 'failed',

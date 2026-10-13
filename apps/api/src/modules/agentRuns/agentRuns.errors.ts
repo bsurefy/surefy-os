@@ -92,8 +92,12 @@ export class AgentRunSupersededError extends Error {
  * budget that ran out, a turn limit). Internal: the executor turns it into the run's status.
  */
 export class RunFailure extends Error {
-  constructor(readonly code: string) {
-    super(`agent run failed: ${code}`)
+  /** `cause` is what the provider or a check said: the run keeps the code, the log keeps the cause. */
+  constructor(
+    readonly code: string,
+    options?: { cause?: unknown },
+  ) {
+    super(`agent run failed: ${code}`, options)
     this.name = 'RunFailure'
   }
 }
