@@ -26,6 +26,8 @@ export async function callApi<T>(
   )
   if (result.status >= 400)
     throw new Error(`${method} ${path}: ${String(result.status)} ${result.text}`)
+  // a delete answers 204 with no body
+  if (result.text === '') return undefined as T
   return (JSON.parse(result.text) as { data: T }).data
 }
 

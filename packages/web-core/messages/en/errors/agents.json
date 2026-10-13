@@ -1,0 +1,22 @@
+{
+  "AGENT_NOT_FOUND": "This agent no longer exists, or isn't shared with you.",
+  "AGENT_EDIT_CONFLICT": "Someone else changed this agent while you were editing. Review their changes or keep yours.",
+  "AGENT_NOT_EDITABLE": "This agent is archived or deleted, so it can't be edited. Restore it first.",
+  "AGENT_NOT_READY": "This agent isn't ready to publish. Fix the items marked as required.",
+  "AGENT_PAUSED": "This agent is paused and isn't answering right now.",
+  "AGENT_STATE_INVALID": "This agent can't do that in its current state.",
+  "AGENT_NOT_PUBLISHED": "This agent hasn't been published yet.",
+  "AGENT_MODEL_NOT_ALLOWED_FOR_AUDIENCE": "The agent's model isn't allowed for everyone it's shared with. Choose another model or ask an admin.",
+  "AGENT_VERSION_NOT_FOUND": "This version no longer exists.",
+  "AGENT_TEMPLATE_NOT_FOUND": "This template doesn't exist.",
+  "AGENT_CHANNEL_NOT_FOUND": "This channel no longer exists.",
+  "AGENT_CHANNEL_EXISTS": "This agent already has a channel of that type.",
+  "AGENT_CHANNEL_PENDING_APPROVAL": "This channel is waiting for an admin's approval and can't be changed yet.",
+  "AGENT_TOOL_HTTP_ERROR": "The address answered with an error. Check the URL, the method and the arguments.",
+  "AGENT_TOOL_BAD_RESPONSE": "The answer wasn't what this tool expects. Check that the address is the right one.",
+  "AGENT_WIDGET_TOKEN_INVALID": "This chat isn't set up correctly. Ask the site owner to update the widget code.",
+  "AGENT_WIDGET_ORIGIN_NOT_ALLOWED": "This chat isn't allowed on this website. Ask the site owner to add it in the agent's Publish tab.",
+  "AGENT_CHANNEL_SIGNATURE_INVALID": "This message could not be checked, so it was not answered. Check the app's signing secret.",
+  "AGENT_CHANNEL_VERIFY_TOKEN_INVALID": "The verify token doesn't match. Copy it again from the agent's Publish tab.",
+  "AGENT_CHANNEL_ACCOUNT_IN_USE": "This account already answers for another agent. Remove it there first, or use another account."
+}

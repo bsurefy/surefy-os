@@ -39,14 +39,22 @@ export const e2e = {
   apiPort: Number(read('API_PORT', '4000')),
   /** Its own database, recreated on every run, next to the worktree's development one. */
   database: `${read('DATABASE_NAME', 'surefy')}_e2e`,
-  /** Its own Redis database, so rate limits of earlier runs never carry over. */
-  redisDatabase: 1 + (slot % (REDIS_DATABASES - 1)),
+  /**
+   * Its own Redis database, so rate limits of earlier runs never carry over. `E2E_REDIS_DATABASE`
+   * picks another when a development API or worker already uses this one: it would take the run's
+   * jobs and run them against its own database.
+   */
+  redisDatabase: Number(read('E2E_REDIS_DATABASE', String(1 + (slot % (REDIS_DATABASES - 1))))),
   postgresPort,
   redisPort,
   /** The stub OpenAI-compatible model server (`modelServer.ts`), next to the worktree's ports. */
   modelPort: Number(read('MODEL_STUB_PORT', String(Number(read('API_PORT', '4000')) + 9))),
   /** The stub document parser (`mlServer.ts`), which the real one, `apps/ml`, stands in for. */
   mlPort: Number(read('ML_STUB_PORT', String(Number(read('API_PORT', '4000')) + 8))),
+  /** The stub OAuth app (`oauthServer.ts`), which a custom API connection signs in to. */
+  oauthPort: Number(read('OAUTH_STUB_PORT', String(Number(read('API_PORT', '4000')) + 6))),
+  /** The stub MCP server (`mcpServer.ts`), which an agent's MCP tool connects to. */
+  mcpPort: Number(read('MCP_STUB_PORT', String(Number(read('API_PORT', '4000')) + 5))),
   /** The health port of the worker that the knowledge spec starts for itself. */
   workerPort: Number(read('API_PORT', '4000')) + 7,
 }
@@ -55,8 +63,15 @@ export const webUrl = `http://localhost:${String(e2e.webPort)}`
 export const apiUrl = `http://localhost:${String(e2e.apiPort)}`
 export const modelServerUrl = `http://127.0.0.1:${String(e2e.modelPort)}`
 export const mlServerUrl = `http://127.0.0.1:${String(e2e.mlPort)}`
+export const oauthServerUrl = `http://127.0.0.1:${String(e2e.oauthPort)}`
+/** The stub MCP server's endpoint and its list of calls. */
+export const mcpServerUrl = `http://127.0.0.1:${String(e2e.mcpPort)}`
 /** The stub's embedding model has its own address, so the chat model's listing stays one model. */
 export const embedServerUrl = `${modelServerUrl}/embed`
+
+/** The client the stub OAuth app (`oauthServer.ts`) knows; test credentials only. */
+export const OAUTH_CLIENT_ID = 'e2e-client'
+export const OAUTH_CLIENT_SECRET = 'e2e-client-secret'
 
 /** The one model the stub server lists; the chat specs connect it and enable it in the Vault. */
 export const STUB_MODEL_ID = 'e2e-echo'
@@ -108,6 +123,12 @@ export function apiEnv(): Record<string, string> {
     STORAGE_DRIVER: 'local',
     STORAGE_LOCAL_PATH: `${REPO_ROOT}apps/api/data/e2e-storage`,
     MAIL_DRIVER: 'console',
+    // The stub OAuth app is a local server: a custom API may be reached over http on this host
+    CONNECTIONS_LOCAL_HOSTS: '127.0.0.1',
+    // Slack is "set up" on this install (fake app credentials), so Connections offers it; the
+    // browser never reaches Slack, the spec answers in its place
+    CONNECTIONS_OAUTH_SLACK_CLIENT_ID: 'e2e-slack-client-id',
+    CONNECTIONS_OAUTH_SLACK_CLIENT_SECRET: 'e2e-slack-client-secret',
   }
 }
 

@@ -8,14 +8,14 @@ import httpx
 from fastapi import FastAPI
 
 from surefy_ml.api.errors import register_error_handlers
-from surefy_ml.api.routers import documents, health
+from surefy_ml.api.routers import documents, health, pii
 from surefy_ml.core.concurrency import TaskRunner, WorkerPool
 from surefy_ml.core.config import Settings, get_settings
 from surefy_ml.core.files import FileFetcher
 from surefy_ml.core.logging import configure_logging, get_logger
-from surefy_ml.models.registry import WorkerConfig, init_worker
-from surefy_ml.pipelines.parsing.tasks import warm_up_task
+from surefy_ml.models.registry import WorkerConfig, init_worker, pii_available, warm_up_models
 from surefy_ml.services.documents_service import DocumentsService
+from surefy_ml.services.pii_service import PiiService
 
 
 def create_app(
@@ -46,9 +46,11 @@ def create_app(
                         parse_timeout_seconds=config.parse_timeout_seconds,
                         log_level=config.log_level,
                         json_logs=json_logs,
+                        pii_min_score=config.pii_min_score,
+                        pii_pattern_timeout_seconds=config.pii_pattern_timeout_seconds,
                     ),
                 ),
-                warm_up=warm_up_task,
+                warm_up=warm_up_models,
             )
             pool.start()
             runner = pool
@@ -59,6 +61,7 @@ def create_app(
         )
         app.state.task_runner = runner
         app.state.documents_service = DocumentsService(files, runner, config)
+        app.state.pii_service = PiiService(runner, config)
         get_logger().info("ml service started", env=config.env, workers=config.workers)
         try:
             yield
@@ -79,4 +82,6 @@ def create_app(
     register_error_handlers(app)
     app.include_router(health.router)
     app.include_router(documents.router)
+    if pii_available():  # the `pii` extra; without it the routes answer ML_NOT_FOUND
+        app.include_router(pii.router)
     return app

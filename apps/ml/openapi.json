@@ -1,6 +1,69 @@
 {
   "components": {
     "schemas": {
+      "CustomPattern": {
+        "additionalProperties": false,
+        "description": "A custom type: a name and a regular expression (`regex` syntax, a superset of `re`).",
+        "properties": {
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "pattern": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Pattern",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "pattern"
+        ],
+        "title": "CustomPattern",
+        "type": "object"
+      },
+      "DetectPiiResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/DetectedText"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "language",
+          "results"
+        ],
+        "title": "DetectPiiResponse",
+        "type": "object"
+      },
+      "DetectedText": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/PiiFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "findings"
+        ],
+        "title": "DetectedText",
+        "type": "object"
+      },
       "DocumentSection": {
         "additionalProperties": false,
         "properties": {
@@ -181,6 +244,50 @@
         "title": "HealthStatus",
         "type": "object"
       },
+      "MaskPiiResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "title": "Language",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MaskedText"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "language",
+          "results"
+        ],
+        "title": "MaskPiiResponse",
+        "type": "object"
+      },
+      "MaskedText": {
+        "additionalProperties": false,
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/PiiFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "findings"
+        ],
+        "title": "MaskedText",
+        "type": "object"
+      },
       "OcrMode": {
         "enum": [
           "auto",
@@ -294,6 +401,136 @@
         ],
         "title": "ParsedDocument",
         "type": "object"
+      },
+      "PiiFinding": {
+        "additionalProperties": false,
+        "description": "Where one piece of personal data sits; the matched text is never returned.",
+        "properties": {
+          "customLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Customlabel"
+          },
+          "end": {
+            "minimum": 1.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "score": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "start": {
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/PiiFindingType"
+          }
+        },
+        "required": [
+          "type",
+          "customLabel",
+          "start",
+          "end",
+          "score"
+        ],
+        "title": "PiiFinding",
+        "type": "object"
+      },
+      "PiiFindingType": {
+        "description": "A built-in type, or `custom` for a pattern the organization defined.",
+        "enum": [
+          "person_name",
+          "email",
+          "phone",
+          "payment_card",
+          "bank_account",
+          "government_id",
+          "address",
+          "custom"
+        ],
+        "title": "PiiFindingType",
+        "type": "string"
+      },
+      "PiiRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "customPatterns": {
+            "items": {
+              "$ref": "#/components/schemas/CustomPattern"
+            },
+            "maxItems": 50,
+            "title": "Custompatterns",
+            "type": "array"
+          },
+          "locale": {
+            "default": "en",
+            "maxLength": 35,
+            "minLength": 2,
+            "title": "Locale",
+            "type": "string"
+          },
+          "orgId": {
+            "format": "uuid",
+            "title": "Orgid",
+            "type": "string"
+          },
+          "texts": {
+            "items": {
+              "maxLength": 100000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Texts",
+            "type": "array"
+          },
+          "types": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PiiType"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Types"
+          }
+        },
+        "required": [
+          "orgId",
+          "texts"
+        ],
+        "title": "PiiRequest",
+        "type": "object"
+      },
+      "PiiType": {
+        "description": "The built-in personal-data types, named like `BUILT_IN_PII_TYPES` in @surefy/contracts.",
+        "enum": [
+          "person_name",
+          "email",
+          "phone",
+          "payment_card",
+          "bank_account",
+          "government_id",
+          "address"
+        ],
+        "title": "PiiType",
+        "type": "string"
       }
     },
     "securitySchemes": {
@@ -454,6 +691,158 @@
         "summary": "Parse Document",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/v1/pii/detect": {
+      "post": {
+        "operationId": "detect_pii_v1_pii_detect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PiiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectPiiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Detect Pii",
+        "tags": [
+          "pii"
+        ]
+      }
+    },
+    "/v1/pii/mask": {
+      "post": {
+        "operationId": "mask_pii_v1_pii_mask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PiiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaskPiiResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mask Pii",
+        "tags": [
+          "pii"
         ]
       }
     }

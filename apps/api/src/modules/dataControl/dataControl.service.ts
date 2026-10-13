@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { SESSION_TTL } from '@/core/auth/index.js'
 import { sqlState, type Database, type DbExecutor } from '@/core/database/index.js'
 import { decodeCursor, toPage } from '@/lib/pagination.js'
 import {
@@ -29,7 +28,6 @@ import {
   DataRequestNotRetryableError,
   DeletionNeedsTwoFactorError,
   DeletionPendingError,
-  SessionNotFreshError,
 } from './dataControl.errors.js'
 import { toDataRequestDto } from './dataControl.mapper.js'
 import { zipArchive, type ArchiveFile } from './dataControl.utils.js'
@@ -58,6 +56,8 @@ export interface DataControlServiceDeps {
   users: DataControlUsers
   notifications: DataControlNotifications
   audit: AuditRecorder
+  /** Throws `AUTH_SESSION_NOT_FRESH` when the session is older than `session.freshAge` (access module). */
+  assertFreshSession: (ctx: DataControlContext) => void
   /** Whether the organization has a feature (retention policies), from the access module. */
   hasFeature: (
     ctx: DataControlContext,
@@ -402,8 +402,7 @@ export class DataControlService {
 
   /** T3: a sign-in within the last 10 minutes, on an account with two-factor turned on. */
   private async assertReauthenticated(ctx: DataControlContext): Promise<void> {
-    const signedInAt = ctx.session?.createdAt.getTime() ?? 0
-    if (Date.now() - signedInAt > SESSION_TTL.freshAge * 1000) throw new SessionNotFreshError()
+    this.deps.assertFreshSession(ctx)
     const user = ctx.userId === null ? undefined : await this.deps.users.findById(ctx.userId)
     if (user?.twoFactorEnabled !== true) throw new DeletionNeedsTwoFactorError()
   }

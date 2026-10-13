@@ -8,8 +8,14 @@ import {
   INSIGHTS_BREAKDOWN_LIMIT,
   insightsBreakdownDtoSchema,
   insightsBreakdownQuerySchema,
+  insightsBudgetMeterDtoSchema,
+  insightsBudgetMeterQuerySchema,
   insightsOverviewDtoSchema,
   insightsOverviewQuerySchema,
+  insightsRunsOverviewDtoSchema,
+  insightsRunsQuerySchema,
+  insightsRunsTimeseriesDtoSchema,
+  insightsRunsTimeseriesQuerySchema,
   insightsTimeseriesQuerySchema,
   usageCsvColumnsSchema,
   usageEventSchema,
@@ -132,7 +138,8 @@ describe('insights queries', () => {
     expect(insightsBreakdownQuerySchema.parse({ ...range, by: 'model', limit: '50' }).limit).toBe(
       50,
     )
-    expect(insightsBreakdownQuerySchema.safeParse({ ...range, by: 'agent' }).success).toBe(false)
+    expect(insightsBreakdownQuerySchema.safeParse({ ...range, by: 'agent' }).success).toBe(true)
+    expect(insightsBreakdownQuerySchema.safeParse({ ...range, by: 'flow' }).success).toBe(false)
   })
 
   it('limits a time series to its maximum number of points', () => {
@@ -199,6 +206,85 @@ describe('insights responses', () => {
       insightsBreakdownDtoSchema.safeParse({ ...breakdown, others: { ...totals, groupCount: 0 } })
         .success,
     ).toBe(false)
+  })
+})
+
+describe('insights V1', () => {
+  it('filters usage and runs by agent', () => {
+    expect(insightsOverviewQuerySchema.parse({ ...range, agentId: id }).agentId).toEqual([id])
+    expect(insightsRunsQuerySchema.parse({ ...range, agentId: [id, id2] }).agentId).toEqual([
+      id,
+      id2,
+    ])
+    expect(insightsRunsQuerySchema.safeParse({ ...range, to: range.from }).success).toBe(false)
+  })
+
+  it('buckets runs by whole days', () => {
+    expect(insightsRunsTimeseriesQuerySchema.parse(range).interval).toBe('day')
+    expect(
+      insightsRunsTimeseriesQuerySchema.safeParse({ ...range, interval: 'hour' }).success,
+    ).toBe(false)
+  })
+
+  it('reads the run and approval KPIs, restricted outside the scope', () => {
+    const overview = {
+      runs: { state: 'value', value: 120 },
+      successRateBp: { state: 'value', value: 9400 },
+      averageDurationMs: { state: 'value', value: null },
+      approvals: { state: 'restricted' },
+      hasRuns: true,
+      dataThrough: null,
+    }
+    expect(insightsRunsOverviewDtoSchema.safeParse(overview).success).toBe(true)
+    expect(
+      insightsRunsOverviewDtoSchema.safeParse({
+        ...overview,
+        successRateBp: { state: 'value', value: 10_001 },
+      }).success,
+    ).toBe(false)
+    expect(
+      insightsRunsOverviewDtoSchema.safeParse({
+        ...overview,
+        approvals: {
+          state: 'value',
+          value: {
+            requested: 9,
+            decidedByPeople: 7,
+            approved: 6,
+            rejected: 1,
+            expired: 1,
+            medianMinutesToDecide: 12.5,
+          },
+        },
+      }).success,
+    ).toBe(true)
+  })
+
+  it('returns every run bucket by outcome', () => {
+    const point = {
+      start: '2026-09-01T00:00:00.000Z',
+      succeeded: 10,
+      failed: 1,
+      canceled: 0,
+      neededHuman: 3,
+    }
+    expect(
+      insightsRunsTimeseriesDtoSchema.safeParse({ interval: 'week', points: [point] }).success,
+    ).toBe(true)
+    expect(
+      insightsRunsTimeseriesDtoSchema.safeParse({ interval: 'hour', points: [point] }).success,
+    ).toBe(false)
+  })
+
+  it('picks one budget for the meter, or none', () => {
+    expect(insightsBudgetMeterQuerySchema.safeParse({}).success).toBe(true)
+    expect(insightsBudgetMeterQuerySchema.safeParse({ teamId: id }).success).toBe(true)
+    expect(insightsBudgetMeterQuerySchema.safeParse({ teamId: id, userId: id2 }).success).toBe(
+      false,
+    )
+    expect(
+      insightsBudgetMeterDtoSchema.safeParse({ meter: { state: 'value', value: null } }).success,
+    ).toBe(true)
   })
 })
 

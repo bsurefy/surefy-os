@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { embedMany, generateText, streamText } from 'ai'
+import { embedMany, generateText, NoObjectGeneratedError, streamText } from 'ai'
 
 import { providerErrorFrom, type AiProviderError } from '@/integrations/ai/index.js'
 import type {
+  DecisionResult,
   ModelCallOutcome,
   ModelCallResultDto,
   ModelFallbackDto,
@@ -11,6 +12,13 @@ import type {
   VaultFallback,
 } from '@surefy/contracts'
 
+import {
+  decisionOutput,
+  decisionPrompt,
+  parseDecisionRequest,
+  toDecisionResult,
+  type GatewayDecisionRequest,
+} from './modelGateway.decision.js'
 import { ModelProviderUnavailableError } from './modelGateway.errors.js'
 import { costMicros, toUsageDto, type MeteredUsage } from './modelGateway.utils.js'
 import { ModelResolver, type Unresolved } from './modelResolver.js'
@@ -18,6 +26,7 @@ import { ModelResolver, type Unresolved } from './modelResolver.js'
 import type {
   ModelCallContext,
   ModelCallGuard,
+  ModelCallRecord,
   ResolvedModel,
   UsageRecorder,
 } from './modelGateway.types.js'
@@ -51,6 +60,9 @@ export interface GatewayTextResult {
   call: ModelCallResultDto
 }
 
+/** A decision, in the shape every implementation returns, with the metered call that made it. */
+export type GatewayDecisionResult = DecisionResult & { call: ModelCallResultDto }
+
 export interface GatewayStream {
   /** The AI SDK stream; read it (or `toUIMessageStream()`) from the start. */
   result: StreamResult
@@ -77,6 +89,8 @@ export interface ModelGatewayDeps {
 }
 
 const DEFAULT_RETRIES = 1
+/** The reason a model's answer to a decision could not be used (the call's error detail). */
+const DECISION_OUTPUT_INVALID = 'DECISION_OUTPUT_INVALID'
 const LAST_USED_WRITE_MS = 5 * 60_000
 const FIRST_PARTS = new Set([
   'text-delta',
@@ -91,7 +105,7 @@ interface Attempt {
   fallback: ModelFallbackDto | null
   /** 0 for the requested model, then one more per model tried. */
   index: number
-  kind: 'generation' | 'embedding'
+  kind: ModelCallRecord['kind']
 }
 
 /**
@@ -108,14 +122,60 @@ export class ModelGatewayService {
     this.now = deps.now ?? Date.now
   }
 
-  async generateText(
+  generateText(ctx: ModelCallContext, request: GatewayTextRequest): Promise<GatewayTextResult> {
+    return this.generate(ctx, request, 'generation')
+  }
+
+  /**
+   * A decision with a confidence (integrations.md, "Decision mode"): the model answers in
+   * structured output, so any model works, local ones too. Access, guards, fallback and metering
+   * are those of a text call; the usage row is a `decision`. A model that cannot produce a valid
+   * answer fails the call (`MODEL_PROVIDER_UNAVAILABLE`, reason `DECISION_OUTPUT_INVALID`); the
+   * caller treats a failed decision as no decision, never as a guess.
+   */
+  async decide(
+    ctx: ModelCallContext,
+    request: GatewayDecisionRequest,
+  ): Promise<GatewayDecisionResult> {
+    parseDecisionRequest(request)
+    const { system, prompt } = decisionPrompt(request)
+    const answer = await this.generate(
+      ctx,
+      {
+        modelKey: request.modelKey,
+        ...(request.signal === undefined ? {} : { signal: request.signal }),
+        system,
+        prompt,
+        temperature: 0,
+        output: decisionOutput(request),
+      },
+      'decision',
+    )
+    const decision = toDecisionResult(
+      answer.response.output as Parameters<typeof toDecisionResult>[0],
+    )
+    if (decision === null) throw new ModelProviderUnavailableError(DECISION_OUTPUT_INVALID)
+    this.deps.logger.info(
+      {
+        orgId: ctx.orgId,
+        caller: ctx.caller,
+        modelKey: answer.call.model.modelKey,
+        confidence: decision.confidence,
+      },
+      'decision made',
+    )
+    return { ...decision, call: answer.call }
+  }
+
+  private async generate(
     ctx: ModelCallContext,
     request: GatewayTextRequest,
+    usageKind: 'generation' | 'decision',
   ): Promise<GatewayTextResult> {
     const { modelKey, signal, ...params } = request
     const settings = await this.deps.fallbackOf(ctx.orgId)
     let lastFailure: AiProviderError | null = null
-    for await (const attempt of this.attempts(ctx, modelKey, settings, 'language')) {
+    for await (const attempt of this.attempts(ctx, modelKey, settings, 'language', usageKind)) {
       if (lastFailure !== null && attempt.fallback !== null) {
         attempt.fallback.reason = fallbackReason(lastFailure)
       }
@@ -139,19 +199,42 @@ export class ModelGatewayService {
         )
         return { text: response.text, response, call }
       } catch (error) {
-        if (signal?.aborted === true) {
-          await this.finish(ctx, attempt, 'aborted', null, started, null, null)
-          throw error
-        }
-        const failure = providerErrorFrom(error, timeout?.aborted === true)
-        await this.finish(ctx, attempt, 'error', null, started, null, failure)
-        if (failure === null) throw error
+        const failure = await this.textFailure(ctx, attempt, error, started, signal, timeout)
         lastFailure = failure
         if (!mayFallBack(failure, settings))
           throw new ModelProviderUnavailableError(failure.reasonCode)
       }
     }
     throw new ModelProviderUnavailableError(lastFailure?.reasonCode ?? null)
+  }
+
+  /**
+   * Meters a failed text call and returns the provider failure to fall back from; throws for an
+   * abort, an answer that does not fit the requested structure, and errors that are not the
+   * provider's.
+   */
+  private async textFailure(
+    ctx: ModelCallContext,
+    attempt: Attempt,
+    error: unknown,
+    started: number,
+    signal: AbortSignal | undefined,
+    timeout: AbortSignal | undefined,
+  ): Promise<AiProviderError> {
+    if (signal?.aborted === true) {
+      await this.finish(ctx, attempt, 'aborted', null, started, null, null)
+      throw error
+    }
+    if (NoObjectGeneratedError.isInstance(error)) {
+      // the tokens were spent: meter them, then report the answer as unusable
+      const spent = error.usage === undefined ? null : usageOf(error.usage)
+      await this.finish(ctx, attempt, 'error', spent, started, null, null)
+      throw new ModelProviderUnavailableError(DECISION_OUTPUT_INVALID)
+    }
+    const failure = providerErrorFrom(error, timeout?.aborted === true)
+    await this.finish(ctx, attempt, 'error', null, started, null, failure)
+    if (failure === null) throw error
+    return failure
   }
 
   /**
@@ -277,6 +360,7 @@ export class ModelGatewayService {
     modelKey: string,
     settings: VaultFallback,
     kind: 'language' | 'embedding',
+    usageKind: Attempt['kind'] = kind === 'embedding' ? 'embedding' : 'generation',
   ): AsyncGenerator<Attempt> {
     const first = await this.deps.resolver.resolve(ctx, modelKey, kind)
     ModelResolver.assertAllowed(first)
@@ -296,7 +380,7 @@ export class ModelGatewayService {
         fallback:
           index === 0 ? null : { from: requested, to: resolved.ref, reason: 'provider_error' },
         index: tried++,
-        kind: kind === 'embedding' ? 'embedding' : 'generation',
+        kind: usageKind,
       }
       await this.runGuards(ctx, attempt)
       yield attempt

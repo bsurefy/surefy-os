@@ -2,15 +2,15 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 
-import { closeSessionExpired, useIsSessionExpired } from './sessionExpiredStore'
+import { closeSessionExpired, useSessionDialogMode } from './sessionExpiredStore'
 
 import type { SessionExpiredDialogProps } from './SessionExpiredDialog.types'
 
 export function useSessionExpiredDialogController({ onSignOut }: SessionExpiredDialogProps) {
   // 1. external hooks
-  const t = useTranslations('session.expired')
+  const mode = useSessionDialogMode()
+  const t = useTranslations(mode === 'confirm' ? 'session.confirm' : 'session.expired')
   const queryClient = useQueryClient()
-  const isOpen = useIsSessionExpired()
 
   // 4. handlers
   const onSignedIn = () => {
@@ -24,6 +24,10 @@ export function useSessionExpiredDialogController({ onSignOut }: SessionExpiredD
     onSignOut()
   }
 
+  const onCancelClick = () => {
+    closeSessionExpired()
+  }
+
   // 7. flat return
-  return { isOpen, onSignedIn, onSignOutClick, t }
+  return { mode, onSignedIn, onSignOutClick, onCancelClick, t }
 }

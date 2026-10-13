@@ -15,6 +15,25 @@ import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
+import {
+  createAgentPublishingModule,
+  createChannelStore,
+  type WidgetScript,
+} from './modules/agentPublishing/index.js'
+import {
+  createAgentRunsAgents,
+  createAgentRunsModule,
+  createAgentRunsPeople,
+  createAgentRunSummaries,
+} from './modules/agentRuns/index.js'
+import { createAgentsModels, createAgentsModule } from './modules/agents/index.js'
+import { createAgentToolsModule } from './modules/agentTools/index.js'
+import { createApiKeysModule } from './modules/apiKeys/index.js'
+import {
+  createApprovalsModule,
+  type ApprovalSubjects,
+  type ApprovalsGuard,
+} from './modules/approvals/index.js'
 import { createAuditModule, createInstallAudit } from './modules/audit/index.js'
 import {
   createAuthEmails,
@@ -23,8 +42,15 @@ import {
   createSignupPolicy,
 } from './modules/auth/index.js'
 import { createChatDocumentParser, createChatsModule } from './modules/chats/index.js'
+import { createConnectionsModule, type OutboundHttp } from './modules/connections/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createFilesModule } from './modules/files/index.js'
+import {
+  createGuardApprovalsPort,
+  createGuardModule,
+  createGuardSubjects,
+  type GuardSubjects,
+} from './modules/guard/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
 import {
   createKnowledgeFiles,
@@ -40,6 +66,7 @@ import { createOrganizationsModule } from './modules/organizations/index.js'
 import { createOutboxModule } from './modules/outbox/index.js'
 import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
+import { createTemplatesModule } from './modules/templates/index.js'
 import { createUsageModule } from './modules/usage/index.js'
 import {
   createModelGrants,
@@ -48,6 +75,7 @@ import {
   createVaultOrganizationSetup,
   VaultRepository,
 } from './modules/vault/index.js'
+import { publicApiHost } from './plugins/security.plugin.js'
 
 import type { Config } from './core/config/index.js'
 import type { TenantAccessResolver } from './plugins/access.plugin.js'
@@ -79,8 +107,16 @@ export interface ContainerOverrides {
   queues?: Queues
   /** Skips the dynamic import of the private packages (tests). */
   extensions?: readonly string[]
+  /** What the guard, agents and flows modules provide to approvals, replaced by fakes in tests. */
+  approvals?: { guard?: ApprovalsGuard; subjects?: ApprovalSubjects }
+  /** What the agents, flows and run modules tell Guard, replaced by fakes in tests. */
+  guard?: { subjects?: GuardSubjects }
+  /** The calls the connections module makes to other apps, replaced by a fake in tests. */
+  connections?: { http?: OutboundHttp }
   /** Replaces the access module's effective access in `app.authorize()` (tests). */
   tenants?: TenantAccessResolver
+  /** The website widget's script, without building `@surefy/widget` (tests). */
+  widgetScript?: () => Promise<WidgetScript | null>
 }
 
 /**
@@ -132,6 +168,50 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     organizations: organizations.service,
     users,
     audit: audit.service,
+    connections: () => connections.service,
+    deletionSteps: () => [approvals.teamDeletion],
+  })
+  // the outbox is built after the modules that handle its events; connections writes through it
+  const connections = createConnectionsModule({
+    config,
+    db,
+    cache,
+    crypto,
+    logger,
+    teams: teams.service,
+    users,
+    notifications: notifications.service,
+    outbox: () => outbox.service,
+    audit: audit.service,
+    ...(overrides.connections?.http === undefined ? {} : { http: overrides.connections.http }),
+  })
+  // tools for agent runs: the executor (agentRuns) is their only caller
+  const agentTools = createAgentToolsModule({
+    connections: connections.service,
+    http: connections.http,
+  })
+  // Guard creates approvals, so it is built after them; the settings it provides to them first
+  const guardPort = createGuardApprovalsPort(overrides.guard?.subjects ?? createGuardSubjects())
+  // fresh-session checks come from the access module, which is built after the modules below
+  const approvals = createApprovalsModule({
+    db,
+    logger,
+    access: {
+      assertFreshSession: (ctx) => {
+        access.service.assertFreshSession(ctx)
+      },
+    },
+    teams: teams.service,
+    users,
+    notifications: notifications.service,
+    outbox: () => outbox.service,
+    audit: audit.service,
+    guard: overrides.approvals?.guard ?? guardPort.approvalsGuard,
+    ...(overrides.approvals?.subjects === undefined
+      ? {}
+      : { subjects: overrides.approvals.subjects }),
+    // channel publishing is built later: its hook is read when an approval is settled
+    requests: () => channelStore.requests,
   })
   // the vault's repository is shared: member removal revokes personal keys through it
   const vaultRepository = new VaultRepository()
@@ -144,7 +224,11 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     users,
     notifications: notifications.service,
     audit: audit.service,
-    removalSteps: [createVaultMemberRemoval({ repository: vaultRepository, audit: audit.service })],
+    removalSteps: [
+      createVaultMemberRemoval({ repository: vaultRepository, audit: audit.service }),
+      connections.memberRemoval,
+      approvals.memberRemoval,
+    ],
   })
   notifications.onEmailDelivery(members.invitations.onEmailDelivery)
   const install = createInstallModule({
@@ -182,6 +266,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     audit: audit.service,
     models: modelGrants.service,
   })
+  const apiKeys = createApiKeysModule({
+    db,
+    cache,
+    logger,
+    access: access.service,
+    users,
+    audit: audit.service,
+    publicApiHost: publicApiHost(config),
+  })
   const vault = createVaultModule({
     db,
     crypto,
@@ -208,6 +301,48 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     hooks,
     usage: usage.meter,
   })
+  const guard = createGuardModule({
+    db,
+    cache,
+    logger,
+    port: guardPort,
+    teams: teams.service,
+    users,
+    audit: audit.service,
+    approvals: approvals.service,
+    decider: modelGateway.service,
+    ml: integrations.ml,
+    outbox: () => outbox.service,
+  })
+  // agents and their templates; channels, dependency edges and runs join as their modules land
+  const agentModels = createAgentsModels({ grants: modelGrants, access: access.service })
+  const templates = createTemplatesModule({ db, models: agentModels })
+  const channelStore = createChannelStore({
+    db,
+    users,
+    connections: connections.service,
+    approvals: approvals.service,
+    webhooks: { publicUrl: config.api.publicUrl, verifyKey: config.crypto.encryptionKey },
+  })
+  const agents = createAgentsModule({
+    db,
+    teams: teams.service,
+    users,
+    organizations: organizations.service,
+    models: agentModels,
+    connections: connections.service,
+    guard: guard.settings,
+    toolProbe: agentTools.probe,
+    templates: templates.service,
+    audit: audit.service,
+    outbox: () => outbox.service,
+    approvals: {
+      waitingCounts: (tx, orgId, agentIds) =>
+        approvals.service.waitingCountsByAgent(tx, orgId, agentIds),
+    },
+    channels: channelStore.channels,
+    runs: createAgentRunSummaries(),
+  })
   const knowledge = createKnowledgeModule({
     db,
     logger,
@@ -224,6 +359,46 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     audit: audit.service,
   })
+  // the executor of agent runs: the worker runs its jobs, the starters call its service
+  const agentRuns = createAgentRunsModule({
+    db,
+    cache,
+    queues,
+    logger,
+    agents: createAgentRunsAgents(agents.repository),
+    people: createAgentRunsPeople(access.service),
+    users,
+    models: agentModels,
+    guard: guard.engine,
+    pii: guard.piiFilter,
+    gateway: modelGateway.service,
+    tools: agentTools.service,
+    knowledge: knowledge.retrieval,
+    approvals: approvals.service,
+    audit: audit.service,
+    outbox: () => outbox.service,
+  })
+  const agentPublishing = createAgentPublishingModule({
+    db,
+    cache,
+    logger,
+    store: channelStore,
+    users,
+    agents: createAgentRunsAgents(agents.repository),
+    runs: agentRuns,
+    organizations: organizations.service,
+    access: access.service,
+    audit: audit.service,
+    connections: connections.service,
+    http: connections.http,
+    inbound: {
+      verifyKey: config.crypto.encryptionKey,
+      ...(config.connections.slackSigningSecret === undefined
+        ? {}
+        : { slackSigningSecret: config.connections.slackSigningSecret }),
+    },
+    ...(overrides.widgetScript === undefined ? {} : { widgetScript: overrides.widgetScript }),
+  })
   const chats = createChatsModule({
     db,
     queues,
@@ -231,6 +406,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     storage: integrations.storage,
     encryptionKey: config.crypto.encryptionKey,
     gateway: modelGateway.service,
+    pii: guard.piiFilter,
     models: modelGrants.modelsRepository,
     retrieval: knowledge.chatRetrieval,
     parser: createChatDocumentParser({
@@ -255,7 +431,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     db,
     queues,
     logger,
-    handlers: [...chats.outboxHandlers, ...knowledge.outboxHandlers],
+    handlers: [
+      ...chats.outboxHandlers,
+      ...knowledge.outboxHandlers,
+      ...connections.outboxHandlers,
+      ...approvals.outboxHandlers,
+      ...guard.outboxHandlers,
+      ...agentRuns.outboxHandlers,
+      ...agentPublishing.outboxHandlers,
+    ],
     hooks,
   })
   const modules = {
@@ -266,7 +450,16 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     members,
     install,
     access,
+    apiKeys,
     vault,
+    connections,
+    agentTools,
+    agents,
+    agentRuns,
+    agentPublishing,
+    templates,
+    approvals,
+    guard,
     modelGateway,
     chats,
     usage,

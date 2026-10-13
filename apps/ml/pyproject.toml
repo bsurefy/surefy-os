@@ -16,6 +16,13 @@ dependencies = [
   "uvicorn[standard]==0.54.0",
 ]
 
+[project.optional-dependencies]
+pii = [
+  "en-core-web-sm",
+  "presidio-analyzer==2.2.364",
+  "spacy==3.8.16",
+]
+
 [dependency-groups]
 dev = [
   "asgi-lifespan==2.1.0",
@@ -24,6 +31,7 @@ dev = [
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
   "ruff==0.16.10",
+  "types-regex==2026.9.29.20261005",
 ]
 
 # docling needs torch. On Linux the CPU wheels come from the PyTorch index, so images do not
@@ -36,6 +44,7 @@ explicit = true
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 torchvision = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
 
 [build-system]
 requires = ["uv_build>=0.12,<0.13"]

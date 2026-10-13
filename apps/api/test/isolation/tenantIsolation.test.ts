@@ -14,6 +14,7 @@ import { findLeaks } from './leaks.js'
 import { compareWithRouteTable, coveredRoutes, type CoveredRoute } from './routeCoverage.js'
 import { routeTableOf } from './routeTable.js'
 import { changedTables, collectDatabaseLeaks, snapshotOrganization } from './tenantRows.js'
+import { createFakePii } from '../../src/modules/guard/__tests__/guardTestKit.js'
 import { setupTwoOrgs, type TwoOrgSetup } from '../helpers/orgSetup.js'
 import { request } from '../helpers/request.js'
 import { createTestApp } from '../helpers/testApp.js'
@@ -44,7 +45,8 @@ afterEach(async () => {
 })
 
 const prepare = async (): Promise<Context> => {
-  const setup = await setupTwoOrgs()
+  // the data filter's "Try it" calls the ML service: a fake answers, so the access check is what is tested
+  const setup = await setupTwoOrgs({ ml: createFakePii() })
   opened.push(setup)
   const fixture = await seedIsolationFixture(setup)
   return { setup, fixture, before: await snapshotOrganization(setup.db, setup.a.id) }

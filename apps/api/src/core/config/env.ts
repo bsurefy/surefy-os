@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { z } from 'zod'
 
+import { connectionsEnvSchema } from './connectionsEnv.js'
 import { mailEnvSchema } from './mailEnv.js'
 import { oauthEnvSchema } from './oauthEnv.js'
 import { storageEnvSchema } from './storageEnv.js'
@@ -54,6 +55,10 @@ const withDriverDefaults = (env: unknown) => ({
 
 export const envSchema = z.preprocess(
   withDriverDefaults,
-  baseEnvSchema.and(storageEnvSchema).and(mailEnvSchema).and(oauthEnvSchema),
+  baseEnvSchema
+    .and(storageEnvSchema)
+    .and(mailEnvSchema)
+    .and(oauthEnvSchema)
+    .and(connectionsEnvSchema),
 )
 export type Env = z.infer<typeof envSchema>

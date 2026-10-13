@@ -34,3 +34,10 @@ export class AccessMemberNotFoundError extends NotFoundError {
     super(ERROR_CODES.MEMBER_NOT_FOUND, 'Member not found')
   }
 }
+
+/** Sensitive actions need a sign-in within the last 10 minutes (authentication.md, "Fresh session"). */
+export class SessionNotFreshError extends ForbiddenError {
+  constructor() {
+    super(ERROR_CODES.AUTH_SESSION_NOT_FRESH, 'Sign in again to continue')
+  }
+}

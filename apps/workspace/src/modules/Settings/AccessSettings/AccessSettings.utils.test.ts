@@ -8,6 +8,24 @@ import {
   parseReasonKey,
   toLimitDisplayValue,
 } from './AccessSettings.utils'
+import settings from '../../../../messages/en/settings.json'
+
+describe('the capability matrix messages', () => {
+  const { groups, permissions } = settings.access.matrix as {
+    groups: Record<string, string>
+    permissions: Record<string, string>
+  }
+  const matrix = buildCapabilityMatrix()
+
+  it('name every group of the permissions the backend defines', () => {
+    expect(matrix.map(({ group }) => group).filter((group) => !(group in groups))).toEqual([])
+  })
+
+  it('label every permission the backend defines', () => {
+    const keys = matrix.flatMap(({ rows }) => rows.map(({ key }) => key))
+    expect(keys.filter((key) => !(key in permissions))).toEqual([])
+  })
+})
 
 describe('buildCapabilityMatrix', () => {
   const definitions = [

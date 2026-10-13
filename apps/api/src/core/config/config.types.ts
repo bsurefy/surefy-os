@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import type { ConnectionOauthAppKey } from './connectionsEnv.js'
 import type { LOG_LEVELS, NODE_ENVS } from './env.js'
 
 export type ProcessName = 'api' | 'worker' | 'cli'
@@ -70,6 +71,13 @@ export interface Config {
     encryptionKey: string
     /** The master key being replaced; data keys it wrapped stay readable until re-wrapped. */
     previousEncryptionKey?: string
+  }
+  /** Settings › Connections: the install's OAuth apps and the hosts local servers may use. */
+  connections: {
+    oauthApps: Partial<Record<ConnectionOauthAppKey, OauthProviderConfig>>
+    localHosts: readonly string[]
+    /** The Slack app's signing secret; without it the Slack channels receive no events. */
+    slackSigningSecret?: string
   }
   setup: { token?: string }
   storage: StorageConfig

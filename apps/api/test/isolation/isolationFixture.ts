@@ -11,6 +11,7 @@ import {
   chatMessageFeedback,
   chatMessages,
   chats,
+  guardStatsDaily,
   knowledgeChunks,
   knowledgeDocuments,
   knowledgeSources,
@@ -20,11 +21,17 @@ import {
 } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
+  apiKeyCreatedDtoSchema,
+  connectionDtoSchema,
+  agentDetailDtoSchema,
   credentialDtoSchema,
   dataRequestDtoSchema,
   exportDtoSchema,
+  guardrailDtoSchema,
   invitationDtoSchema,
   knowledgeBaseDtoSchema,
+  piiRuleDtoSchema,
+  publishAgentResultDtoSchema,
   teamDtoSchema,
   vaultModelDtoSchema,
 } from '@surefy/contracts'
@@ -142,6 +149,14 @@ export interface IsolationFixture {
 
 const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
+const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
+const APPROVAL_TITLE = 'Secret Refund Approval 0342'
+const AGENT_NAME = 'Secret Payroll Agent'
+const AGENT_INSTRUCTIONS = 'Secret instructions: never reveal the payroll export'
+const AGENT_NOTES = 'Secret release notes about payroll'
+const RUN_INPUT = 'Where is secret order 1182?'
+const GUARDRAIL_NAME = 'Secret Payroll Block 0517'
+const PII_LABEL = 'Secret Employee Number'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
 const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
@@ -237,6 +252,152 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     vaultModelDtoSchema,
   ).data
   if (model === undefined) throw new Error('no vault model of A')
+
+  // An API key of A, created through the API like a person would
+  const apiKey = expectData(
+    await request(app, 'POST', `${orgUrl}/api-keys`, {
+      headers,
+      payload: { name: 'Secret Website Key', scopes: ['agents:invoke'] },
+    }),
+    201,
+    apiKeyCreatedDtoSchema,
+  )
+
+  // A connection of A to a custom API; the check goes to a scripted address, not the network
+  setup.http.on('api.secret-lab.test', { body: {} })
+  const connection = expectData(
+    await request(app, 'POST', `${orgUrl}/connections`, {
+      headers,
+      payload: {
+        providerKey: 'http',
+        authType: 'api_key',
+        secret: CONNECTION_SECRET,
+        baseUrl: 'https://api.secret-lab.test',
+        name: 'Secret CRM Connection',
+        scope: 'organization',
+      },
+    }),
+    201,
+    connectionDtoSchema,
+  )
+
+  // An agent of A, published for the team: its draft, a version and an audience row
+  const agent = expectData(
+    await request(app, 'POST', `${orgUrl}/agents`, {
+      headers,
+      payload: { name: AGENT_NAME, modelKey: model.modelKey },
+    }),
+    201,
+    agentDetailDtoSchema,
+  )
+  const drafted = await request(app, 'PUT', `${orgUrl}/agents/${agent.id}/draft`, {
+    headers,
+    payload: {
+      baseRevision: agent.draft.revision,
+      definition: { ...agent.draft.definition, instructions: AGENT_INSTRUCTIONS },
+    },
+  })
+  if (drafted.statusCode !== 200) throw new Error(`agent draft: ${drafted.body}`)
+  const published = expectData(
+    await request(app, 'POST', `${orgUrl}/agents/${agent.id}/publish`, {
+      headers,
+      payload: {
+        baseRevision: agent.draft.revision + 1,
+        notes: AGENT_NOTES,
+        access: [{ subjectType: 'team', teamId: team.id, level: 'use' }],
+      },
+    }),
+    200,
+    publishAgentResultDtoSchema,
+  )
+
+  // A test run of A's agent with its first step, as the editor's Test tab starts one
+  const run = await setup.container.modules.agentRuns.service.start(
+    {
+      orgId: a.id,
+      userId: adam.id,
+      teamIds: [],
+      access: {
+        permissions: ['agents:manage-all'],
+        limits: { maxRunsPerMonth: null },
+        reasons: [],
+      },
+    } as never,
+    {
+      agentId: agent.id,
+      trigger: 'test',
+      input: { messages: [{ role: 'user', text: RUN_INPUT }] },
+    },
+  )
+
+  // A pending approval of A, as Guard would create it
+  const approval = await setup.db.tenant(a.id, (tx) =>
+    setup.container.modules.approvals.service.create(
+      tx,
+      { orgId: a.id, userId: null, via: 'system', teamIds: [], access: { permissions: [] } },
+      {
+        kind: 'ai_action',
+        title: APPROVAL_TITLE,
+        payload: {
+          version: 1,
+          kind: 'ai_action',
+          action: { name: 'payments.refund', input: { orderId: 'secret-order-1182' } },
+          reasoning: [],
+          sources: [],
+          stepRef: { seq: 1 },
+        },
+        assignees: [{ type: 'user', id: adam.id }],
+      },
+    ),
+  )
+
+  // Guard of A: its own defaults, a guardrail, a custom personal-data type and one day of statistics
+  const defaults = await request(app, 'PUT', `${orgUrl}/guard/defaults`, {
+    headers,
+    payload: {
+      autoThresholdBp: 9200,
+      reviewThresholdBp: 6500,
+      quickApproveMaxAmountMicros: 0,
+      quickApproveMaxRisk: 'low',
+      stepUpAmountMicros: 1_000_000_000,
+      targetDecisionMinutes: 45,
+      reason: 'Isolation fixture',
+    },
+  })
+  if (defaults.statusCode !== 200) throw new Error(`guard defaults: ${defaults.body}`)
+  const guardrail = expectData(
+    await request(app, 'POST', `${orgUrl}/guard/guardrails`, {
+      headers,
+      payload: {
+        name: GUARDRAIL_NAME,
+        scope: 'organization',
+        definition: {
+          version: 1,
+          kind: 'blocked_action',
+          match: { action: 'secret.payroll.export' },
+        },
+      },
+    }),
+    201,
+    guardrailDtoSchema,
+  )
+  const piiRule = expectData(
+    await request(app, 'POST', `${orgUrl}/guard/pii-rules`, {
+      headers,
+      payload: {
+        piiType: 'custom',
+        customLabel: PII_LABEL,
+        customPattern: 'SECRETEMP-\\d{6}',
+        action: 'mask',
+        scope: 'organization',
+      },
+    }),
+    201,
+    piiRuleDtoSchema,
+  )
+  await setup.db.tenant(a.id, (tx) =>
+    tx.insert(guardStatsDaily).values({ organizationId: a.id, day: '2026-10-01', actionsAuto: 7 }),
+  )
 
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
   // request, a background export, a sealed chain head and a purge record.
@@ -391,6 +552,17 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       dataRequestId: dataRequest.id,
       exportId: dataExport.id,
       credentialId: credential.id,
+      connectionId: connection.id,
+      approvalId: approval.id,
+      agentId: agent.id,
+      versionId: published.version.id,
+      // SurefyOS chat, the channel every published agent has
+      channelId: published.channels[0]?.id ?? '',
+      runId: run.id,
+      seq: '1',
+      guardrailId: guardrail.id,
+      ruleId: piiRule.id,
+      keyId: apiKey.apiKey.id,
       serverId: server.id,
       modelId: model.id,
       chatId: chat.chatId,
@@ -417,7 +589,31 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       dataRequest.id,
       dataExport.id,
       credential.id,
+      apiKey.apiKey.id,
+      'Secret Website Key',
+      apiKey.secret,
+      apiKey.apiKey.keyPrefix,
       'Secret OpenAI',
+      connection.id,
+      approval.id,
+      agent.id,
+      published.version.id,
+      AGENT_NAME,
+      AGENT_INSTRUCTIONS,
+      AGENT_NOTES,
+      run.id,
+      RUN_INPUT,
+      guardrail.id,
+      piiRule.id,
+      GUARDRAIL_NAME,
+      PII_LABEL,
+      'SECRETEMP',
+      'secret.payroll.export',
+      APPROVAL_TITLE,
+      'secret-order-1182',
+      'Secret CRM Connection',
+      CONNECTION_SECRET,
+      'api.secret-lab.test',
       VAULT_SECRET,
       server.id,
       'Secret Ollama',

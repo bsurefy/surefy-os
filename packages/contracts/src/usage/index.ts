@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+export * from './audit.js'
+export * from './budgets.js'
 export { USAGE_ERROR_CODES } from './errors.js'
 export * from './events.js'
 export * from './export.js'

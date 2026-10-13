@@ -54,6 +54,7 @@ export default function ReindexConfirmDialog({
       impact={[t('stillSearchable')]}
       labels={{ confirm: t(`${kind}.confirm`) }}
       error={impact.error ? getErrorMessage(impact.error, tErrors) : undefined}
+      confirmDisabled={!impact.data}
       onConfirm={async () => {
         if (!impact.data) throw new Error('The impact is not loaded yet')
         await onConfirm()

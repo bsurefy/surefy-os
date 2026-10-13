@@ -35,6 +35,7 @@ export const RETENTION_DAYS = {
 export const PARTITIONED_TABLES: readonly { table: string; keep: string }[] = [
   { table: 'audit_logs', keep: '1 year' },
   { table: 'usage_events', keep: '13 months' },
+  { table: 'agent_run_steps', keep: '90 days' },
 ]
 
 /**

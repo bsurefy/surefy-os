@@ -66,13 +66,20 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
   await app.register(rateLimitPlugin, { redis: container.cache.client })
   await app.register(errorHandlerPlugin)
   await app.register(replyPlugin)
-  await app.register(sessionPlugin, { config, auth: container.auth })
+  await app.register(sessionPlugin, {
+    config,
+    auth: container.auth,
+    apiKeys: container.modules.apiKeys.authenticator,
+  })
   await app.register(accessPlugin, { tenants: container.tenants, guardedPrefix: API_PREFIX })
   await app.register(openapiPlugin, { config })
   await app.register(healthPlugin, {
     checks: { database: () => container.db.ping(), redis: () => container.cache.ping() },
     extensions: () => container.extensions.names,
   })
+
+  // The website widget's script, for any site: outside /api/v1 and its access guards.
+  await app.register(container.modules.agentPublishing.scriptRoutes)
 
   await app.register(
     async (scope) => {
@@ -86,7 +93,15 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       await api.register(container.modules.teams.routes)
       await api.register(container.modules.members.routes)
       await api.register(container.modules.access.routes)
+      await api.register(container.modules.apiKeys.routes)
       await api.register(container.modules.vault.routes)
+      await api.register(container.modules.connections.routes)
+      await api.register(container.modules.approvals.routes)
+      await api.register(container.modules.guard.routes)
+      await api.register(container.modules.templates.routes)
+      await api.register(container.modules.agents.routes)
+      await api.register(container.modules.agentRuns.routes)
+      await api.register(container.modules.agentPublishing.routes)
       await api.register(container.modules.chats.routes)
       await api.register(container.modules.usage.routes)
       await api.register(container.modules.knowledge.routes)

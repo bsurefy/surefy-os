@@ -1,0 +1,9 @@
+{
+  "AGENT_RUN_NOT_FOUND": "This run no longer exists, or you can't see its agent.",
+  "AGENT_RUN_NOT_RETRYABLE": "This run can't be retried. Wait for it to finish, or retry the whole run.",
+  "AGENT_RUN_TURN_LIMIT": "The agent made too many attempts without finishing, so the run was stopped.",
+  "AGENT_RUN_TIMED_OUT": "The run took too long and was stopped.",
+  "AGENT_RUN_STEP_NOT_FOUND": "This step isn't available. Step details are kept for 90 days.",
+  "AGENT_TOOL_FAILED": "A tool the agent used returned an error.",
+  "AGENT_TOOL_TIMEOUT": "A tool the agent used didn't answer in time."
+}

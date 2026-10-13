@@ -109,6 +109,26 @@ class ParseTimeoutError(OperationTimeoutError):
         super().__init__("parse")
 
 
+class PatternTooSlowError(MlError):
+    """A custom pattern did not finish in time on the given text (catastrophic backtracking)."""
+
+    code = "ML_VALIDATION_FAILED"
+    status_code = 422
+    retryable = False
+
+    def __init__(self, index: int) -> None:
+        super().__init__(
+            "Request validation failed",
+            details=[
+                ErrorDetail(
+                    path=f"customPatterns.{index}.pattern",
+                    code="pattern_too_slow",
+                    message="The pattern takes too long to match; simplify it",
+                )
+            ],
+        )
+
+
 class BusyError(MlError):
     code = "ML_BUSY"
     status_code = 503

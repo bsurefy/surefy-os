@@ -5,6 +5,9 @@
     "teams": "Teams",
     "access": "Roles & access",
     "vault": "Vault",
+    "connections": "Connections",
+    "apiKeys": "API keys",
+    "usage": "Usage & budgets",
     "dataPrivacy": "Data & privacy",
     "security": "Security",
     "install": "Install"
@@ -352,15 +355,23 @@
       "notAllowed": "Not allowed",
       "groups": {
         "access": "Access",
+        "agents": "Agents",
+        "api-keys": "API keys",
+        "approvals": "Approvals",
         "audit": "Audit",
         "billing": "Billing",
+        "budgets": "Budgets",
         "chat": "Chat",
+        "connections": "Connections",
         "data-control": "Data control",
         "exports": "Exports",
+        "guard": "Guard",
         "insights": "Insights",
         "knowledge": "Knowledge",
         "members": "Members",
         "notifications": "Notifications",
+        "prompts": "Prompts",
+        "runs": "Runs",
         "settings": "Settings",
         "teams": "Teams",
         "vault": "Vault"
@@ -368,14 +379,33 @@
       "permissions": {
         "access:read": "See other people's and teams' effective access",
         "access:read-self": "See their own access",
+        "agents:create": "Create agents",
+        "agents:delete": "Delete their agents",
+        "agents:edit": "Edit, test and pause their agents",
+        "agents:invoke": "Talk to agents shared with them",
+        "agents:manage-all": "Edit, delete and share every agent",
+        "agents:publish": "Publish agents to chat and roll back",
+        "agents:publish-external": "Publish agents to the API, widget and chat apps",
+        "agents:read": "See agents and templates",
+        "api-keys:manage": "Manage API keys",
+        "approvals:decide": "Decide approvals assigned to them",
+        "approvals:read": "See approvals",
         "audit:read": "View the audit log",
         "billing:manage": "Manage billing and credits",
+        "budgets:manage": "Change budgets and limits",
+        "budgets:read": "See budgets and limits",
         "chat:use": "Use chat",
+        "connections:manage": "Manage everyone's connections",
+        "connections:use": "Use connections and add their own",
         "data-control:delete": "Delete the organization",
         "data-control:export": "Export all data",
         "data-control:read": "See data requests and retention",
         "exports:use": "Export their own data",
+        "guard:lock": "Lock and unlock guardrails",
+        "guard:manage": "Change defaults, guardrails and data filters",
+        "guard:read": "See Guard defaults and guardrails",
         "insights:read": "View insights and usage",
+        "insights:read-own": "View insights for their agents",
         "knowledge:read": "Use knowledge bases",
         "knowledge:upload": "Add sources to knowledge bases",
         "members:invite": "Invite people",
@@ -384,6 +414,10 @@
         "members:manage-self": "Manage their own membership",
         "members:read": "See members",
         "notifications:read": "Read notifications",
+        "prompts:manage-shared": "Create and manage shared prompts",
+        "runs:cancel": "Cancel a run",
+        "runs:read": "See agent runs",
+        "runs:retry": "Re-run or retry a run",
         "settings:manage": "Change organization settings",
         "teams:manage": "Create and change teams",
         "teams:read": "See teams",
@@ -711,5 +745,422 @@
   },
   "sectionHints": {
     "vault": "Keys & models"
+  },
+  "connections": {
+    "title": "Connections",
+    "description": "Accounts in other apps that agents, knowledge sources and channels use.",
+    "offline": "You're offline. Connections stay visible; adding, reconnecting and disconnecting need a connection.",
+    "add": {
+      "open": "Add connection",
+      "title": "Add connection",
+      "titleApp": "Connect {app}",
+      "step": "Step {step} of {total}",
+      "connected": "Connected {name}",
+      "connectedAs": "Connected as {account}",
+      "app": {
+        "search": "Search apps",
+        "noMatch": "No app matches your search.",
+        "loadError": "Couldn't load the apps",
+        "notSetUp": "Not set up on this install · Ask an install administrator",
+        "groups": {
+          "knowledge": "Knowledge sources",
+          "channels": "Channels",
+          "tools": "Tools"
+        },
+        "hints": {
+          "google-drive": "Sync files into knowledge",
+          "notion": "Sync pages into knowledge",
+          "slack": "Let an agent answer in Slack",
+          "whatsapp": "Let an agent answer on WhatsApp",
+          "http": "Call your own API as an agent tool",
+          "mcp": "Give agents the tools of an MCP server"
+        }
+      },
+      "signIn": {
+        "method": "How to sign in",
+        "methods": {
+          "oauth": "Sign in",
+          "clientCredentials": "Client ID and secret",
+          "api_key": "API key",
+          "bearer": "Token",
+          "basic": "Username and password",
+          "none": "No sign-in"
+        },
+        "back": "Back",
+        "next": "Next"
+      },
+      "scope": {
+        "label": "Who can use it",
+        "personal": {
+          "name": "Just me",
+          "description": "Only you, and the agents and flows you build, can use it."
+        },
+        "team": {
+          "name": "A team",
+          "description": "Members of the team you pick can use it."
+        },
+        "organization": {
+          "name": "Organization",
+          "description": "Anyone allowed to use the tool, source or channel through their access."
+        },
+        "teamLoading": "Loading teams…",
+        "teamPlaceholder": "Choose a team",
+        "back": "Back",
+        "continueWith": "Continue with {app}",
+        "save": "Connect",
+        "reconnectIt": "Show connections",
+        "teamSelect": "Team"
+      }
+    },
+    "fields": {
+      "show": "Show",
+      "hide": "Hide",
+      "secretHelp": "You won't be able to see this again.",
+      "name": "Name",
+      "nameOptional": "Name (optional)",
+      "namePlaceholderOauth": "Defaults to the {app} account's name",
+      "baseUrl": "Address",
+      "baseUrlHelp": "Use an https:// address. A plain http:// address works only for hosts an install administrator allowed.",
+      "apiKey": "API key",
+      "token": "Token",
+      "username": "Username",
+      "password": "Password",
+      "tokenUrl": "Token URL",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "oauthScopes": "Scopes (optional)",
+      "oauthScopesHelp": "Separate scopes with spaces.",
+      "oauthHelp": "You'll continue to {app} to sign in, then come back here.",
+      "noneHelp": "This address needs no sign-in.",
+      "optionalSuffix": "(optional)",
+      "extra": {
+        "whatsapp": {
+          "phoneNumberId": "Phone number ID",
+          "appSecret": "App secret",
+          "businessAccountId": "Business account ID"
+        }
+      }
+    },
+    "reconnect": {
+      "title": "Reconnect {name}",
+      "description": "Enter new credentials. They're checked before anything is stored.",
+      "oauthDescription": "Sign in again to {account}. It must be the same account.",
+      "cancel": "Cancel",
+      "continueWith": "Continue with {app}",
+      "submit": "Reconnect",
+      "reconnected": "Reconnected {name}"
+    },
+    "rename": {
+      "title": "Rename connection",
+      "titleWithAddress": "Rename connection or edit its address",
+      "description": "The name is how people pick this connection.",
+      "name": "Name",
+      "baseUrl": "Address",
+      "baseUrlHelp": "Use an https:// address.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "renamed": "Saved {name}"
+    },
+    "disconnect": {
+      "title": "Disconnect {name}?",
+      "description": "This stops everything below from using it. A disconnected connection can't be reconnected; adding it again creates a new one.",
+      "unused": "Nothing uses this connection. A disconnected connection can't be reconnected; adding it again creates a new one.",
+      "confirm": "Disconnect",
+      "disconnected": "Disconnected {name}",
+      "impactUnavailable": "Couldn't load what depends on this.",
+      "retry": "Retry",
+      "types": {
+        "agent": "{count, plural, one {# agent} other {# agents}} will lose a tool: {names}{more, plural, =0 {} other { and # more}}",
+        "flow": "{count, plural, one {# flow} other {# flows}} will pause: {names}{more, plural, =0 {} other { and # more}}",
+        "knowledge_source": "{count, plural, one {# knowledge source} other {# knowledge sources}} will stop syncing: {names}{more, plural, =0 {} other { and # more}}",
+        "channel": "{count, plural, one {# channel} other {# channels}} will stop answering: {names}{more, plural, =0 {} other { and # more}}",
+        "other": "{count, plural, one {# {type}} other {# {type}}} will stop working"
+      }
+    },
+    "usedBy": {
+      "title": "What uses {name}",
+      "description": "Agents, flows, knowledge sources and channels that use this connection.",
+      "loadError": "Couldn't load what uses this connection",
+      "none": "Nothing uses this connection yet.",
+      "more": "and {count} more",
+      "close": "Close",
+      "types": {
+        "agent": "{count, plural, one {Agent} other {Agents}}",
+        "flow": "{count, plural, one {Flow} other {Flows}}",
+        "knowledge_source": "{count, plural, one {Knowledge source} other {Knowledge sources}}",
+        "channel": "{count, plural, one {Channel} other {Channels}}",
+        "other": "{type}"
+      }
+    },
+    "callback": {
+      "title": "Connecting",
+      "connecting": "Connecting…",
+      "connected": "Connected {account}",
+      "reconnected": "Reconnected {account}",
+      "declined": {
+        "title": "The app didn't finish connecting",
+        "description": "The sign-in wasn't completed. Nothing was saved."
+      },
+      "expired": {
+        "title": "That sign-in took too long",
+        "description": "Sign-in attempts last 10 minutes. Nothing was saved."
+      },
+      "failed": {
+        "title": "Couldn't finish connecting"
+      },
+      "startAgain": "Start again",
+      "tryAgain": "Try again"
+    },
+    "banner": {
+      "title": "{count, plural, one {# connection needs} other {# connections need}} attention",
+      "show": "Show"
+    },
+    "search": {
+      "label": "Search connections",
+      "placeholder": "Search by name"
+    },
+    "filters": {
+      "app": "App",
+      "anyApp": "Any app",
+      "kind": "Used for",
+      "anyKind": "Used for: any",
+      "scope": "Who can use it",
+      "anyScope": "Who can use it: any",
+      "status": "Status"
+    },
+    "kindFilters": {
+      "knowledge_connector": "Knowledge sources",
+      "api_tool": "API tools",
+      "mcp_server": "MCP servers",
+      "channel": "Channels"
+    },
+    "scopeFilters": {
+      "personal": "Just me",
+      "team": "A team",
+      "organization": "Organization"
+    },
+    "statusFilters": {
+      "all": "All statuses",
+      "active": "Active",
+      "attention": "Needs attention",
+      "disconnected": "Disconnected"
+    },
+    "tableLabel": "Connections",
+    "columns": {
+      "connection": "Connection",
+      "usedFor": "Used for",
+      "whoCanUse": "Who can use it",
+      "connectedBy": "Connected by",
+      "usedBy": "Used by",
+      "lastUsed": "Last used",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "test": "Test",
+      "reconnect": "Reconnect",
+      "rename": "Rename",
+      "renameAndAddress": "Rename or edit address",
+      "disconnect": "Disconnect…"
+    },
+    "kinds": {
+      "knowledge_connector": "Knowledge source",
+      "api_tool": "API tool",
+      "mcp_server": "MCP server",
+      "channel": "Channel",
+      "bridge": "Bridge"
+    },
+    "scope": {
+      "personal": "Just me",
+      "personalOwner": "Just me ({owner})",
+      "team": "Team",
+      "organization": "Organization"
+    },
+    "status": {
+      "active": "Active",
+      "expired": "Expired",
+      "error": "Error",
+      "revoked": "Disconnected"
+    },
+    "reasons": {
+      "expired": "Sign-in expired",
+      "refreshFailed": "The app refused a fresh sign-in",
+      "rejected": "The app rejects calls",
+      "unreachable": "Nothing answers at the address",
+      "unknown": "The app didn't say why"
+    },
+    "usedByCount": "{count, plural, one {# use} other {# uses}}",
+    "usedByNone": "None",
+    "neverUsed": "Never",
+    "formerMember": "Former member",
+    "loadError": "Couldn't load connections",
+    "loadMore": "Load more",
+    "noResults": {
+      "title": "No connections match",
+      "description": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "empty": {
+      "title": "Connect the apps your agents and knowledge need",
+      "description": "Connect an account once, then let knowledge sources, agent tools and channels use it."
+    },
+    "test": {
+      "ok": "{name} is working",
+      "failed": "{name} failed its check: {reason}",
+      "unknownReason": "no reason given"
+    },
+    "apps": {
+      "google-drive": "Google Drive",
+      "notion": "Notion",
+      "slack": "Slack",
+      "whatsapp": "WhatsApp",
+      "http": "Custom API",
+      "mcp": "MCP server"
+    }
+  },
+  "apiKeys": {
+    "title": "API keys",
+    "description": "Keys let your software call SurefyOS. To let SurefyOS call an AI provider, add a key in Vault.",
+    "empty": {
+      "title": "No API keys yet",
+      "description": "Create a key to call your agents from your own software."
+    },
+    "noResults": {
+      "title": "No keys match",
+      "description": "Try another search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "search": {
+      "label": "Search API keys",
+      "placeholder": "Search by name"
+    },
+    "filters": {
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked"
+    },
+    "loadError": "Couldn't load API keys",
+    "loadMore": "Load more",
+    "tableLabel": "API keys",
+    "columns": {
+      "name": "Name",
+      "key": "Key",
+      "permissions": "Permissions",
+      "createdBy": "Created by",
+      "expires": "Expires",
+      "lastUsed": "Last used",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "moreScopes": "+{count}",
+    "formerMember": "Former member",
+    "never": "Never",
+    "neverUsed": "Never",
+    "expiredTag": "Expired",
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "rename": "Rename",
+      "revoke": "Revoke…"
+    },
+    "scopes": {
+      "agents:invoke": {
+        "name": "Run agents",
+        "description": "Start runs of published agents over the API and read their answers."
+      }
+    },
+    "create": {
+      "open": "Create key",
+      "title": "Create API key",
+      "description": "The key lets your software call SurefyOS with the permissions you choose.",
+      "name": "Name",
+      "namePlaceholder": "Website backend",
+      "nameHelp": "Where the key will be used helps later, for example Zapier.",
+      "permissions": "Permissions",
+      "noPermissions": "You don't hold a permission that API keys can carry, so you can't create a key.",
+      "expires": "Expires",
+      "expiry": {
+        "30d": "30 days",
+        "90d": "90 days",
+        "1y": "1 year",
+        "date": "On a date",
+        "never": "No expiry"
+      },
+      "neverHelp": "Stays valid until you revoke it.",
+      "date": "Expiry date",
+      "cancel": "Cancel",
+      "submit": "Create key"
+    },
+    "created": {
+      "title": "Your new key",
+      "warning": "You won't be able to see this key again. Store it somewhere safe, like your secret manager.",
+      "keyLabel": "API key",
+      "copy": "Copy",
+      "copied": "Copied",
+      "example": "Try it with this call",
+      "copyExample": "Copy call",
+      "done": "Done",
+      "closeWithoutCopying": {
+        "title": "Close without copying?",
+        "description": "You won't be able to see this key again.",
+        "keep": "Keep open",
+        "close": "Close anyway"
+      }
+    },
+    "rename": {
+      "title": "Rename key",
+      "description": "The name is a label for you. Permissions and expiry can't be changed.",
+      "name": "Name",
+      "cancel": "Cancel",
+      "save": "Save",
+      "renamed": "Renamed to {name}"
+    },
+    "revoke": {
+      "title": "Revoke {name}?",
+      "description": "Revoking stops everything that uses this key.",
+      "unused": "Nothing uses this key. Calls with it will fail.",
+      "agents": "{count, plural, one {# agent published over the API stops} other {# agents published over the API stop}} answering calls with this key: {names}{more, plural, =0 {} other { and # more}}",
+      "types": {
+        "flow": "{count, plural, one {# flow uses} other {# flows use}} this key",
+        "other": "{count} {type} use this key"
+      },
+      "immediate": "Calls with this key fail at once. This can't be undone.",
+      "rotate": "To change your software over without a gap, create the new key and deploy it first, then revoke this one.",
+      "impactUnavailable": "Couldn't load what uses this key.",
+      "retry": "Retry",
+      "confirm": "Revoke key",
+      "revoked": "{name} was revoked"
+    },
+    "drawer": {
+      "keyStart": "Starts with {prefix}…",
+      "auditLog": "View audit log",
+      "revoke": "Revoke…",
+      "expired": {
+        "title": "This key has expired",
+        "description": "Calls with it fail. Create a replacement and update your software.",
+        "create": "Create replacement"
+      },
+      "revoked": {
+        "title": "Revoked on {date}",
+        "description": "Calls with this key fail. A revoked key stays listed for 13 months."
+      },
+      "createdByValue": "{name} · {date}",
+      "lastUsedValue": "{when} from {address}",
+      "unknownAddress": "an unknown address",
+      "usedBy": "Used by",
+      "usedByNone": "No agents are published over the API with this key.",
+      "usedByError": "Couldn't load what uses this key.",
+      "retry": "Retry"
+    }
+  },
+  "usage": {
+    "title": "Usage & budgets",
+    "description": "AI cost budgets for the organization, teams and people.",
+    "empty": {
+      "title": "No budgets yet",
+      "description": "Set a budget to cap what AI usage can cost."
+    }
   }
 }

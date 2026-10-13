@@ -1,0 +1,31 @@
+{
+  "name": "@surefy/widget",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "Embeddable website chat for SurefyOS agents: one script tag, no framework",
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    "./widget.js": "./dist/widget.js"
+  },
+  "scripts": {
+    "build": "vite build",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@surefy/config": "workspace:*",
+    "@surefy/contracts": "workspace:*",
+    "eslint": "10.12.0",
+    "happy-dom": "20.14.5",
+    "typescript": "6.0.3",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
+  }
+}

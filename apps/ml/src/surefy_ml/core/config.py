@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     parse_timeout_seconds: int = Field(default=600, gt=0)
     download_timeout_seconds: int = Field(default=60, gt=0)
 
+    pii_min_score: float = Field(default=0.35, ge=0, le=1)  # findings below it are dropped
+    pii_timeout_seconds: int = Field(default=30, gt=0)
+    pii_pattern_timeout_seconds: float = Field(default=0.5, gt=0)  # per custom pattern and text
+
     workers: int = Field(default=2, ge=1)  # size of the CPU process pool
     queue_timeout_seconds: int = Field(default=30, ge=0)
     max_concurrent_per_org: int = Field(default=2, ge=1)

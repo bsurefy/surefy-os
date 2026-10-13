@@ -11,7 +11,12 @@ import { ApiError } from '../http/ApiError'
 import type { QueryClientHandlers } from './query.types'
 
 function createHandlers(): QueryClientHandlers {
-  return { onUnauthenticated: vi.fn(), onFeatureUnavailable: vi.fn(), showError: vi.fn() }
+  return {
+    onUnauthenticated: vi.fn(),
+    onSessionNotFresh: vi.fn(),
+    onFeatureUnavailable: vi.fn(),
+    showError: vi.fn(),
+  }
 }
 
 const unauthenticated = new ApiError(401, ERROR_CODES.AUTH_UNAUTHENTICATED, 'No session')
@@ -86,6 +91,18 @@ describe('createQueryClient global handlers', () => {
     await failMutation(client, unauthenticated)
 
     expect(handlers.onUnauthenticated).toHaveBeenCalledTimes(2)
+    expect(handlers.showError).not.toHaveBeenCalled()
+  })
+
+  it('opens the confirmation dialog on AUTH_SESSION_NOT_FRESH, even for a silent mutation', async () => {
+    const handlers = createHandlers()
+    const client = createQueryClient(handlers)
+    const stale = new ApiError(403, ERROR_CODES.AUTH_SESSION_NOT_FRESH, 'Sign in again')
+
+    await failMutation(client, stale, { silent: true })
+    await failMutation(client, stale)
+
+    expect(handlers.onSessionNotFresh).toHaveBeenCalledTimes(2)
     expect(handlers.showError).not.toHaveBeenCalled()
   })
 

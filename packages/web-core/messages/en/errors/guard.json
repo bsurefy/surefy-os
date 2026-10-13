@@ -1,0 +1,16 @@
+{
+  "GUARD_BLOCKED_ACTION": "A Guard rule never allows this action, so it didn't run.",
+  "GUARD_ACTION_LIMIT": "This action reached a Guard limit, so it didn't run.",
+  "GUARD_PII_BLOCKED": "This request contains personal data that your organization's data filter blocks.",
+  "GUARD_CONTENT_BLOCKED": "This content is blocked by a Guard content filter.",
+  "GUARD_RULE_NOT_FOUND": "This rule no longer exists.",
+  "GUARD_RULE_NAME_TAKEN": "Another rule already has this name. Choose a different one.",
+  "GUARD_RULE_LOCKED": "An Owner locked this rule. Only Owners can change, turn off or delete it.",
+  "GUARD_RULE_TYPE_IMMUTABLE": "A rule keeps its type. Add a new rule of the type you want.",
+  "GUARD_THRESHOLDS_INVALID": "The AI double-check threshold must be lower than the automatic threshold.",
+  "GUARD_REASON_REQUIRED": "Give a reason. It is recorded in the audit log.",
+  "GUARD_LOOSER_THAN_PARENT": "This setting is looser than your organization's. Use the same or a stricter value.",
+  "GUARD_PII_RULE_NOT_FOUND": "This data filter rule no longer exists.",
+  "GUARD_PII_RULE_DUPLICATE": "This type already has a rule here. Change the existing rule instead.",
+  "GUARD_PII_PATTERN_INVALID": "This pattern is too long, isn't a valid expression, or could run too slowly. Simplify it."
+}

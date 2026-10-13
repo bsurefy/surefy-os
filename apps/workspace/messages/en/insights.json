@@ -1,4 +1,10 @@
 {
+  "tabs": {
+    "label": "Insights sections",
+    "overview": "Overview",
+    "runs": "Runs",
+    "approvals": "Approvals"
+  },
   "overview": {
     "title": "Insights",
     "description": "AI usage and cost in your organization, by team, person and model.",
@@ -106,6 +112,198 @@
       "failed": "The export failed",
       "expired": "The download link expired",
       "retry": "Try again"
+    }
+  },
+  "runs": {
+    "title": "Runs",
+    "description": "Every agent run, with status, cost and duration.",
+    "empty": {
+      "title": "No runs yet",
+      "description": "Runs appear here once agents are used."
+    }
+  },
+  "approvals": {
+    "title": "Approvals",
+    "description": "Actions waiting for a person to decide.",
+    "views": {
+      "label": "Show",
+      "pending": "Waiting for a decision",
+      "decided": "Decided today"
+    },
+    "empty": {
+      "title": "All caught up",
+      "description": "Nothing is waiting for your decision."
+    },
+    "decidedEmpty": {
+      "title": "Nothing decided today",
+      "description": "Decisions made today show here with who decided."
+    },
+    "search": {
+      "label": "Search approvals",
+      "placeholder": "Search by title or agent"
+    },
+    "filters": {
+      "kind": "Kind",
+      "anyKind": "All kinds",
+      "risk": "Risk",
+      "anyRisk": "Any risk",
+      "clear": "Clear filters"
+    },
+    "noResults": {
+      "title": "No approvals match",
+      "description": "Try a different search or clear the filters.",
+      "clear": "Clear filters"
+    },
+    "loadMore": "Load more",
+    "loadError": "Couldn't load the approvals",
+    "retry": "Try again",
+    "kinds": {
+      "ai_action": "AI action",
+      "flow_step": "Flow step",
+      "bridge_install": "Bridge install request",
+      "bridge_update": "Bridge update request",
+      "channel_publish": "Channel publish request"
+    },
+    "risks": {
+      "low": "Low risk",
+      "medium": "Medium risk",
+      "high": "High risk"
+    },
+    "statuses": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "expired": "Timed out",
+      "canceled": "Withdrawn"
+    },
+    "columns": {
+      "item": "Item",
+      "kind": "Kind",
+      "source": "From",
+      "amount": "Amount",
+      "confidence": "Confidence",
+      "rule": "Rule",
+      "age": "Waiting",
+      "outcome": "Outcome",
+      "decidedBy": "Decided by"
+    },
+    "table": {
+      "caption": "Approvals",
+      "selectAll": "Select all approvals on this page",
+      "selectRow": "Select this approval"
+    },
+    "noAmount": "—",
+    "noRule": "No rule",
+    "overdue": "Past the target time",
+    "readOnly": "Assigned to {names}",
+    "assigneeRole": {
+      "owner": "Owners",
+      "admin": "Admins",
+      "builder": "Builders",
+      "user": "Users"
+    },
+    "confidence": "{value} confident",
+    "bulk": {
+      "selected": "{count} selected",
+      "approve": "Approve {count}",
+      "reject": "Reject {count}",
+      "clear": "Clear selection",
+      "blocked": "Bulk decisions need items of the same rule within the quick-approve limit. {count, plural, one {# selected item doesn't} other {# selected items don't}} qualify.",
+      "approving": "{count, plural, one {Approving # item} other {Approving # items}}",
+      "undo": "Undo",
+      "result": "{decided, plural, =0 {None decided} other {# decided}} · {skipped, plural, =0 {none skipped} other {# skipped}}",
+      "failed": "Couldn't decide these items",
+      "rejectTitle": "Reject {count, plural, one {# item} other {# items}}?",
+      "rejectDescription": "The agents or flows waiting on {count, plural, one {it} other {them}} take the reject path."
+    },
+    "reject": {
+      "reason": "Reason",
+      "reasonPlaceholder": "Choose a reason",
+      "note": "Note",
+      "noteRequired": "Add a note so others know why",
+      "noteHelp": "Saved in the audit log.",
+      "confirm": "Reject",
+      "reasons": {
+        "wrong_amount": "Wrong amount",
+        "not_eligible": "Not eligible",
+        "needs_more_information": "Needs more information",
+        "wrong_team": "Wrong team",
+        "other": "Other"
+      },
+      "optional": "(optional)",
+      "reasonRequired": "Choose a reason to reject"
+    },
+    "detail": {
+      "back": "Back to approvals",
+      "loadError": "Couldn't load this approval",
+      "notFound": {
+        "title": "This approval isn't available",
+        "description": "It may not exist, or it isn't assigned to you."
+      },
+      "facts": {
+        "title": "Details",
+        "kind": "Kind",
+        "rule": "Rule",
+        "amount": "Amount",
+        "confidence": "Confidence",
+        "risk": "Risk",
+        "requestedBy": "Requested by",
+        "from": "From",
+        "waiting": "Waiting since",
+        "assignees": "Can be decided by",
+        "expires": "Decides itself at",
+        "timeoutAction": "If nobody decides",
+        "run": "Run"
+      },
+      "timeoutActions": {
+        "reject": "It is rejected",
+        "escalate": "It goes to more people",
+        "continue": "It goes ahead"
+      },
+      "whatWillHappen": "What will happen",
+      "action": "Action",
+      "fields": "Fields",
+      "edited": "Edited fields",
+      "was": "Was {value}",
+      "readOnlyField": "This field can't be edited",
+      "whyTitle": "Why the AI suggests this",
+      "sourcesTitle": "Sources",
+      "seeRun": "See the full run",
+      "bridge": {
+        "scopes": "Access it asks for",
+        "addedScopes": "New access in this update"
+      },
+      "channel": {
+        "type": "Channel",
+        "exposure": "What anyone with the link can reach"
+      },
+      "actions": {
+        "approve": "Approve",
+        "editAndApprove": "Edit and approve",
+        "reject": "Reject",
+        "cancelEdit": "Discard edits",
+        "approveEdited": "Approve with edits"
+      },
+      "stepUpHint": "This amount is high: you'll be asked to confirm it's you before it's approved.",
+      "noChanges": "Change a field to approve with edits.",
+      "banners": {
+        "decided": "{name} already {outcome, select, approved {approved} rejected {rejected} other {decided}} this",
+        "decidedReason": "Reason: {reason}",
+        "expired": "Timed out at {time} · {action}",
+        "canceled": "The request was withdrawn",
+        "readOnly": "Assigned to {names}. You can read it but not decide it.",
+        "decidedAt": "Decided {time}"
+      },
+      "decided": {
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "approvedEdited": "Approved with your edits"
+      },
+      "failed": "The decision wasn't recorded",
+      "fieldErrors": "Check the fields marked below",
+      "invalidNumber": "Enter a number of 0 or more",
+      "rejectTitle": "Reject this approval?",
+      "rejectDescription": "{title} is not carried out. The reason is saved with the decision."
     }
   }
 }

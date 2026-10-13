@@ -11,6 +11,7 @@ from surefy_ml.core.config import Settings, get_settings
 from surefy_ml.core.errors import UnauthorizedError
 from surefy_ml.core.security import verify_service_token
 from surefy_ml.services.documents_service import DocumentsService
+from surefy_ml.services.pii_service import PiiService
 
 bearer = HTTPBearer(auto_error=False)
 
@@ -37,4 +38,9 @@ def get_task_runner(request: Request) -> TaskRunner:
 
 def get_documents_service(request: Request) -> DocumentsService:
     service: DocumentsService = request.app.state.documents_service
+    return service
+
+
+def get_pii_service(request: Request) -> PiiService:
+    service: PiiService = request.app.state.pii_service
     return service

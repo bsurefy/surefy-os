@@ -36,13 +36,17 @@ describe('settings section visibility', () => {
 
   it('shows each role the sections of navigation.md §6', () => {
     expect(visibleIds(contextFor('user'))).toEqual([])
-    expect(visibleIds(contextFor('builder'))).toEqual(['vault'])
+    // Builders see Vault's model list and their own personal connections
+    expect(visibleIds(contextFor('builder'))).toEqual(['vault', 'connections'])
     expect(visibleIds(contextFor('admin'))).toEqual([
       'general',
       'members',
       'teams',
       'access',
       'vault',
+      'connections',
+      'apiKeys',
+      'usage',
       'dataPrivacy',
       'security',
     ])

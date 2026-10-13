@@ -42,6 +42,23 @@ export interface TeamMemberships {
 }
 
 /** The organizations module's access version bump, in the caller's transaction. */
+/**
+ * What another module does in the transaction that deletes a team, before the delete (approvals
+ * add role `admin` to approvals that only the team could decide). Read when used, because those
+ * modules are built after teams.
+ */
+export interface TeamDeletionStep {
+  onDeleteInTx(tx: DbExecutor, orgId: string, teamId: string): Promise<void>
+}
+
+/**
+ * Team-scoped connections (connections module), counted in the deletion dialog. Read when used,
+ * because the connections module is built after teams.
+ */
+export interface TeamConnections {
+  countForTeam(tx: DbExecutor, orgId: string, teamId: string): Promise<number>
+}
+
 export interface TeamOrganizations {
   bumpAccessVersionInTx(tx: DbExecutor, orgId: string): Promise<void>
 }

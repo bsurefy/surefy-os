@@ -4,7 +4,13 @@ import { TeamsRepository } from './teams.repository.js'
 import { teamsRoutes } from './teams.routes.js'
 import { TeamsService } from './teams.service.js'
 
-import type { TeamMemberships, TeamOrganizations, TeamUserRefs } from './teams.types.js'
+import type {
+  TeamConnections,
+  TeamDeletionStep,
+  TeamMemberships,
+  TeamOrganizations,
+  TeamUserRefs,
+} from './teams.types.js'
 import type { Database } from '@/core/database/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
 
@@ -15,6 +21,10 @@ export interface TeamsModuleDeps {
   organizations: TeamOrganizations
   users: TeamUserRefs
   audit: AuditRecorder
+  /** Team-scoped connections, for the deletion dialog; none until the connections module exists. */
+  connections?: () => TeamConnections
+  /** Run in the deletion transaction before the team goes. */
+  deletionSteps?: () => readonly TeamDeletionStep[]
 }
 
 export function createTeamsModule(deps: TeamsModuleDeps) {
@@ -25,6 +35,8 @@ export function createTeamsModule(deps: TeamsModuleDeps) {
     organizations: deps.organizations,
     users: deps.users,
     audit: deps.audit,
+    ...(deps.connections === undefined ? {} : { connections: deps.connections }),
+    ...(deps.deletionSteps === undefined ? {} : { deletionSteps: deps.deletionSteps }),
   })
   return { service, routes: teamsRoutes(new TeamsController(service)) }
 }

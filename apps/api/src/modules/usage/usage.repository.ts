@@ -100,6 +100,7 @@ const GROUP_KEYS = {
   team: sql.raw('team_id::text'),
   person: sql.raw('user_id::text'),
   model: sql.raw('model_key'),
+  agent: sql.raw("case when subject_type = 'agent' then subject_id::text end"),
 } as const
 
 /** `usage_events`, `usage_daily`, `usage_monthly` and `usage_rollup_state`. */

@@ -6,22 +6,22 @@ import { useParams, useRouter } from 'next/navigation'
 import { useFormatter } from 'next-intl'
 
 import { ROUTES } from '@/constants/routes'
-import type { InsightsBreakdownDimension } from '@surefy/contracts'
 import { DataTableToolbar, EmptyState } from '@surefy/ui/components/DataDisplay'
 import { Banner } from '@surefy/ui/components/Feedback'
 import { Combobox, Field } from '@surefy/ui/components/Forms'
 import { PageHeader } from '@surefy/ui/components/Layout'
 import { Button } from '@surefy/ui/primitives/button'
 
+import InsightsTabs from '../InsightsTabs'
 import CostBreakdown from './CostBreakdown'
 import InsightsExportDialog from './InsightsExportDialog'
-import { ANY } from './InsightsOverview.constants'
+import { ANY, type BreakdownDimension } from './InsightsOverview.constants'
 import { useInsightsOverviewController } from './InsightsOverview.controller'
 import KpiCards from './KpiCards'
 import RangePicker from './RangePicker'
 import TokensOverTime from './TokensOverTime'
 
-const FILTER_OF: Record<InsightsBreakdownDimension, 'team' | 'person' | 'model'> = {
+const FILTER_OF: Record<BreakdownDimension, 'team' | 'person' | 'model'> = {
   team: 'team',
   person: 'person',
   model: 'model',
@@ -90,6 +90,7 @@ export default function InsightsOverview() {
       <PageHeader
         title={t('title')}
         description={t('description')}
+        tabs={<InsightsTabs active="overview" />}
         actions={
           <>
             <RangePicker

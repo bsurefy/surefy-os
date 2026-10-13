@@ -65,11 +65,41 @@ describe('eventOfCall', () => {
     expect(event).toMatchObject({ billedVia: 'local', dataLocation: 'local', costMicros: 0 })
   })
 
+  it('marks a call whose request the personal-data filter changed', () => {
+    const base = record()
+    expect(eventOfCall(base).piiMasked).toBe(false)
+    const masked = eventOfCall({
+      ...base,
+      ctx: { ...base.ctx, meter: { key: 'chat:1', piiMasked: true } },
+    })
+    expect(masked.piiMasked).toBe(true)
+    expect(usageEventSchema.safeParse(masked).success).toBe(true)
+  })
+
   it('gives calls without a meter key a unique one and system calls the routing module', () => {
     const base = record()
     const event = eventOfCall({ ...base, ctx: { ...base.ctx, caller: 'system', meter: undefined } })
     expect(event.dedupeKey).toMatch(/^call:[0-9a-f-]{36}:1$/)
     expect(event.sourceModule).toBe('routing')
+  })
+
+  it('meters a decision under the decision module, whoever asked', () => {
+    const base = record()
+    const event = eventOfCall({
+      ...base,
+      kind: 'decision',
+      ctx: {
+        ...base.ctx,
+        caller: 'agent',
+        meter: { key: 'guard:1', subject: { type: 'agent', id: base.ctx.orgId } },
+      },
+    })
+    expect(usageEventSchema.safeParse(event).success).toBe(true)
+    expect(event).toMatchObject({
+      sourceModule: 'decision',
+      kind: 'decision',
+      subjectType: 'agent',
+    })
   })
 })
 

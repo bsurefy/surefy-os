@@ -12,5 +12,14 @@
   "CHAT_ATTACHMENT_TOO_LARGE": "This file is larger than the limit for its type.",
   "CHAT_ATTACHMENT_UNSUPPORTED": "This file type isn't supported.",
   "CHAT_ATTACHMENT_UPLOAD_FAILED": "The upload didn't finish. Try again.",
-  "CHAT_FEEDBACK_NOT_ALLOWED": "You can only rate a finished answer."
+  "CHAT_FEEDBACK_NOT_ALLOWED": "You can only rate a finished answer.",
+  "CHAT_SHARING_DISABLED": "Chat sharing is turned off for this organization. An admin can turn it on in Settings.",
+  "CHAT_PRIVATE_NOT_SHAREABLE": "Private chats can't be shared.",
+  "CHAT_SHARE_NOT_FOUND": "This share no longer exists.",
+  "CHAT_SHARE_TARGET_NOT_FOUND": "That person or team isn't in this organization anymore.",
+  "CHAT_COMPARE_NOT_AVAILABLE": "Compare isn't available here. Pick a different model to compare with.",
+  "CHAT_COMPARE_UNRESOLVED": "Choose answer A or B before sending your next message.",
+  "CHAT_WEB_SEARCH_NOT_ALLOWED": "Web search isn't available to you. Ask an admin.",
+  "PROMPT_NOT_FOUND": "This prompt no longer exists.",
+  "PROMPT_TEAM_NOT_FOUND": "One of the teams isn't in this organization anymore."
 }

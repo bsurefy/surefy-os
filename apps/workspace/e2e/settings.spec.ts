@@ -29,6 +29,8 @@ test.describe('Settings › navigation', () => {
       'Teams',
       'Roles & access',
       'Vault',
+      'Connections',
+      'API keys',
       'Data & privacy',
       'Security',
       'Install',

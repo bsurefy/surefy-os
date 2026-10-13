@@ -53,6 +53,7 @@ import type { ChatsRepository } from './chats.repository.js'
 import type {
   ChatGateway,
   ChatModelInfo,
+  ChatPii,
   ChatModels,
   ChatRetrieval,
   RetrievedPassage,
@@ -71,6 +72,7 @@ export interface ChatStreamServiceDeps {
   attachments: ChatAttachmentsRepository
   models: ChatModels
   gateway: ChatGateway
+  pii: ChatPii
   retrieval: ChatRetrieval
   storage: StorageProvider
   logger: Logger
@@ -91,6 +93,8 @@ interface Prepared {
   /** The first answer of the chat, which names it. */
   needsTitle: boolean
   initialParts: ChatMessagePart[]
+  /** The personal-data filter changed what was sent to the model. */
+  piiMasked: boolean
 }
 
 /** What a send does to the thread (see `plan`). */
@@ -169,19 +173,28 @@ export class ChatStreamService {
     const retrieval = await this.retrieve(ctx, prepared, signal)
     const builder = new PartsBuilder([...prepared.initialParts, ...retrieval.parts], this.deps.now)
     let stream: GatewayStream
+    let sent: Prepared
     try {
+      // nothing is sent before the filter has looked at all of it: a blocked type ends the send
+      const filtered = await this.deps.pii.applyToRequest({
+        ...this.piiScope(ctx, prepared),
+        system: retrieval.system,
+        messages: await this.modelMessages(ctx.orgId, prepared),
+      })
+      sent = { ...prepared, piiMasked: filtered.masked }
       stream = await this.deps.gateway.streamText(
         modelCallContext(ctx, {
           isPrivateChat: prepared.chat.isPrivate,
           meter: {
             key: `chat:${prepared.assistantMessageId}`,
             sourceRefId: prepared.assistantMessageId,
+            piiMasked: filtered.masked,
           },
         }),
         {
           modelKey: prepared.model.modelKey,
-          system: retrieval.system,
-          messages: await this.modelMessages(ctx.orgId, prepared),
+          system: filtered.system ?? retrieval.system,
+          messages: filtered.messages,
           signal,
         },
       )
@@ -189,7 +202,7 @@ export class ChatStreamService {
       await this.settleBeforeStream(ctx.orgId, prepared, error, signal, builder)
       throw error
     }
-    return this.open(ctx, userId, prepared, stream, builder, retrieval.notes, signal)
+    return this.open(ctx, userId, sent, stream, builder, retrieval.notes, signal)
   }
 
   // ── Opening the answer ──────────────────────────────────────────────────────────────────────
@@ -436,6 +449,7 @@ export class ChatStreamService {
       continuing: plan.continuing,
       needsTitle: chat.title === '' && !chat.titleGenerated && plan.text !== null,
       initialParts,
+      piiMasked: false,
     }
   }
 
@@ -498,6 +512,16 @@ export class ChatStreamService {
       if (signal.aborted) throw error
       this.deps.logger.warn({ err: error }, RETRIEVAL_FAILED)
       return none
+    }
+  }
+
+  /** Whom the personal-data filter applies for; a local model keeps the data on the network. */
+  private piiScope(ctx: TenantContext, prepared: Prepared) {
+    return {
+      orgId: ctx.orgId,
+      teamIds: ctx.teamIds,
+      dataLocation: prepared.model.source === 'local' ? ('local' as const) : ('cloud' as const),
+      requestId: ctx.requestId,
     }
   }
 
@@ -613,7 +637,7 @@ export class ChatStreamService {
     const modelData: ChatModelData = {
       model: stream.model,
       dataLocation: dataLocationOf(stream.model.source),
-      piiMasked: false,
+      piiMasked: prepared.piiMasked,
       routed: false,
       fallback: stream.fallback,
     }
@@ -704,6 +728,7 @@ export class ChatStreamService {
               ? call.credentialScope
               : 'provider',
           ),
+          piiMasked: prepared.piiMasked,
           routed: call.routed,
           errorCode: failure,
         })
@@ -749,18 +774,26 @@ export class ChatStreamService {
     const answer = contentTextOf(builder.snapshot().parts)
     const timeout = AbortSignal.timeout(TITLE_TIMEOUT_MS)
     try {
+      // the title reads the question and the answer: the same filter, and a blocked one falls back
+      const filtered = await this.deps.pii.apply({
+        ...this.piiScope(ctx, prepared),
+        texts: [
+          `Question:\n${prepared.question.slice(0, 1000)}\n\nAnswer:\n${answer.slice(0, 1000)}`,
+        ],
+      })
       const { text } = await this.deps.gateway.generateText(
         modelCallContext(ctx, {
           isPrivateChat: prepared.chat.isPrivate,
           meter: {
             key: `chat-title:${prepared.assistantMessageId}`,
             sourceRefId: prepared.assistantMessageId,
+            piiMasked: filtered.masked,
           },
         }),
         {
           modelKey,
           system: TITLE_PROMPT,
-          prompt: `Question:\n${prepared.question.slice(0, 1000)}\n\nAnswer:\n${answer.slice(0, 1000)}`,
+          prompt: filtered.texts[0] ?? '',
           maxOutputTokens: 40,
           signal: timeout,
         },

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+
 import { ROUTES } from '@/constants/routes'
 import type { Permission } from '@surefy/contracts'
 import {
@@ -17,6 +18,7 @@ import type {
   WorkspaceCommand,
 } from './Workspace.types'
 import type { Route } from 'next'
+import type { useFormatter } from 'next-intl'
 
 const SEGMENT_INDEX = 2
 
@@ -139,4 +141,15 @@ export function getInitials(name: string): string {
   const first = parts[0]?.[0] ?? ''
   const last = parts.length > 1 ? (parts.at(-1)?.[0] ?? '') : ''
   return `${first}${last}`.toUpperCase()
+}
+
+const MICROS_PER_UNIT = 1_000_000
+
+/** An amount in micros of `currency` as the locale writes it ("$7,850.00"); the approvals screens share it. */
+export function formatMicros(
+  format: Pick<ReturnType<typeof useFormatter>, 'number'>,
+  micros: number,
+  currency: string,
+): string {
+  return format.number(micros / MICROS_PER_UNIT, { style: 'currency', currency })
 }

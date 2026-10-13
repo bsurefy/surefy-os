@@ -31,7 +31,7 @@ vi.mock('next/navigation', () => ({
 const messages = await loadSharedMessages('en')
 
 function createHandlers(): CoreErrorHandlers {
-  return { onUnauthenticated: vi.fn(), onFeatureUnavailable: vi.fn() }
+  return { onUnauthenticated: vi.fn(), onSessionNotFresh: vi.fn(), onFeatureUnavailable: vi.fn() }
 }
 
 function renderWithCore(children: ReactNode, handlers = createHandlers()) {

@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { InsightsBreakdownDimension } from '@surefy/contracts'
-
-import type { InsightsRangeOption } from './InsightsOverview.constants'
+import type { BreakdownDimension, InsightsRangeOption } from './InsightsOverview.constants'
 
 /** The URL state of Insights › Overview. */
 export interface InsightsOverviewFilters {
@@ -11,7 +9,7 @@ export interface InsightsOverviewFilters {
   team: string | null
   person: string | null
   model: string | null
-  by: InsightsBreakdownDimension
+  by: BreakdownDimension
 }
 
 /** A breakdown group as the chart and its table show it. */

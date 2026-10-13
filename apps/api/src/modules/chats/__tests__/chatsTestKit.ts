@@ -220,3 +220,39 @@ export function lastModelBody(setup: TwoOrgSetup): {
   if (body === undefined) throw new Error('no model call')
   return body as { messages: { role: string; content: unknown }[] }
 }
+
+/** A local server (Ollama) with its first model enabled; returns the model key. */
+export async function enableLocalModel(
+  setup: TwoOrgSetup,
+  host = 'ollama.lab.test',
+): Promise<string> {
+  const headers = as(setup, 'adam')
+  const vault = (path: string) => orgUrl(setup, `/vault${path}`)
+  const server = expectData(
+    await request(setup.app, 'POST', vault('/local-servers'), {
+      headers,
+      payload: {
+        scope: 'organization',
+        name: `Server ${host}`,
+        providerKey: 'ollama',
+        baseUrl: `http://${host}:11434`,
+      },
+    }),
+    201,
+    credentialDtoSchema,
+  )
+  const [model] = expectPage(
+    await request(setup.app, 'GET', vault('/models'), { headers, query: { serverId: server.id } }),
+    vaultModelDtoSchema,
+  ).data
+  if (model === undefined) throw new Error('the server lists models')
+  expectData(
+    await request(setup.app, 'PATCH', vault(`/models/${model.id}`), {
+      headers,
+      payload: { isEnabled: true },
+    }),
+    200,
+    vaultModelDtoSchema,
+  )
+  return model.modelKey
+}

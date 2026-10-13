@@ -15,4 +15,13 @@ export const CHAT_ERROR_CODES = {
   CHAT_ATTACHMENT_UNSUPPORTED: 'CHAT_ATTACHMENT_UNSUPPORTED', // 422: type not accepted, or the bytes do not match it
   CHAT_ATTACHMENT_UPLOAD_FAILED: 'CHAT_ATTACHMENT_UPLOAD_FAILED', // 502: the storage upload did not complete; Retry
   CHAT_FEEDBACK_NOT_ALLOWED: 'CHAT_FEEDBACK_NOT_ALLOWED', // 409: only complete or stopped assistant answers can be rated
+  CHAT_SHARING_DISABLED: 'CHAT_SHARING_DISABLED', // 403: the organization turned chat sharing off
+  CHAT_PRIVATE_NOT_SHAREABLE: 'CHAT_PRIVATE_NOT_SHAREABLE', // 422: private chats are never shared
+  CHAT_SHARE_NOT_FOUND: 'CHAT_SHARE_NOT_FOUND', // 404
+  CHAT_SHARE_TARGET_NOT_FOUND: 'CHAT_SHARE_TARGET_NOT_FOUND', // 422: a person or team is not in the organization
+  CHAT_COMPARE_NOT_AVAILABLE: 'CHAT_COMPARE_NOT_AVAILABLE', // 422: agent chats have no compare, or B uses A's model
+  CHAT_COMPARE_UNRESOLVED: 'CHAT_COMPARE_UNRESOLVED', // 409: choose answer A or B before sending the next message
+  CHAT_WEB_SEARCH_NOT_ALLOWED: 'CHAT_WEB_SEARCH_NOT_ALLOWED', // 403: web search is off for the person, or no search provider is set up
+  PROMPT_NOT_FOUND: 'PROMPT_NOT_FOUND', // 404: also for prompts the person cannot see
+  PROMPT_TEAM_NOT_FOUND: 'PROMPT_TEAM_NOT_FOUND', // 422: a listed team is not in the organization
 } as const

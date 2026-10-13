@@ -55,10 +55,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/pii/detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Detect Pii */
+        post: operations["detect_pii_v1_pii_detect_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pii/mask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mask Pii */
+        post: operations["mask_pii_v1_pii_mask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * CustomPattern
+         * @description A custom type: a name and a regular expression (`regex` syntax, a superset of `re`).
+         */
+        CustomPattern: {
+            /** Label */
+            label: string;
+            /** Pattern */
+            pattern: string;
+        };
+        /** DetectPiiResponse */
+        DetectPiiResponse: {
+            /** Language */
+            language: string;
+            /** Results */
+            results: components["schemas"]["DetectedText"][];
+        };
+        /** DetectedText */
+        DetectedText: {
+            /** Findings */
+            findings: components["schemas"]["PiiFinding"][];
+        };
         /** DocumentSection */
         DocumentSection: {
             /** Headingpath */
@@ -110,6 +166,20 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** MaskPiiResponse */
+        MaskPiiResponse: {
+            /** Language */
+            language: string;
+            /** Results */
+            results: components["schemas"]["MaskedText"][];
+        };
+        /** MaskedText */
+        MaskedText: {
+            /** Findings */
+            findings: components["schemas"]["PiiFinding"][];
+            /** Text */
+            text: string;
+        };
         /**
          * OcrMode
          * @enum {string}
@@ -149,6 +219,52 @@ export interface components {
             /** Usedocr */
             usedOcr: boolean;
         };
+        /**
+         * PiiFinding
+         * @description Where one piece of personal data sits; the matched text is never returned.
+         */
+        PiiFinding: {
+            /** Customlabel */
+            customLabel: string | null;
+            /** End */
+            end: number;
+            /** Score */
+            score: number;
+            /** Start */
+            start: number;
+            type: components["schemas"]["PiiFindingType"];
+        };
+        /**
+         * PiiFindingType
+         * @description A built-in type, or `custom` for a pattern the organization defined.
+         * @enum {string}
+         */
+        PiiFindingType: "person_name" | "email" | "phone" | "payment_card" | "bank_account" | "government_id" | "address" | "custom";
+        /** PiiRequest */
+        PiiRequest: {
+            /** Custompatterns */
+            customPatterns?: components["schemas"]["CustomPattern"][];
+            /**
+             * Locale
+             * @default en
+             */
+            locale?: string;
+            /**
+             * Orgid
+             * Format: uuid
+             */
+            orgId: string;
+            /** Texts */
+            texts: string[];
+            /** Types */
+            types?: components["schemas"]["PiiType"][] | null;
+        };
+        /**
+         * PiiType
+         * @description The built-in personal-data types, named like `BUILT_IN_PII_TYPES` in @surefy/contracts.
+         * @enum {string}
+         */
+        PiiType: "person_name" | "email" | "phone" | "payment_card" | "bank_account" | "government_id" | "address";
     };
     responses: never;
     parameters: never;
@@ -258,6 +374,126 @@ export interface operations {
             };
             /** @description Bad Gateway */
             502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    detect_pii_v1_pii_detect_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PiiRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetectPiiResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Gateway Timeout */
+            504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    mask_pii_v1_pii_mask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PiiRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaskPiiResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

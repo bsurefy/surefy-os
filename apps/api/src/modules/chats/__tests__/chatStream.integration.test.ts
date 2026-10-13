@@ -290,6 +290,7 @@ describe('POST /chats/:chatId/messages', () => {
           return started
         },
       },
+      pii: container.modules.guard.piiFilter,
       models: container.modules.vault.grants.modelsRepository,
       parser: { extract: () => Promise.resolve({ text: '', pageCount: null }) },
     })
@@ -345,6 +346,7 @@ describe('answers with sources', () => {
       storage: container.integrations.storage,
       encryptionKey: setup.config.crypto.encryptionKey,
       gateway: container.modules.modelGateway.service,
+      pii: container.modules.guard.piiFilter,
       models: container.modules.vault.grants.modelsRepository,
       parser: { extract: () => Promise.resolve({ text: '', pageCount: null }) },
       retrieval: {

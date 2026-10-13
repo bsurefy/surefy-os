@@ -40,6 +40,7 @@ export default function SwitchTrafficDialog({
       impact={impact.data ? getImpactLines(tImpact, impact.data, { includeFallback: false }) : []}
       labels={{ confirm: t('confirm') }}
       error={error ? getErrorMessage(error, tErrors) : undefined}
+      confirmDisabled={!impact.data}
       onConfirm={async () => {
         if (!impact.data) throw new Error('The impact is not loaded yet')
         await makePrimary.mutateAsync(credential.id)

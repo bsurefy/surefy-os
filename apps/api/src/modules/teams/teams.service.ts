@@ -26,6 +26,8 @@ import { toTeamDto, toTeamMemberDto, toTeamRefDto } from './teams.mapper.js'
 import { teamSort, type TeamRow, type TeamsRepository } from './teams.repository.js'
 
 import type {
+  TeamConnections,
+  TeamDeletionStep,
   TeamMemberships,
   TeamOrganizations,
   TeamsContext,
@@ -40,6 +42,8 @@ export interface TeamsServiceDeps {
   organizations: TeamOrganizations
   users: TeamUserRefs
   audit: AuditRecorder
+  connections?: () => TeamConnections
+  deletionSteps?: () => readonly TeamDeletionStep[]
 }
 
 const UNIQUE_VIOLATION = '23505'
@@ -156,11 +160,14 @@ export class TeamsService {
 
   /**
    * Deletes the team; the database cascades its memberships and invitation targets and clears
-   * the primary team of members charged to it. Team-scoped connections arrive with the
-   * connections module, which then moves or removes them first (`connections` query).
+   * the primary team of members charged to it, and its team-scoped connections (their secrets
+   * go with them; the deletion dialog counts them first).
    */
   async delete(ctx: TeamsContext, teamId: string): Promise<void> {
     await this.deps.db.tenant(ctx.orgId, async (tx) => {
+      for (const step of this.deps.deletionSteps?.() ?? []) {
+        await step.onDeleteInTx(tx, ctx.orgId, teamId)
+      }
       if (!(await this.deps.teamsRepository.delete(tx, ctx.orgId, teamId))) {
         throw new TeamNotFoundError()
       }
@@ -177,8 +184,10 @@ export class TeamsService {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
       await this.findOrThrow(tx, ctx.orgId, teamId)
       const counts = await this.deps.teamsRepository.counts(tx, ctx.orgId, teamId)
-      // Connections and other dependents (dependency_edges) arrive with their modules.
-      return { ...counts, connectionCount: 0, dependents: [] }
+      // Other dependents (dependency_edges) arrive with their modules.
+      const connectionCount =
+        (await this.deps.connections?.().countForTeam(tx, ctx.orgId, teamId)) ?? 0
+      return { ...counts, connectionCount, dependents: [] }
     })
   }
 

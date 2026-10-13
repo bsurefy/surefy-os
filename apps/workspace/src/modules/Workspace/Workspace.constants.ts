@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { BookOpen, ChartNoAxesColumn, MessageSquare, Shield, SlidersHorizontal } from 'lucide-react'
+import {
+  BookOpen,
+  Bot,
+  ChartNoAxesColumn,
+  MessageSquare,
+  Shield,
+  SlidersHorizontal,
+} from 'lucide-react'
 
 import { ROUTES } from '@/constants/routes'
 // The file itself, not the module entry: that entry carries server guards, and this list is
@@ -28,7 +35,7 @@ export const NAV_ITEM_KEYS = [
 /**
  * The workspace navigation (pages-routing.md §8). The sidebar, the command palette's "Go to"
  * group and the "g then …" shortcuts are built from it, filtered by effective access. The module
- * skeleton adds one entry per MVP module with `released: false`; each module flips its own flag
+ * skeleton adds one entry per module with `released: false`; each module flips its own flag
  * in its integration task. Entries are listed in display order within their group.
  */
 export const WORKSPACE_NAV: readonly NavEntry[] = [
@@ -41,6 +48,17 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     module: 'chat',
     anyPermission: [PERMISSIONS.CHAT_USE],
     goKey: 'c',
+  },
+  {
+    key: 'agents',
+    group: 'build',
+    icon: Bot,
+    href: (orgSlug) => ROUTES.workspace.agents(orgSlug),
+    released: true,
+    module: 'agents',
+    // Builders and above; Users reach shared agents from Chat
+    anyPermission: [PERMISSIONS.AGENTS_READ],
+    goKey: 'a',
   },
   {
     key: 'knowledge',
@@ -67,11 +85,11 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     key: 'guard',
     group: 'operate',
     icon: Shield,
-    // The audit log is Guard's only tab in the MVP
-    href: (orgSlug) => ROUTES.workspace.guard(orgSlug, 'audit-log'),
+    // The index page opens the first tab the person may read
+    href: (orgSlug) => ROUTES.workspace.guard(orgSlug),
     released: true,
     module: 'guard',
-    anyPermission: [PERMISSIONS.AUDIT_READ],
+    anyPermission: [PERMISSIONS.GUARD_READ, PERMISSIONS.AUDIT_READ],
   },
   {
     key: 'settings',
@@ -97,3 +115,8 @@ export const NOTIFICATIONS_POPOVER_LIMIT = 5
 
 /** The bell's unread count refreshes this often while the page is open. */
 export const UNREAD_COUNT_REFRESH_MS = 60_000
+
+/** The approvals popover shows the oldest items waiting for the person. */
+export const APPROVALS_POPOVER_LIMIT = 5
+/** How often the popover's count refreshes: other people decide while the page is open. */
+export const APPROVALS_REFRESH_MS = 60_000

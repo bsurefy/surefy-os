@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Each module's commands file itself, not its entry: module entries import the shell's exports,
 // which would make an import cycle through this file
+import { commands as agentsCommands } from '@/modules/Agents/Agents.commands'
 import { commands as chatCommands } from '@/modules/Chat/Chat.commands'
 import { commands as guardCommands } from '@/modules/Guard/Guard.commands'
 import { commands as insightsCommands } from '@/modules/Insights/Insights.commands'
@@ -18,6 +19,7 @@ import type { WorkspaceCommand } from './Workspace.types'
  */
 export const WORKSPACE_COMMANDS: readonly WorkspaceCommand[] = [
   ...chatCommands,
+  ...agentsCommands,
   ...knowledgeCommands,
   ...vaultCommands,
   ...settingsCommands,

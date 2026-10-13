@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { connectionOauthApps } from './connectionsEnv.js'
+
 import type { Config, MailConfig, ProcessName, StorageConfig } from './config.types.js'
 import type { Env } from './env.js'
 
@@ -115,6 +117,13 @@ export function toConfig(env: Env, processName: ProcessName): Config {
       ...(env.ENCRYPTION_KEY_PREVIOUS === undefined
         ? {}
         : { previousEncryptionKey: env.ENCRYPTION_KEY_PREVIOUS }),
+    },
+    connections: {
+      oauthApps: connectionOauthApps(env),
+      localHosts: splitList(env.CONNECTIONS_LOCAL_HOSTS).map((host) => host.toLowerCase()),
+      ...(env.CONNECTIONS_SLACK_SIGNING_SECRET === undefined
+        ? {}
+        : { slackSigningSecret: env.CONNECTIONS_SLACK_SIGNING_SECRET }),
     },
     setup: env.SETUP_TOKEN === undefined ? {} : { token: env.SETUP_TOKEN },
     storage: toStorage(env),

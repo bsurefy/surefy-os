@@ -6,10 +6,39 @@ import { meFactory, meMembershipFactory } from '@surefy/web-core/testing'
 import {
   getAuthErrorKey,
   getPasswordStrength,
+  getLastUsedOrganizationSlug,
   getPostSignInPath,
   getRetryAt,
   getTotpSecret,
 } from './Auth.utils'
+
+describe('getLastUsedOrganizationSlug', () => {
+  it('names the last-used organization, or the only one', () => {
+    const [first, second] = [meMembershipFactory(), meMembershipFactory()]
+    expect(getLastUsedOrganizationSlug(meFactory({ memberships: [first] }))).toBe(
+      first.organization.slug,
+    )
+    const me = meFactory({
+      memberships: [first, second],
+      preferences: {
+        locale: null,
+        theme: 'system',
+        timezone: null,
+        lastOrganizationId: second.organization.id,
+      },
+    })
+    expect(getLastUsedOrganizationSlug(me)).toBe(second.organization.slug)
+  })
+
+  it('names none for no membership, or several and no last-used one', () => {
+    expect(getLastUsedOrganizationSlug(meFactory({ memberships: [] }))).toBeNull()
+    expect(
+      getLastUsedOrganizationSlug(
+        meFactory({ memberships: [meMembershipFactory(), meMembershipFactory()] }),
+      ),
+    ).toBeNull()
+  })
+})
 
 describe('getPostSignInPath', () => {
   it('sends a person without memberships to the no-organization screen', () => {

@@ -86,6 +86,7 @@ export default function DeleteTeamDialog({
           ? getErrorMessage(error, tErrors)
           : (isMissingDecision && t('connectionsRequired')) || undefined
       }
+      confirmDisabled={!impact.data}
       onConfirm={async () => {
         if (!impact.data) throw new Error('The impact is not loaded yet')
         if (mustDecide && !connections) {

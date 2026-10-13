@@ -2,9 +2,15 @@
 import type { MockDomain } from '@surefy/web-core/testing/mock'
 
 import { accessDomain } from './access'
+import { agentRunsDomain } from './agentRuns'
+import { agentsDomain } from './agents'
+import { apiKeysDomain } from './apiKeys'
+import { approvalsDomain } from './approvals'
 import { auditDomain } from './audit'
 import { chatDomain } from './chat'
+import { connectionsDomain } from './connections'
 import { dataControlDomain } from './dataControl'
+import { guardDomain } from './guard'
 import { installDomain } from './install'
 import { knowledgeDomain } from './knowledge'
 import { meDomain } from './me'
@@ -38,4 +44,10 @@ export const mockDomains: MockDomain[] = [
   usageDomain,
   setupChecklistDomain,
   auditDomain,
+  agentsDomain,
+  agentRunsDomain,
+  guardDomain,
+  approvalsDomain,
+  connectionsDomain,
+  apiKeysDomain,
 ]

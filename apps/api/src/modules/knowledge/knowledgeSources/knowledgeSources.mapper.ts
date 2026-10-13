@@ -53,6 +53,7 @@ export function toSourceDto(
     sizeBytes: row.sizeBytes,
     link,
     connector,
+    connectionId: row.connectionId,
     ocrMode: row.ocrMode,
     status: row.status,
     progressPercent: row.progressPercent,

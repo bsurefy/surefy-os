@@ -36,6 +36,7 @@ export default function ConfirmDialog({
   labels,
   confirmationText = '',
   tone = 'destructive',
+  confirmDisabled = false,
   onConfirm,
   error,
 }: Readonly<ConfirmDialogProps>) {
@@ -154,6 +155,7 @@ export default function ConfirmDialog({
           <Button
             variant={tone === 'destructive' ? 'destructive' : 'primary'}
             isLoading={isPending}
+            disabled={confirmDisabled}
             onClick={() => {
               void handleConfirm()
             }}

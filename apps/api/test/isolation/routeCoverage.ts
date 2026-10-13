@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { API_PREFIX } from '@/app.js'
+import { createEmptyAgentDefinition } from '@surefy/contracts'
 
 import { routeKey, type RouteKey, type RouteTableEntry } from './routeTable.js'
 import { testKey } from '../fixtures/fakeAi.js'
@@ -276,6 +277,260 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'POST /api/v1/orgs/:orgId/exports/:exportId/retry': { class: 'orgScoped' },
   'POST /api/v1/orgs/:orgId/exports/:exportId/download': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/data-control/retention': { class: 'orgScoped' },
+
+  // apiKeys
+  'GET /api/v1/orgs/:orgId/api-keys': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/api-keys': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder key', scopes: ['agents:invoke'] }),
+  },
+  'GET /api/v1/orgs/:orgId/api-keys/:keyId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/api-keys/:keyId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Taken over' }),
+  },
+  'GET /api/v1/orgs/:orgId/api-keys/:keyId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/api-keys/:keyId/revoke': { class: 'orgScoped' },
+
+  // connections
+  'GET /api/v1/orgs/:orgId/connections/providers': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/connections': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/connections': {
+    class: 'orgScoped',
+    payload: () => ({
+      providerKey: 'mcp',
+      authType: 'none',
+      baseUrl: 'https://intruder.test/mcp',
+      scope: 'organization',
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/connections/oauth/start': {
+    class: 'orgScoped',
+    payload: () => ({ providerKey: 'google-drive', scope: 'organization' }),
+  },
+  'POST /api/v1/orgs/:orgId/connections/oauth/complete': {
+    class: 'orgScoped',
+    payload: () => ({ state: 'intruder-state', code: 'intruder-code' }),
+  },
+  'GET /api/v1/orgs/:orgId/connections/:connectionId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/connections/:connectionId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Taken over' }),
+  },
+  'GET /api/v1/orgs/:orgId/connections/:connectionId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/connections/:connectionId/reconnect': {
+    class: 'orgScoped',
+    payload: () => ({ authType: 'api_key', secret: 'intruder-replacement-key' }),
+  },
+  'POST /api/v1/orgs/:orgId/connections/:connectionId/test': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/connections/:connectionId/revoke': { class: 'orgScoped' },
+
+  // approvals
+  'GET /api/v1/orgs/:orgId/approvals': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/approvals/summary': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/approvals/bulk-decide': {
+    class: 'orgScoped',
+    payload: (f) => ({ ids: [f.params.approvalId], decision: 'approve' }),
+  },
+  'GET /api/v1/orgs/:orgId/approvals/:approvalId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/approvals/:approvalId/approve': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/approvals/:approvalId/reject': {
+    class: 'orgScoped',
+    payload: () => ({ reason: 'wrong_team' }),
+  },
+  'POST /api/v1/orgs/:orgId/approvals/:approvalId/cancel': { class: 'orgScoped' },
+
+  // agents and templates
+  'GET /api/v1/orgs/:orgId/agents': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder agent' }),
+  },
+  'GET /api/v1/orgs/:orgId/agents/usable': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/templates': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/agents/:agentId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Intruder agent' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/agents/:agentId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/draft': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/agents/:agentId/draft': {
+    class: 'orgScoped',
+    payload: () => ({ baseRevision: 1, definition: createEmptyAgentDefinition('openai/gpt-4.1') }),
+  },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/impact': {
+    class: 'orgScoped',
+    query: { action: 'delete' },
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/duplicate': {
+    class: 'orgScoped',
+    payload: () => ({}),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/pause': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/resume': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/archive': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/restore': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/readiness': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/publish': {
+    class: 'orgScoped',
+    payload: () => ({ baseRevision: 1 }),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/rollback': {
+    class: 'orgScoped',
+    payload: (f) => ({ versionId: f.params.versionId }),
+  },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/versions': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/versions/:versionId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/versions/:versionId/diff': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/tools/test': {
+    class: 'orgScoped',
+    payload: () => ({
+      method: 'GET',
+      url: 'https://api.intruder.test/orders',
+      headers: [],
+      connectionId: null,
+      arguments: {},
+    }),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/tools/discover': {
+    class: 'orgScoped',
+    payload: () => ({ serverUrl: 'https://mcp.intruder.test/mcp', connectionId: null }),
+  },
+  // agent runs and the API channel
+  // agent channels and the website widget
+  'GET /api/v1/orgs/:orgId/agents/:agentId/channels': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels': {
+    class: 'orgScoped',
+    payload: () => ({ type: 'api' }),
+  },
+  'PATCH /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId': {
+    class: 'orgScoped',
+    payload: () => ({ api: { rateLimitPerMinute: 1 } }),
+  },
+  'DELETE /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId/pause': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId/resume': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/channels/:channelId/rotate-token': {
+    class: 'orgScoped',
+  },
+  'GET /api/v1/widget/config': {
+    class: 'public',
+    reason: "Website widget: the channel's token names the channel, the origin must be allowed",
+  },
+  'POST /api/v1/widget/messages': {
+    class: 'public',
+    reason:
+      'Website widget: channel token and allowed origin, rate limited per channel and visitor',
+  },
+  'GET /api/v1/widget/runs/:runId/events': {
+    class: 'public',
+    reason:
+      'Website widget: channel token, allowed origin and the conversation that started the run',
+  },
+  'GET /widget/v1/widget.js': { class: 'public', reason: 'The website widget script, no data' },
+  'POST /api/v1/channels/slack/events': {
+    class: 'public',
+    reason: "Slack's events: signed with the Slack app's secret, routed by workspace and bot",
+  },
+  'GET /api/v1/channels/whatsapp/webhook': {
+    class: 'public',
+    reason: "Meta's webhook set-up check: answers only a channel's verify token, no data",
+  },
+  'POST /api/v1/channels/whatsapp/webhook': {
+    class: 'public',
+    reason: "WhatsApp's messages: signed with the app secret of the number's connection",
+  },
+  'GET /api/v1/orgs/:orgId/runs': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/runs': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/runs': {
+    class: 'orgScoped',
+    payload: () => ({ input: 'Intruder question' }),
+  },
+  'POST /api/v1/orgs/:orgId/agents/:agentId/test-runs': {
+    class: 'orgScoped',
+    payload: () => ({ messages: [{ role: 'user', text: 'Intruder question' }] }),
+  },
+  'GET /api/v1/orgs/:orgId/runs/:runId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/runs/:runId/steps': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/runs/:runId/steps/:seq': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/runs/:runId/events': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/runs/:runId/cancel': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/runs/:runId/retry': { class: 'orgScoped', payload: () => ({}) },
+  'GET /api/v1/orgs/:orgId/agents/:agentId/access': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/agents/:agentId/access': {
+    class: 'orgScoped',
+    payload: () => ({ entries: [] }),
+  },
+
+  // guard
+  'GET /api/v1/orgs/:orgId/guard/overview': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/guard/defaults': { class: 'orgScoped' },
+  'PUT /api/v1/orgs/:orgId/guard/defaults': {
+    class: 'orgScoped',
+    payload: () => ({
+      autoThresholdBp: 5000,
+      reviewThresholdBp: 1000,
+      quickApproveMaxAmountMicros: 999_000_000,
+      quickApproveMaxRisk: 'medium',
+      stepUpAmountMicros: null,
+      targetDecisionMinutes: 1,
+      reason: 'Intruder',
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/guard/defaults/impact': {
+    class: 'orgScoped',
+    query: { autoThresholdBp: '9000', reviewThresholdBp: '6000' },
+  },
+  'GET /api/v1/orgs/:orgId/guard/guardrails': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/guard/guardrails': {
+    class: 'orgScoped',
+    payload: () => ({
+      name: 'Intruder rule',
+      scope: 'organization',
+      definition: { version: 1, kind: 'blocked_action', match: { action: 'anything' } },
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/guard/guardrails/:guardrailId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/guard/guardrails/:guardrailId': {
+    class: 'orgScoped',
+    payload: () => ({ name: 'Taken over', isEnabled: false, reason: 'Intruder' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/guard/guardrails/:guardrailId': {
+    class: 'orgScoped',
+    query: { reason: 'Intruder' },
+  },
+  'GET /api/v1/orgs/:orgId/guard/guardrails/:guardrailId/impact': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/guard/guardrails/:guardrailId/lock': {
+    class: 'orgScoped',
+    payload: () => ({ reason: 'Intruder' }),
+  },
+  'POST /api/v1/orgs/:orgId/guard/guardrails/:guardrailId/unlock': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/guard/data-filters': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/guard/data-filters/test': {
+    class: 'orgScoped',
+    payload: () => ({ text: 'Intruder text' }),
+  },
+  'POST /api/v1/orgs/:orgId/guard/pii-rules': {
+    class: 'orgScoped',
+    payload: () => ({
+      piiType: 'email',
+      action: 'detect',
+      scope: 'organization',
+      reason: 'Intruder',
+    }),
+  },
+  'PATCH /api/v1/orgs/:orgId/guard/pii-rules/:ruleId': {
+    class: 'orgScoped',
+    payload: () => ({ action: 'detect', reason: 'Intruder' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/guard/pii-rules/:ruleId': {
+    class: 'orgScoped',
+    query: { reason: 'Intruder' },
+  },
 
   // vault
   'GET /api/v1/orgs/:orgId/vault/providers': { class: 'orgScoped' },

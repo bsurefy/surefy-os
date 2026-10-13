@@ -9,6 +9,7 @@ import { Button } from '@surefy/ui/primitives/button'
 import { Kbd } from '@surefy/ui/primitives/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@surefy/ui/primitives/tooltip'
 
+import ApprovalsPopover from '../../ApprovalsPopover'
 import NotificationsBell from '../NotificationsBell'
 import { useShellTopBarController } from './ShellTopBar.controller'
 
@@ -80,6 +81,7 @@ export default function ShellTopBar({
           onClick={onOpenSearch}
           className="md:hidden"
         />
+        <ApprovalsPopover orgSlug={orgSlug} />
         <NotificationsBell orgSlug={orgSlug} />
       </div>
     </header>

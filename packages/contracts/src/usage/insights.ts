@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { z } from 'zod'
 
+import { budgetMeterDtoSchema } from './budgets.js'
 import { USAGE_SOURCE_MODULES } from './events.js'
 import { multiValueQuery } from '../core/filters.js'
 import { modelRefDtoSchema } from '../models/gateway.js'
@@ -8,8 +9,12 @@ import { modelKeySchema } from '../models/keys.js'
 import { currencySchema, timezoneSchema } from '../organizations/schemas.js'
 
 // Insights › Overview: usage and cost read from the rollups (database/usage-budgets-and-audit.md
-// §6–8; design/workspace/insights.md). Routes, under /api/v1/orgs/:orgId (`insights:read`):
-// GET /insights/overview · GET /insights/breakdown · GET /insights/timeseries.
+// §6–9; design/workspace/insights.md). Routes, under /api/v1/orgs/:orgId:
+// GET /insights/overview · GET /insights/breakdown · GET /insights/timeseries (MVP);
+// GET /insights/runs-overview · GET /insights/runs-timeseries · GET /insights/budget-meter (V1).
+// `insights:read` sees the whole organization. `insights:read-own` (Builders) sees the agents and
+// flows they can edit: every read is narrowed to them, and numbers outside them come back
+// `restricted`. The Runs tab and run detail are the agentRuns routes (`runs:read`).
 // The CSV export is an `exports` row of kind `usage_csv` (dataControl; see ./export.ts).
 
 /** Longest range one request covers. */
@@ -26,13 +31,14 @@ export type InsightsRangePreset = (typeof INSIGHTS_RANGE_PRESETS)[number]
 /**
  * The filters every Insights read shares. Repeated keys select several values; absent means all.
  * `teamId` is the primary team at event time (primary-team charging), so a person's past cost stays
- * with the team they were charged to.
+ * with the team they were charged to. `agentId` (V1) keeps the calls made for those agents.
  */
 export const insightsFiltersSchema = z.object({
   teamId: multiValueQuery(z.uuid()),
   userId: multiValueQuery(z.uuid()),
   modelKey: multiValueQuery(modelKeySchema),
   sourceModule: multiValueQuery(z.enum(USAGE_SOURCE_MODULES)),
+  agentId: multiValueQuery(z.uuid()),
 })
 export type InsightsFilters = z.infer<typeof insightsFiltersSchema>
 
@@ -106,8 +112,8 @@ export const insightsOverviewDtoSchema = z.object({
 })
 export type InsightsOverviewDto = z.infer<typeof insightsOverviewDtoSchema>
 
-/** Cost by team, by person or by model (by agent from V1). */
-export const INSIGHTS_BREAKDOWN_DIMENSIONS = ['team', 'person', 'model'] as const
+/** Cost by team, by person, by model or (V1) by agent. */
+export const INSIGHTS_BREAKDOWN_DIMENSIONS = ['team', 'person', 'model', 'agent'] as const
 export type InsightsBreakdownDimension = (typeof INSIGHTS_BREAKDOWN_DIMENSIONS)[number]
 
 export const INSIGHTS_BREAKDOWN_SORTS = ['cost', 'tokens', 'requests'] as const
@@ -142,10 +148,11 @@ export const insightsTotalsDtoSchema = z.object({
 export type InsightsTotalsDto = z.infer<typeof insightsTotalsDtoSchema>
 
 /**
- * One group. `key` is the team id, the user id or the model key, and is what the drill-down and the
- * filters take; it is null for calls without a primary team ("No team") or without a person (API
- * keys and channels). `label` is resolved at read time and is null when the key is null or no
- * longer resolves (a removed member, a deleted team, a model no longer in the Vault).
+ * One group. `key` is the team id, the user id, the model key or the agent id, and is what the
+ * drill-down and the filters take; it is null for calls without a primary team ("No team"), without
+ * a person (API keys and channels) or outside any agent (chat, knowledge). `label` is resolved at
+ * read time and is null when the key is null or no longer resolves (a removed member, a deleted
+ * team, a model no longer in the Vault, a purged agent).
  */
 export const insightsBreakdownRowDtoSchema = insightsTotalsDtoSchema.extend({
   key: z.string().min(1).nullable(),
@@ -207,3 +214,108 @@ export const insightsTimeseriesDtoSchema = z.object({
   points: z.array(insightsSeriesPointDtoSchema),
 })
 export type InsightsTimeseriesDto = z.infer<typeof insightsTimeseriesDtoSchema>
+
+// ── V1: runs, approvals and the budget meter ────────────────────────────────────────────────────
+
+/**
+ * The query of the run reads. Runs come from `run_stats_daily` (UTC days of the run's finish; test
+ * runs left out), which has no team, person or model, so only the agent filter applies to them.
+ */
+export const insightsRunsQuerySchema = insightsRangeSchema
+  .extend({ agentId: multiValueQuery(z.uuid()) })
+  .superRefine(checkRange)
+export type InsightsRunsQuery = z.infer<typeof insightsRunsQuerySchema>
+
+/** Approvals of agents and flows in the range; request kinds (bridge, channel publish) are left out. */
+export const insightsApprovalsDtoSchema = z.object({
+  /** Requested in the range. */
+  requested: countSchema,
+  /** "Approvals by people": approved or rejected by a person in the range. */
+  decidedByPeople: countSchema,
+  approved: countSchema,
+  rejected: countSchema,
+  /** The timeout took its action. */
+  expired: countSchema,
+  /** Median time from request to a person's decision; null when nobody decided. */
+  medianMinutesToDecide: z.number().nonnegative().nullable(),
+})
+export type InsightsApprovalsDto = z.infer<typeof insightsApprovalsDtoSchema>
+
+/** `GET /insights/runs-overview`: the V1 KPIs next to the MVP ones. */
+export const insightsRunsOverviewDtoSchema = z.object({
+  /** Finished runs (succeeded, failed, timed out or canceled). */
+  runs: insightsMetricSchema(countSchema),
+  /** Succeeded runs over finished runs that were not canceled, in basis points; null without runs. */
+  successRateBp: insightsMetricSchema(z.number().int().min(0).max(10_000).nullable()),
+  /** Waiting for approvals included; null without runs. */
+  averageDurationMs: insightsMetricSchema(countSchema.nullable()),
+  approvals: insightsMetricSchema(insightsApprovalsDtoSchema),
+  /** False until the organization's first finished run: "Create an agent". */
+  hasRuns: z.boolean(),
+  /** Run rollups are complete up to this instant. */
+  dataThrough: z.iso.datetime().nullable(),
+})
+export type InsightsRunsOverviewDto = z.infer<typeof insightsRunsOverviewDtoSchema>
+
+/** Run buckets are built from whole days, so the shortest interval is a day. */
+export const INSIGHTS_RUNS_INTERVALS = [
+  'day',
+  'week',
+  'month',
+] as const satisfies readonly InsightsInterval[]
+export type InsightsRunsInterval = (typeof INSIGHTS_RUNS_INTERVALS)[number]
+
+/** `GET /insights/runs-timeseries`: runs over time. */
+export const insightsRunsTimeseriesQuerySchema = insightsRangeSchema
+  .extend({
+    agentId: multiValueQuery(z.uuid()),
+    interval: z.enum(INSIGHTS_RUNS_INTERVALS).default('day'),
+  })
+  .superRefine((query, ctx) => {
+    checkRange(query, ctx)
+    if (rangeSpanMs(query) / INTERVAL_MS[query.interval] > INSIGHTS_SERIES_MAX_POINTS)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['interval'],
+        message: `Pick a longer interval: a series has at most ${INSIGHTS_SERIES_MAX_POINTS} points`,
+      })
+  })
+export type InsightsRunsTimeseriesQuery = z.infer<typeof insightsRunsTimeseriesQuerySchema>
+
+/**
+ * One bucket of finished runs by outcome. `failed` includes timed-out runs. `neededHuman` counts
+ * runs that waited for a person whatever their outcome, so it overlaps the other three.
+ */
+export const insightsRunsPointDtoSchema = z.object({
+  start: z.iso.datetime(),
+  succeeded: countSchema,
+  failed: countSchema,
+  canceled: countSchema,
+  neededHuman: countSchema,
+})
+export type InsightsRunsPointDto = z.infer<typeof insightsRunsPointDtoSchema>
+
+/** Every bucket of the range in order, empty ones included with zeros. */
+export const insightsRunsTimeseriesDtoSchema = z.object({
+  interval: z.enum(INSIGHTS_RUNS_INTERVALS),
+  points: z.array(insightsRunsPointDtoSchema),
+})
+export type InsightsRunsTimeseriesDto = z.infer<typeof insightsRunsTimeseriesDtoSchema>
+
+/**
+ * `GET /insights/budget-meter`: cost this month against a budget. One team or one person picks
+ * their budget, nothing picks the organization budget.
+ */
+export const insightsBudgetMeterQuerySchema = z
+  .object({ teamId: z.uuid().optional(), userId: z.uuid().optional() })
+  .refine((query) => !(query.teamId && query.userId), {
+    message: 'Pick a team or a person, not both',
+    path: ['userId'],
+  })
+export type InsightsBudgetMeterQuery = z.infer<typeof insightsBudgetMeterQuerySchema>
+
+/** `meter` is null when that scope has no enabled budget: "No budget · Set one in Settings". */
+export const insightsBudgetMeterDtoSchema = z.object({
+  meter: insightsMetricSchema(budgetMeterDtoSchema.nullable()),
+})
+export type InsightsBudgetMeterDto = z.infer<typeof insightsBudgetMeterDtoSchema>

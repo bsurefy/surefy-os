@@ -103,6 +103,23 @@ export const licenseStatusDtoSchema = z.object({
 })
 export type LicenseStatusDto = z.infer<typeof licenseStatusDtoSchema>
 
+/** The tools a policy can switch off: web search (V1), bridge actions, MCP servers and API tools. */
+export const ACCESS_TOOL_KEYS = ['webSearch', 'bridge', 'mcp', 'apiTools'] as const
+export type AccessToolKey = (typeof ACCESS_TOOL_KEYS)[number]
+
+/**
+ * Tools the access chain allows (booleans AND down the chain, OR across a person's teams). It says
+ * only what the policies allow: a tool also needs its own setup (a search provider for web search),
+ * which its module checks on use.
+ */
+export const accessToolsDtoSchema = z.object({
+  webSearch: z.boolean(),
+  bridge: z.boolean(),
+  mcp: z.boolean(),
+  apiTools: z.boolean(),
+})
+export type AccessToolsDto = z.infer<typeof accessToolsDtoSchema>
+
 /** Effective numeric limits; null = unlimited. Money is integer micros. */
 export const accessLimitsDtoSchema = z.object({
   monthlySpendMicros: limitValueSchema.nullable(),
@@ -160,6 +177,8 @@ export const effectiveAccessDtoSchema = z.object({
   license: licenseStatusDtoSchema.nullable(),
   allowedModelIds: allowedModelIdsSchema,
   limits: accessLimitsDtoSchema,
+  /** The chat composer shows its web search toggle only with `tools.webSearch`. */
+  tools: accessToolsDtoSchema,
   reasons: z.array(accessReasonDtoSchema),
 })
 export type EffectiveAccessDto = z.infer<typeof effectiveAccessDtoSchema>

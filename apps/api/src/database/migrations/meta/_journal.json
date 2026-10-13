@@ -162,6 +162,118 @@
       "when": 1791373047406,
       "tag": "0022_bridge-naming",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791456394422,
+      "tag": "0023_api-keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791456399041,
+      "tag": "0024_api-keys-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791458618963,
+      "tag": "0025_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791458633734,
+      "tag": "0026_connections-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791464007837,
+      "tag": "0027_approvals",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791464009186,
+      "tag": "0028_approvals-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1791474959419,
+      "tag": "0029_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791474965960,
+      "tag": "0030_guard-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791482251461,
+      "tag": "0031_agents",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791482261308,
+      "tag": "0032_agents-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791520062021,
+      "tag": "0033_agent-runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791520066010,
+      "tag": "0034_agent-runs-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1791526042751,
+      "tag": "0035_agent-channels",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791526052871,
+      "tag": "0036_agent-channels-security",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791823821831,
+      "tag": "0037_agent-channels-widget-token",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791829204014,
+      "tag": "0038_agent-channels-external",
+      "breakpoints": true
     }
   ]
 }

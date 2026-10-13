@@ -37,6 +37,40 @@ function Harness(props: Readonly<Partial<ConfirmDialogProps>>) {
 }
 
 describe('ConfirmDialog', () => {
+  it('holds the confirm button back while `confirmDisabled` is set', async () => {
+    const user = userEvent.setup()
+    const onConfirm = vi.fn()
+    const { rerender } = render(
+      <ConfirmDialog
+        open
+        onOpenChange={vi.fn()}
+        tier="T2"
+        title="Remove the server?"
+        labels={{ confirm: 'Remove server' }}
+        confirmDisabled
+        onConfirm={onConfirm}
+      />,
+    )
+    const confirm = screen.getByRole('button', { name: 'Remove server' })
+    expect(confirm).toBeDisabled()
+    await user.click(confirm)
+    expect(onConfirm).not.toHaveBeenCalled()
+
+    rerender(
+      <ConfirmDialog
+        open
+        onOpenChange={vi.fn()}
+        tier="T2"
+        title="Remove the server?"
+        labels={{ confirm: 'Remove server' }}
+        confirmDisabled={false}
+        onConfirm={onConfirm}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Remove server' }))
+    expect(onConfirm).toHaveBeenCalledOnce()
+  })
+
   it('T2 focuses Cancel, lists the impact and repeats the verb', async () => {
     const onConfirm = vi.fn()
     render(<Harness onConfirm={onConfirm} />)

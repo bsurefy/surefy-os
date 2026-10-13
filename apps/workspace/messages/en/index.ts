@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // The workspace's own namespaces in English, one per module; every locale has the same files.
+import agents from './agents.json'
 import auth from './auth.json'
 import chat from './chat.json'
 import guard from './guard.json'
@@ -10,6 +11,17 @@ import setup from './setup.json'
 import vault from './vault.json'
 import workspace from './workspace.json'
 
-const messages = { workspace, auth, setup, chat, knowledge, insights, guard, vault, settings }
+const messages = {
+  workspace,
+  auth,
+  setup,
+  chat,
+  agents,
+  knowledge,
+  insights,
+  guard,
+  vault,
+  settings,
+}
 
 export default messages

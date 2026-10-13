@@ -253,5 +253,24 @@
       "teams": "Teams",
       "teamCount": "{count, plural, =0 {No teams} one {# team} other {# teams}}"
     }
+  },
+  "approvals": {
+    "buttonLabel": "{count, plural, =0 {Approvals} one {Approvals, # waiting for you} other {Approvals, # waiting for you}}",
+    "title": "Approvals",
+    "seeAll": "See all approvals",
+    "review": "Review",
+    "approve": "Approve",
+    "undo": "Undo",
+    "approving": "Approving {title}",
+    "approved": "Approved {title}",
+    "retry": "Try again",
+    "loadError": "Couldn't load approvals",
+    "empty": {
+      "title": "All caught up",
+      "description": "Nothing is waiting for your decision."
+    },
+    "overdue": "Overdue",
+    "confidence": "{value} confident",
+    "meta": "{kind} · {time}"
   }
 }

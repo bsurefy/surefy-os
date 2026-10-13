@@ -10,6 +10,12 @@ test.describe('Guard › Audit log', () => {
   test('is in the navigation and lists what setup recorded', async ({ page }) => {
     await page.goto(`/${ORGANIZATION.slug}`)
     await page.getByRole('navigation').getByRole('link', { name: /Guard/ }).click()
+    // Guard opens on its Overview; the audit log is one of its tabs
+    await expect(page).toHaveURL(`/${ORGANIZATION.slug}/guard/overview`)
+    await page
+      .getByRole('navigation', { name: 'Guard sections' })
+      .getByRole('link', { name: 'Audit log' })
+      .click()
     await expect(page).toHaveURL(AUDIT_LOG)
     await expect(page.getByRole('heading', { name: 'Audit log', level: 1 })).toBeVisible()
 

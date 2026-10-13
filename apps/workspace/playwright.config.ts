@@ -4,8 +4,10 @@ import { defineConfig, devices } from '@playwright/test'
 import {
   apiEnv,
   apiUrl,
+  mcpServerUrl,
   mlServerUrl,
   modelServerUrl,
+  oauthServerUrl,
   OWNER_STATE,
   webEnv,
   webUrl,
@@ -13,11 +15,18 @@ import {
 
 const isCi = process.env.CI !== undefined
 const SERVER_START_MS = 180_000
+/**
+ * The specs that add agents, API keys and connections run in their own project, after the others
+ * (one worker runs the projects in the order listed): a key can only be revoked and stays listed, so
+ * the API keys and Connections specs, which start from an empty organization, must run first.
+ */
+const AGENT_SPECS = ['**/agents.spec.ts', '**/approvals.spec.ts', '**/guard.spec.ts']
 
 /**
  * End-to-end specs against the real API and a fresh database (testing.md §1). `pnpm test:e2e`
- * prepares the database first; Playwright then starts a stub model server, the API and the app, the `setup` project
- * runs first-run setup and signs the Owner in, and the specs reuse that session.
+ * prepares the database first; Playwright then starts the stub model, document parser and OAuth
+ * servers, the API and the app, the `setup` project runs first-run setup and signs the Owner in,
+ * and the specs reuse that session.
  */
 export default defineConfig({
   testDir: './e2e',
@@ -28,8 +37,9 @@ export default defineConfig({
   reporter: isCi ? [['github'], ['html', { open: 'never' }]] : 'list',
   // `next dev` compiles each page on its first visit, which can take longer than the default 5 s
   // (and, on a busy CI runner, longer than the default 30 s for a whole test)
-  timeout: isCi ? 90_000 : 30_000,
-  expect: { timeout: 15_000 },
+  timeout: isCi ? 180_000 : 30_000,
+  // the first visit of a page waits for its compile, which Guard and Agents make long on a CI runner
+  expect: { timeout: isCi ? 60_000 : 15_000 },
   use: {
     baseURL: webUrl,
     trace: 'retain-on-failure',
@@ -40,6 +50,13 @@ export default defineConfig({
     { name: 'setup', testMatch: '**/*.setup.ts' },
     {
       name: 'chromium',
+      testIgnore: AGENT_SPECS,
+      use: { ...devices['Desktop Chrome'], storageState: OWNER_STATE },
+      dependencies: ['setup'],
+    },
+    {
+      name: 'agents',
+      testMatch: AGENT_SPECS,
       use: { ...devices['Desktop Chrome'], storageState: OWNER_STATE },
       dependencies: ['setup'],
     },
@@ -56,6 +73,20 @@ export default defineConfig({
       name: 'ml',
       command: 'pnpm exec tsx e2e/support/mlServer.ts',
       url: `${mlServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'oauth',
+      command: 'pnpm exec tsx e2e/support/oauthServer.ts',
+      url: `${oauthServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'mcp',
+      command: 'pnpm exec tsx e2e/support/mcpServer.ts',
+      url: `${mcpServerUrl}/health/live`,
       timeout: SERVER_START_MS,
       reuseExistingServer: false,
     },

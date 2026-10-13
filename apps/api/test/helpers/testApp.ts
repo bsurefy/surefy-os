@@ -12,6 +12,8 @@ import { createDatabase, type Database } from '@/core/database/index.js'
 import { onFileTeardown } from './cleanup.js'
 import { getTestDatabase } from './testDatabase.js'
 import { createFakeAi, type FakeAi } from '../fixtures/fakeAi.js'
+import { createFakeHttp, type FakeHttp } from '../fixtures/fakeHttp.js'
+import { createDefaultFakeMl } from '../fixtures/fakeMl.js'
 
 import type { MlService } from '@/integrations/ml/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
@@ -25,16 +27,24 @@ export interface TestAppOptions {
   integrations?: Integrations
   /** The fake AI providers; one is created per app by default, so no test reaches a provider. */
   ai?: FakeAi
+  /** The other apps the connections module calls; one is created per app by default. */
+  http?: FakeHttp
+  /** What Guard, agents and flows would provide to approvals (limits, names, access). */
+  approvals?: NonNullable<ContainerOverrides['approvals']>
+  /** What the agents, flows and run modules would tell Guard (rule rows, impact, samples). */
+  guard?: NonNullable<ContainerOverrides['guard']>
   /** Route plugins registered under /api/v1 after the module routes (probe routes in harness tests). */
   routes?: readonly FastifyPluginAsyncZod[]
   /** Extension names to report as loaded; no private package is imported either way. */
   extensions?: readonly string[]
   /** Replaces the membership resolver of `app.authorize()`; by default real memberships decide. */
   tenants?: TenantAccessResolver
-  /** The ML service; the default talks to `ML_SERVICE_URL`, which no test serves. */
+  /** The ML service; the default finds no personal data and parses against `ML_SERVICE_URL`, which no test serves. */
   ml?: MlService
   /** Knowledge's file storage and web access (signed uploads, crawled pages). */
   knowledge?: NonNullable<ContainerOverrides['knowledge']>
+  /** The website widget's script; by default `@surefy/widget`'s build output, if it was built. */
+  widgetScript?: NonNullable<ContainerOverrides['widgetScript']>
 }
 
 export interface TestApp {
@@ -47,6 +57,8 @@ export interface TestApp {
   owner: Database
   /** The fake AI providers behind this app: scripted answers and the calls made. */
   ai: FakeAi
+  /** The fake other apps behind the connections module: scripted answers and the calls made. */
+  http: FakeHttp
   close(): Promise<void>
 }
 
@@ -61,15 +73,20 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const logger = testDatabase.logger
   const db = createDatabase(config, logger)
   const ai = options.ai ?? createFakeAi()
+  const http = options.http ?? createFakeHttp()
   const base = await createContainer(config, {
     ai: ai.providers,
+    connections: { http },
+    ...(options.approvals === undefined ? {} : { approvals: options.approvals }),
+    ...(options.guard === undefined ? {} : { guard: options.guard }),
     logger,
     db,
     extensions: options.extensions ?? [],
     ...(options.integrations === undefined ? {} : { integrations: options.integrations }),
     ...(options.tenants === undefined ? {} : { tenants: options.tenants }),
-    ...(options.ml === undefined ? {} : { ml: options.ml }),
+    ml: options.ml ?? createDefaultFakeMl(config),
     ...(options.knowledge === undefined ? {} : { knowledge: options.knowledge }),
+    ...(options.widgetScript === undefined ? {} : { widgetScript: options.widgetScript }),
   })
   const container: Container = {
     ...base,
@@ -89,5 +106,5 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     await container.close()
   }
   onFileTeardown(close)
-  return { app, container, config, db, owner: testDatabase.owner, ai, close }
+  return { app, container, config, db, owner: testDatabase.owner, ai, http, close }
 }

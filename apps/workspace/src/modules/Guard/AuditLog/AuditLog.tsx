@@ -21,6 +21,7 @@ import { PageHeader } from '@surefy/ui/components/Layout'
 import { FilterChips, LoadMore } from '@surefy/ui/components/Navigation'
 import { Button } from '@surefy/ui/primitives/button'
 
+import GuardTabs from '../GuardTabs'
 import AuditEntryDetail from './AuditEntryDetail'
 import AuditExportDialog from './AuditExportDialog'
 import { ANY, AUDIT_DATE_RANGES } from './AuditLog.constants'
@@ -68,6 +69,7 @@ export default function AuditLog() {
         title={t('title')}
         description={t('description')}
         icon={<IconTile icon={Shield} />}
+        tabs={<GuardTabs active="audit-log" />}
         actions={
           <Button
             variant="secondary"

@@ -59,6 +59,41 @@ describe('GET /orgs/:orgId/access/me', () => {
     expect(user.permissions).not.toContain(PERMISSIONS.ACCESS_READ)
   })
 
+  it('reports the tools the policies allow, web search off when the team turns it off', async () => {
+    const setup = await setupTwoOrgs()
+    const { uma } = setup.a.members
+    expect((await myAccess(setup, uma)).tools).toEqual({
+      webSearch: true,
+      bridge: true,
+      mcp: true,
+      apiTools: true,
+    })
+    const team = expectData(
+      await request(setup.app, 'POST', orgUrl(setup.a.id, '/teams'), {
+        headers: setup.sessionOf(setup.a.members.adam),
+        payload: { name: 'Support', memberUserIds: [uma.id] },
+      }),
+      201,
+      teamDtoSchema,
+    )
+    expectData(
+      await putPolicy(setup, `/teams/${team.id}/access-policy`, {
+        version: 1,
+        tools: { webSearch: false },
+      }),
+      200,
+      accessPolicyDtoSchema,
+    )
+    const access = await myAccess(setup, uma)
+    expect(access.tools).toMatchObject({ webSearch: false, mcp: true })
+    expect(access.reasons).toContainEqual({
+      key: 'tool:webSearch',
+      source: 'team',
+      teamId: team.id,
+    })
+    expect((await myAccess(setup, setup.a.members.olivia)).tools.webSearch).toBe(true)
+  })
+
   it('applies the organization rules: suspended, deletion scheduled, two-factor required', async () => {
     const setup = await setupTwoOrgs()
     const get = (member: TwoOrgSetup['a']['members']['uma']) =>

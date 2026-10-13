@@ -5,7 +5,9 @@ export {
   type ModelGatewayModule,
 } from './modelGateway.module.js'
 export { ModelNotAllowedError, ModelProviderUnavailableError } from './modelGateway.errors.js'
+export type { DecisionValue, GatewayDecisionRequest } from './modelGateway.decision.js'
 export type {
+  GatewayDecisionResult,
   GatewayEmbedResult,
   GatewayStream,
   GatewayStreamRequest,

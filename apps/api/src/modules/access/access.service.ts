@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { SESSION_TTL } from '@/core/auth/index.js'
 import { orgScope, versionedKey, type Cache } from '@/core/cache/index.js'
 import { TeamNotFoundError } from '@/modules/teams/index.js'
 import {
@@ -9,6 +10,7 @@ import {
   type AccessPolicyDto,
   type Feature,
   type MemberEffectiveAccessDto,
+  type Permission,
   type TeamEffectiveAccessDto,
 } from '@surefy/contracts'
 
@@ -17,6 +19,7 @@ import {
   AccessExceedsParentError,
   AccessMemberNotFoundError,
   OrganizationSuspendedError,
+  SessionNotFreshError,
   TwoFactorRequiredError,
 } from './access.errors.js'
 import { toAccessPolicyDto } from './access.mapper.js'
@@ -24,6 +27,7 @@ import {
   entitlementLevel,
   exceedsParent,
   filterPermissions,
+  isSessionFresh,
   narrow,
   policyChanges,
   unionAcrossTeams,
@@ -38,13 +42,14 @@ import type {
   AccessTeams,
   AccessUsers,
   ProviderRules,
+  ProviderRulesSubject,
 } from './access.types.js'
 import type { EntitlementGrant, EntitlementSource } from './entitlements.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { ExtensionRegistry } from '@/core/extensions/index.js'
 import type { AuditContext, AuditRecorder } from '@/modules/audit/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
-import type { ActorContext, EffectiveAccess } from '@/types/context.js'
+import type { ActorContext, ActorSession, EffectiveAccess } from '@/types/context.js'
 
 export interface AccessServiceDeps {
   db: Database
@@ -85,8 +90,9 @@ export class AccessService implements TenantAccessResolver {
    * access; then every extension access check runs.
    */
   async resolve(actor: ActorContext, orgId: string): Promise<EffectiveAccess | null> {
+    if (actor.apiKey !== undefined) return this.resolveApiKey(actor.apiKey, orgId)
     const { userId } = actor
-    if (userId === null) return null // API keys (V1) and access grants arrive with their resolvers
+    if (userId === null) return null // access grants arrive with their resolver
     const header = await this.deps.db.tenant(orgId, (tx) =>
       this.deps.organizations.findAccessHeaderInTx(tx, orgId),
     )
@@ -105,6 +111,76 @@ export class AccessService implements TenantAccessResolver {
   }
 
   /**
+   * An API key's access (access-and-entitlements.md, "API keys and grants"): the organization level
+   * only, with no role and no teams. The key's scopes are cut down to what the organization's
+   * modules and features allow at the time of use. Nothing for another organization's key or an
+   * organization that is not active.
+   */
+  private async resolveApiKey(
+    apiKey: NonNullable<ActorContext['apiKey']>,
+    orgId: string,
+  ): Promise<EffectiveAccess | null> {
+    if (apiKey.orgId !== orgId) return null
+    const header = await this.deps.db.tenant(orgId, (tx) =>
+      this.deps.organizations.findAccessHeaderInTx(tx, orgId),
+    )
+    if (header?.status !== 'active') return null
+    return this.deps.cache.wrap(
+      versionedKey(orgScope(orgId), header.accessVersion, 'access', 'key', apiKey.id),
+      EFFECTIVE_ACCESS_TTL_SECONDS,
+      () => this.computeForApiKey(orgId, apiKey.permissions),
+    )
+  }
+
+  /**
+   * The organization level with no permissions, for the anonymous visitors of a public channel
+   * (the website widget): its limits apply to the runs they start. Nothing for an organization
+   * that is not active.
+   */
+  async forOrganization(orgId: string): Promise<EffectiveAccess | null> {
+    const header = await this.deps.db.tenant(orgId, (tx) =>
+      this.deps.organizations.findAccessHeaderInTx(tx, orgId),
+    )
+    if (header?.status !== 'active') return null
+    return this.deps.cache.wrap(
+      versionedKey(orgScope(orgId), header.accessVersion, 'access', 'org'),
+      EFFECTIVE_ACCESS_TTL_SECONDS,
+      () => this.computeForApiKey(orgId, []),
+    )
+  }
+
+  private async computeForApiKey(
+    orgId: string,
+    scopes: readonly Permission[],
+  ): Promise<EffectiveAccess> {
+    const grant = await this.deps.entitlements.getEntitlements({ orgId })
+    return this.deps.db.tenant(orgId, async (tx) => {
+      const policy = await this.deps.accessRepository.find(tx, orgId, null)
+      const level = this.organizationLevel(grant, policy?.policy)
+      return {
+        role: null,
+        teamIds: [],
+        primaryTeamId: null,
+        permissions: filterPermissions(scopes, level.modules, level.features),
+        modules: level.modules,
+        features: grant.readOnly ? [] : level.features,
+        readOnlyFeatures: grant.readOnly ? level.features : [],
+        license: grant.license,
+        allowedModelIds: await this.deps.models.allowedFor(tx, {
+          orgId,
+          userId: null,
+          teamIds: [],
+          providersAllowed: level.providersAllowed,
+          localModels: level.providerFlags.localModels,
+        }),
+        limits: level.limits,
+        tools: level.tools,
+        reasons: level.reasons,
+      }
+    })
+  }
+
+  /**
    * A member's current effective access, for work that re-checks it later (an export being
    * prepared): null without an active membership or in a suspended organization.
    */
@@ -114,6 +190,15 @@ export class AccessService implements TenantAccessResolver {
     )
     if (header === undefined || header.status === 'suspended') return null
     return this.cached(orgId, userId, header.accessVersion)
+  }
+
+  /**
+   * Sensitive actions (an API key, an approval above the step-up amount, a deletion request) need
+   * a sign-in within `session.freshAge`. Throws `403 AUTH_SESSION_NOT_FRESH` before any work starts;
+   * a request without a session (an API key) is never fresh.
+   */
+  assertFreshSession(ctx: { session?: Pick<ActorSession, 'createdAt'> }, now = Date.now()): void {
+    if (!isSessionFresh(ctx.session, SESSION_TTL.freshAge, now)) throw new SessionNotFreshError()
   }
 
   /**
@@ -182,33 +267,47 @@ export class AccessService implements TenantAccessResolver {
    * The provider rules for a person (across their teams), a team, or the organization level:
    * which providers, personal keys and local servers the vault and the gateway allow.
    */
-  async providerRules(
+  async providerRules(orgId: string, subject: ProviderRulesSubject): Promise<ProviderRules> {
+    const grant = await this.deps.entitlements.getEntitlements({ orgId })
+    return this.deps.db.tenant(orgId, (tx) => this.providerRulesFor(tx, orgId, grant, subject))
+  }
+
+  /** Like `providerRules`, for a caller that already holds the organization's transaction. */
+  async providerRulesInTx(
+    tx: DbExecutor,
     orgId: string,
-    subject: { userId: string } | { teamId: string } | null,
+    subject: ProviderRulesSubject,
   ): Promise<ProviderRules> {
     const grant = await this.deps.entitlements.getEntitlements({ orgId })
-    return this.deps.db.tenant(orgId, async (tx) => {
-      const teamIds = await this.subjectTeamIds(tx, orgId, subject)
-      const policies = await this.deps.accessRepository.listForOrgAndTeams(tx, orgId, teamIds)
-      const organization = this.organizationLevel(grant, policyOf(policies, null))
-      const level = unionAcrossTeams(
-        organization,
-        teamIds.map((teamId) =>
-          narrow(organization, policyOf(policies, teamId), { source: 'team', teamId }),
-        ),
-      )
-      return {
-        providersAllowed: level.providersAllowed,
-        personalKeys: level.providerFlags.personalKeys,
-        localModels: level.providerFlags.localModels,
-      }
-    })
+    return this.providerRulesFor(tx, orgId, grant, subject)
+  }
+
+  private async providerRulesFor(
+    tx: DbExecutor,
+    orgId: string,
+    grant: EntitlementGrant,
+    subject: ProviderRulesSubject,
+  ): Promise<ProviderRules> {
+    const teamIds = await this.subjectTeamIds(tx, orgId, subject)
+    const policies = await this.deps.accessRepository.listForOrgAndTeams(tx, orgId, teamIds)
+    const organization = this.organizationLevel(grant, policyOf(policies, null))
+    const level = unionAcrossTeams(
+      organization,
+      teamIds.map((teamId) =>
+        narrow(organization, policyOf(policies, teamId), { source: 'team', teamId }),
+      ),
+    )
+    return {
+      providersAllowed: level.providersAllowed,
+      personalKeys: level.providerFlags.personalKeys,
+      localModels: level.providerFlags.localModels,
+    }
   }
 
   private async subjectTeamIds(
     tx: DbExecutor,
     orgId: string,
-    subject: { userId: string } | { teamId: string } | null,
+    subject: ProviderRulesSubject,
   ): Promise<string[]> {
     if (subject === null) return []
     if ('teamId' in subject) return [subject.teamId]
@@ -335,6 +434,7 @@ export class AccessService implements TenantAccessResolver {
         localModels: level.providerFlags.localModels,
       }),
       limits: level.limits,
+      tools: level.tools,
       reasons: level.reasons,
     }
   }

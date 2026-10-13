@@ -1,0 +1,10 @@
+{
+  "APPROVAL_NOT_FOUND": "This approval no longer exists.",
+  "APPROVAL_ALREADY_DECIDED": "Someone else already decided this approval.",
+  "APPROVAL_EXPIRED": "This approval timed out and was handled by the rule's timeout action.",
+  "APPROVAL_NOT_ASSIGNED": "You aren't one of the approvers for this item.",
+  "APPROVAL_REASON_REQUIRED": "Choose a reason for rejecting. Add a note if you choose Other.",
+  "APPROVAL_EDIT_NOT_ALLOWED": "Only AI actions and flow steps can be edited before approving.",
+  "APPROVAL_NOT_QUICK_APPROVABLE": "This item is above the quick-approve limits. Open it to review and decide.",
+  "APPROVAL_NOT_CANCELABLE": "Only your own pending request can be withdrawn."
+}

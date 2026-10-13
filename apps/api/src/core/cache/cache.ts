@@ -9,7 +9,22 @@ export const CACHE_KEY_PREFIX = 'surefy:'
 /** The subset of ioredis the cache uses, so tests can pass a fake. */
 export type CacheClient = Pick<
   Redis,
-  'get' | 'set' | 'del' | 'incr' | 'getdel' | 'eval' | 'ping' | 'quit' | 'disconnect' | 'status'
+  | 'get'
+  | 'set'
+  | 'del'
+  | 'incr'
+  | 'getdel'
+  | 'eval'
+  | 'xadd'
+  | 'xrange'
+  | 'xrevrange'
+  | 'xread'
+  | 'duplicate'
+  | 'expire'
+  | 'ping'
+  | 'quit'
+  | 'disconnect'
+  | 'status'
 >
 
 export interface Cache {

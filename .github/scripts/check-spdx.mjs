@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-// Fails when a tracked source file does not start with the AGPL SPDX header (CONTRIBUTING.md).
+// Fails when a tracked source file does not start with its SPDX header (CONTRIBUTING.md): AGPL
+// everywhere, MIT under packages/widget/ (ADR 0022).
 // Usage: node .github/scripts/check-spdx.mjs
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 
 const HEADER = 'SPDX-License-Identifier: AGPL-3.0-only'
+const MIT_HEADER = 'SPDX-License-Identifier: MIT'
+const MIT_PATHS = [/^packages\/widget\//]
+const headerOf = (file) => (MIT_PATHS.some((pattern) => pattern.test(file)) ? MIT_HEADER : HEADER)
 const SOURCE = /\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs|py|sh|css)$/
 const SKIP = [/(?:^|\/)generated\//, /\.d\.ts$/, /(?:^|\/)next-env\.d\.ts$/, /^\.husky\//]
 
@@ -14,12 +18,14 @@ const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' })
 
 const missing = files.filter((file) => {
   const head = readFileSync(file, 'utf8').split('\n', 3).join('\n')
-  return !head.includes(HEADER)
+  return !head.includes(headerOf(file))
 })
 
 if (missing.length > 0) {
   process.stderr.write(
-    `Missing "${HEADER}" in the first lines of:\n${missing.map((f) => `  ${f}`).join('\n')}\n`,
+    `Missing the SPDX header in the first lines of:\n${missing
+      .map((f) => `  ${f} (expected "${headerOf(f)}")`)
+      .join('\n')}\n`,
   )
   process.exit(1)
 }

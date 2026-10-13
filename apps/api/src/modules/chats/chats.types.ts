@@ -7,6 +7,12 @@ import type {
 } from '@surefy/contracts'
 
 import type { DbExecutor } from '@/core/database/index.js'
+import type {
+  PiiFilterInput,
+  PiiFilterResult,
+  PiiRequestInput,
+  PiiRequestResult,
+} from '@/modules/guard/index.js'
 import type { ModelGatewayService } from '@/modules/modelGateway/index.js'
 import type { TenantContext } from '@/types/context.js'
 
@@ -36,6 +42,12 @@ export interface ChatModels {
 
 /** The AI calls a chat makes; always through the gateway. */
 export type ChatGateway = Pick<ModelGatewayService, 'streamText' | 'generateText'>
+
+/** The personal-data filter (guard module), applied before a request goes to a cloud model. */
+export interface ChatPii {
+  applyToRequest(input: PiiRequestInput): Promise<PiiRequestResult>
+  apply(input: PiiFilterInput): Promise<PiiFilterResult>
+}
 
 /** A passage retrieved for a question; becomes a numbered `source` part and a citation. */
 export interface RetrievedPassage {

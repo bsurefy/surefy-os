@@ -119,6 +119,7 @@ export const effectiveAccessFactory = defineFactory(
       maxStorageBytes: null,
       maxKnowledgeBases: null,
     },
+    tools: { webSearch: true, bridge: true, mcp: true, apiTools: true },
     reasons: [],
   }),
 )

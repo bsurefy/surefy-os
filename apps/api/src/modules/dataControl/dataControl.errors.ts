@@ -71,13 +71,6 @@ export class DataControlForbiddenError extends ForbiddenError {
   }
 }
 
-/** Sensitive actions need a sign-in within the last 10 minutes. */
-export class SessionNotFreshError extends ForbiddenError {
-  constructor() {
-    super(ERROR_CODES.AUTH_SESSION_NOT_FRESH, 'Sign in again to continue')
-  }
-}
-
 /** Deleting an organization needs two-factor authentication on the account. */
 export class DeletionNeedsTwoFactorError extends ForbiddenError {
   constructor() {

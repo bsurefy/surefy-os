@@ -163,6 +163,7 @@ export const sourceFactory = defineFactory(
     sizeBytes: 1_200_000,
     link: null,
     connector: null,
+    connectionId: null,
     ocrMode: 'auto',
     status: 'ready',
     progressPercent: 100,

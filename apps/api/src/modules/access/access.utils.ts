@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {
   ACCESS_LIMIT_KEYS,
+  ACCESS_TOOL_KEYS,
   FEATURES,
   MODEL_SOURCES,
   MODULES,
@@ -10,6 +11,7 @@ import {
   type AccessPolicy,
   type AccessReasonDto,
   type AccessReasonSource,
+  type AccessToolKey,
   type Feature,
   type ModelSource,
   type ModuleKey,
@@ -22,10 +24,10 @@ import type { EntitlementGrant } from './entitlements.types.js'
 // The access chain (database/access-and-entitlements.md, "Effective access"): entitlement source
 // → organization policy → team policies → role. Pure functions, unit-tested on their own.
 
-const TOOL_KEYS = ['webSearch', 'bridge', 'mcp', 'apiTools'] as const
+const TOOL_KEYS = ACCESS_TOOL_KEYS
 const TRAINING_KEYS = ['enabled', 'fineTuning'] as const
 const PROVIDER_FLAGS = ['personalKeys', 'localModels'] as const
-type ToolKey = (typeof TOOL_KEYS)[number]
+type ToolKey = AccessToolKey
 type TrainingKey = (typeof TRAINING_KEYS)[number]
 type ProviderFlag = (typeof PROVIDER_FLAGS)[number]
 
@@ -333,4 +335,13 @@ export function policyChanges(
       const to = (after as Record<string, unknown>)[field] ?? null
       return JSON.stringify(from) === JSON.stringify(to) ? [] : [{ field, from, to }]
     })
+}
+
+/** Whether a session was created within `maxAgeSeconds` (the sliding session extension never counts). */
+export function isSessionFresh(
+  session: { createdAt: Date } | undefined,
+  maxAgeSeconds: number,
+  now = Date.now(),
+): boolean {
+  return session !== undefined && now - session.createdAt.getTime() <= maxAgeSeconds * 1000
 }
