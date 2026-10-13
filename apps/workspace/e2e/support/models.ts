@@ -13,6 +13,7 @@ interface VaultModel {
   id: string
   modelKey: string
   isEnabled: boolean
+  status: string
 }
 
 /**
@@ -58,8 +59,14 @@ export async function connectStubCloudModel(page: Page): Promise<string> {
   const stub = (entry: VaultModel) =>
     entry.modelKey.endsWith(STUB_MODEL_ID) && !entry.modelKey.startsWith('local/')
 
-  let model = (await models()).find(stub)
-  if (!model) {
+  // The model stays listed after a key is revoked (the Vault spec adds and revokes one for the
+  // same stub), so it is the key that decides whether the model can be called.
+  const keys = await callApi<{ name: string; status: string }[]>(
+    page,
+    'GET',
+    `${vault}/credentials`,
+  )
+  if (!keys.some((key) => key.name === STUB_PROVIDER_NAME && key.status !== 'revoked')) {
     await callApi(page, 'POST', `${vault}/credentials`, {
       scope: 'organization',
       name: STUB_PROVIDER_NAME,
@@ -67,9 +74,12 @@ export async function connectStubCloudModel(page: Page): Promise<string> {
       secret: STUB_PROVIDER_KEY,
       baseUrl: `${modelServerUrl}/v1`,
     })
-    model = (await models()).find(stub)
   }
+  const model = (await models()).find(stub)
   if (!model) throw new Error(`The stub provider's model ${STUB_MODEL_ID} was not detected`)
+  if (model.status !== 'available') {
+    throw new Error(`The stub provider's model ${STUB_MODEL_ID} is ${model.status}, not available`)
+  }
   if (!model.isEnabled)
     await callApi(page, 'PATCH', `${vault}/models/${model.id}`, { isEnabled: true })
   return model.modelKey
