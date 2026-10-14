@@ -1,27 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 
 import { vaultQueries } from '@/api/vault'
 
 import { CONNECTED_MODELS_LIMIT } from './Setup.constants'
-
-/** The value, once it has stopped changing for `delayMs`. */
-export function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebounced(value)
-    }, delayMs)
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [value, delayMs])
-
-  return debounced
-}
 
 function subscribeToNothing(): () => void {
   return () => {

@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useState } from 'react'
 
-/** A value that follows `value` after it stayed the same for `delayMs` (live previews, searches). */
+/**
+ * Returns `value` after it has stopped changing for `delayMs` (searches, availability checks,
+ * live previews).
+ * @example const query = useDebouncedValue(search.trim(), 300)
+ */
 export function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {

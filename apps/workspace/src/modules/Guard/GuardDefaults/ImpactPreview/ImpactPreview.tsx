@@ -5,10 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useFormatter, useTranslations } from 'next-intl'
 
 import { guardQueries } from '@/api/guard'
+import { useDebouncedValue } from '@/hooks'
 import { Button } from '@surefy/ui/primitives/button'
 import { useCurrentOrgId } from '@surefy/web-core/access'
 
-import { useDebouncedValue } from '../../Guard.hooks'
 import { percentToBasisPoints } from '../../Guard.utils'
 import { IMPACT_DEBOUNCE_MS } from '../GuardDefaults.constants'
 

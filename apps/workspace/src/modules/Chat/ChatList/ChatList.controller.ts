@@ -5,12 +5,13 @@ import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 import { chatQueries } from '@/api/chats'
+import { useDebouncedValue } from '@/hooks'
 import type { ChatDto, ChatFolderDto } from '@surefy/contracts'
 import { useCurrentOrgId } from '@surefy/web-core/access'
 import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 
 import { SEARCH_DEBOUNCE_MS } from './ChatList.constants'
-import { useChatActions, useChatPages, useDebouncedValue } from './ChatList.hooks'
+import { useChatActions, useChatPages } from './ChatList.hooks'
 
 import type { ChatListView } from './ChatList.constants'
 import type { NameTarget } from './NameDialog'

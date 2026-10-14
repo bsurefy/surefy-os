@@ -7,13 +7,14 @@ import { useState } from 'react'
 
 import { organizationQueries } from '@/api/organizations'
 import { useRunSetupMutation } from '@/api/setup'
+import { useDebouncedValue } from '@/hooks'
 import { ERROR_CODES, ORGANIZATION_SLUG_PATTERN, SUPPORTED_LOCALES } from '@surefy/contracts'
 import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 import { SERVER_ISSUE_KEY_PREFIX, useForm } from '@surefy/web-core/forms'
 
 import { organizationStepSchema } from './OrganizationStep.schema'
 import { SETUP_TOKEN_MIN_LENGTH, SLUG_CHECK_DELAY_MS } from '../Setup.constants'
-import { getBrowserTimeZone, useDebouncedValue, useFieldErrorText, useHost } from '../Setup.hooks'
+import { getBrowserTimeZone, useFieldErrorText, useHost } from '../Setup.hooks'
 import { slugFromName } from '../Setup.utils'
 
 import type { OrganizationStepValues } from './OrganizationStep.schema'

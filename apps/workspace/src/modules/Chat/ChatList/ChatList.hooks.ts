@@ -2,7 +2,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import {
   chatQueries,
@@ -18,20 +18,6 @@ import { toast } from '@surefy/ui/components/Feedback'
 import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 
 import type { ChatListFilters } from '@/api/chats'
-
-/** The value, but only once it has stopped changing for `delayMs`. */
-export function useDebouncedValue<Value>(value: Value, delayMs: number): Value {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebounced(value)
-    }, delayMs)
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [value, delayMs])
-  return debounced
-}
 
 /** One filtered list of chats, loaded a page at a time. */
 export function useChatPages(orgId: string, filters: ChatListFilters, isEnabled = true) {

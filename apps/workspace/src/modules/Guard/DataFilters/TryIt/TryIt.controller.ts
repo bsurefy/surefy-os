@@ -5,10 +5,10 @@ import { useEffect, useState } from 'react'
 
 import { useTestDataFilterMutation } from '@/api/guard'
 import { teamQueries } from '@/api/teams'
+import { useDebouncedValue } from '@/hooks'
 import { useCurrentOrgId } from '@surefy/web-core/access'
 import { getErrorMessage } from '@surefy/web-core/errors'
 
-import { useDebouncedValue } from '../../Guard.hooks'
 import { TEAM_LOOKUP_LIMIT, TRY_IT_DEBOUNCE_MS } from '../DataFilters.constants'
 
 /**
