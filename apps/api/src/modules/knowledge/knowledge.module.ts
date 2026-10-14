@@ -4,6 +4,14 @@ import { KnowledgeRepository } from './knowledge.repository.js'
 import { knowledgeRoutes } from './knowledge.routes.js'
 import { KnowledgeService } from './knowledge.service.js'
 import { KnowledgeAccessService } from './knowledgeAccess.service.js'
+import { KnowledgeConnectionEvents } from './knowledgeConnectors/knowledgeConnectionEvents.js'
+import { KnowledgeConnectorsController } from './knowledgeConnectors/knowledgeConnectors.controller.js'
+import {
+  createKnowledgeConnectors,
+  type KnowledgeConnectorEndpoints,
+} from './knowledgeConnectors/knowledgeConnectors.js'
+import { knowledgeConnectorsRoutes } from './knowledgeConnectors/knowledgeConnectors.routes.js'
+import { KnowledgeConnectorsService } from './knowledgeConnectors/knowledgeConnectors.service.js'
 import { KnowledgeEmbeddingService } from './knowledgeEmbedding.service.js'
 import { KnowledgeGrantsService } from './knowledgeGrants.service.js'
 import { createKnowledgeJobs } from './knowledgeIngestion/knowledgeIngestion.jobs.js'
@@ -24,11 +32,13 @@ import { KnowledgeSourcesService } from './knowledgeSources/knowledgeSources.ser
 import { KnowledgeViews } from './knowledgeViews.js'
 
 import type {
+  KnowledgeConnections,
   KnowledgeFiles,
   KnowledgeGateway,
   KnowledgeMemberships,
   KnowledgeModels,
   KnowledgeOrganizations,
+  KnowledgePeople,
   KnowledgeTeams,
   KnowledgeUsers,
 } from './knowledge.types.js'
@@ -37,6 +47,7 @@ import type { Logger } from '@/core/logger/index.js'
 import type { Queues } from '@/core/queue/index.js'
 import type { MlService } from '@/integrations/ml/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
+import type { OutboundHttp } from '@/modules/connections/index.js'
 import type { NotifyInput } from '@/modules/notifications/notifications.types.js'
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 
@@ -54,7 +65,14 @@ export interface KnowledgeModuleDeps {
   organizations: KnowledgeOrganizations
   notifications: { notify(ctx: { orgId: string }, input: NotifyInput): Promise<unknown> }
   audit: AuditRecorder
-  /** Replaces the outbound HTTP client of link crawls (tests). */
+  /** Connector sources: the connections they sync through and the members whose rights they use. */
+  connections: KnowledgeConnections
+  people: KnowledgePeople
+  /** The connections module's client for calls to other apps; the connector API calls use it. */
+  http: OutboundHttp
+  /** Other Drive and Notion API addresses (stub servers in end-to-end tests). */
+  connectorEndpoints?: KnowledgeConnectorEndpoints
+  /** Replaces the outbound HTTP client of link crawls and connector downloads (tests). */
   get?: SafeGet
 }
 
@@ -88,6 +106,12 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     jobs: () => jobs,
     logger: deps.logger,
   })
+  const get = deps.get ?? safeGet
+  const clients = createKnowledgeConnectors({
+    http: deps.http,
+    get,
+    ...(deps.connectorEndpoints === undefined ? {} : { endpoints: deps.connectorEndpoints }),
+  })
   const sync = new KnowledgeSyncService({
     db: deps.db,
     repository,
@@ -95,7 +119,10 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     ingestion: ingestionRepository,
     service: ingestion,
     files: deps.files,
-    get: deps.get ?? safeGet,
+    get,
+    connections: deps.connections,
+    people: deps.people,
+    clients,
     logger: deps.logger,
   })
   const reembed = new KnowledgeReembedService({
@@ -173,13 +200,37 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     ingestion,
     users: deps.users,
     audit: deps.audit,
+    connectionStatus: async (tx, orgId, connectionId) =>
+      (await deps.connections.statuses(tx, orgId, [connectionId])).get(connectionId)?.status ??
+      null,
+  })
+  const connectors = new KnowledgeConnectorsService({
+    db: deps.db,
+    repository,
+    sources: sourcesRepository,
+    access,
+    connections: deps.connections,
+    clients,
+    ingestion,
+    audit: deps.audit,
+    present: (orgId, row) => sources.dto(orgId, row),
+  })
+  const connectionEvents = new KnowledgeConnectionEvents({
+    db: deps.db,
+    repository,
+    sources: sourcesRepository,
+    ingestion,
+    audit: deps.audit,
+    logger: deps.logger,
   })
 
   const basesRoutes = knowledgeRoutes(new KnowledgeController(service, embedding, grants, search))
   const sourceRoutes = knowledgeSourcesRoutes(new KnowledgeSourcesController(sources))
+  const connectorRoutes = knowledgeConnectorsRoutes(new KnowledgeConnectorsController(connectors))
   const routes: FastifyPluginAsyncZod = (app) => {
     app.register(basesRoutes)
     app.register(sourceRoutes)
+    app.register(connectorRoutes)
     return Promise.resolve()
   }
 
@@ -196,8 +247,14 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     ingestion,
     sync,
     reembed,
-    /** `knowledge_base.purged` and `knowledge_source.purged` remove the documents' stored objects. */
-    outboxHandlers: createKnowledgePurgeHandlers(deps.files),
+    connectors,
+    /** Connector sources as dependents of their connection: pass to `createConnectionsModule`. */
+    connectionDependents: connectionEvents.dependents(),
+    /**
+     * `knowledge_base.purged` and `knowledge_source.purged` remove the documents' stored objects;
+     * the `connection.*` events pause, resume or remove connector sources.
+     */
+    outboxHandlers: [...createKnowledgePurgeHandlers(deps.files), ...connectionEvents.handlers()],
     jobs: jobs.all,
     routes,
   }

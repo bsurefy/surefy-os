@@ -70,18 +70,16 @@ export function createConnectionsModule(deps: ConnectionsModuleDeps) {
     teams: deps.teams,
     localHosts: deps.config.connections.localHosts,
   })
+  const outbox: ConnectionsOutbox = { write: (tx, event) => deps.outbox().write(tx, event) }
   const writer = new ConnectionWriter({
     db: deps.db,
     repository,
     secrets,
     presenter,
     audit: deps.audit,
+    outbox,
   })
-  const health = new ConnectionHealth({
-    repository,
-    audit: deps.audit,
-    outbox: { write: (tx, event) => deps.outbox().write(tx, event) },
-  })
+  const health = new ConnectionHealth({ repository, audit: deps.audit, outbox })
   const tokens = new ConnectionTokens({
     db: deps.db,
     repository,
@@ -110,6 +108,7 @@ export function createConnectionsModule(deps: ConnectionsModuleDeps) {
     lastUsed,
     dependents,
     audit: deps.audit,
+    outbox,
     http,
     oauthApps,
   })
@@ -150,7 +149,7 @@ export function createConnectionsModule(deps: ConnectionsModuleDeps) {
       }),
     ],
     /** Removing a member disconnects their personal connections. */
-    memberRemoval: createConnectionsMemberRemoval({ repository, audit: deps.audit }),
+    memberRemoval: createConnectionsMemberRemoval({ repository, audit: deps.audit, outbox }),
     routes: connectionsRoutes(new ConnectionsController(service, oauth)),
   }
 }

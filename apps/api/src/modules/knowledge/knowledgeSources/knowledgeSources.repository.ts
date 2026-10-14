@@ -339,4 +339,55 @@ export class KnowledgeSourcesRepository {
       .where(and(eq(kd.organizationId, orgId), eq(kd.sourceId, sourceId), eq(kd.status, 'failed')))
       .then((rows) => rows.map((row) => row.id))
   }
+
+  // ── Connector sources ─────────────────────────────────────────────────────────────────────────
+
+  /** The base's connector sources that are not deleted: which folders the picker marks "in base". */
+  activeConnectorSourcesOfBase(tx: DbExecutor, orgId: string, baseId: string) {
+    return tx
+      .select({ id: ks.id, connectionId: ks.connectionId, config: ks.config })
+      .from(ks)
+      .where(
+        and(
+          eq(ks.organizationId, orgId),
+          eq(ks.knowledgeBaseId, baseId),
+          eq(ks.type, 'connector'),
+          isNull(ks.deletedAt),
+        ),
+      )
+  }
+
+  /** The sources that sync through a connection and are not deleted. */
+  activeSourcesOfConnection(tx: DbExecutor, orgId: string, connectionId: string) {
+    return tx
+      .select()
+      .from(ks)
+      .where(
+        and(eq(ks.organizationId, orgId), eq(ks.connectionId, connectionId), isNull(ks.deletedAt)),
+      )
+      .orderBy(ks.createdAt, ks.id)
+  }
+
+  /** Sources per connection that are not deleted (a connection's "used by"). */
+  async countByConnections(
+    tx: DbExecutor,
+    orgId: string,
+    connectionIds: readonly string[],
+  ): Promise<ReadonlyMap<string, number>> {
+    if (connectionIds.length === 0) return new Map()
+    const rows = await tx
+      .select({ connectionId: ks.connectionId, total: count() })
+      .from(ks)
+      .where(
+        and(
+          eq(ks.organizationId, orgId),
+          inArray(ks.connectionId, [...connectionIds]),
+          isNull(ks.deletedAt),
+        ),
+      )
+      .groupBy(ks.connectionId)
+    return new Map(
+      rows.flatMap((row) => (row.connectionId === null ? [] : [[row.connectionId, row.total]])),
+    )
+  }
 }

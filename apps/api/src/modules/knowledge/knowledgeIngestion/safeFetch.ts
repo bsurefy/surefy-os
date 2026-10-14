@@ -101,6 +101,11 @@ export interface SafeGetOptions {
   maxBytes?: number
   maxRedirects?: number
   userAgent?: string
+  /**
+   * Extra request headers (a connector's `authorization`). They go to the first address and to
+   * redirects on the same origin only, so a redirect elsewhere never receives the credentials.
+   */
+  headers?: Record<string, string>
 }
 
 const DEFAULTS = { timeoutMs: 20_000, maxBytes: 10 * 1024 * 1024, maxRedirects: 5 } as const
@@ -111,13 +116,15 @@ export type SafeGet = (url: string, options?: SafeGetOptions) => Promise<SafeRes
 export const safeGet: SafeGet = async (url, options = {}) => {
   const settings = { ...DEFAULTS, ...options }
   let current = new URL(url)
+  const origin = current.origin
   for (let hop = 0; hop <= settings.maxRedirects; hop += 1) {
     if (current.protocol !== 'http:' && current.protocol !== 'https:') {
       throw new UnsafeAddressError(current.host)
     }
     if (current.username !== '' || current.password !== '')
       throw new UnsafeAddressError(current.host)
-    const response = await once(current, settings, options.userAgent)
+    const headers = current.origin === origin ? options.headers : undefined
+    const response = await once(current, settings, options.userAgent, headers)
     const location = response.headers.location
     if (response.status >= 300 && response.status < 400 && location !== undefined) {
       current = new URL(location, current)
@@ -132,6 +139,7 @@ function once(
   url: URL,
   settings: { timeoutMs: number; maxBytes: number },
   userAgent: string | undefined,
+  extraHeaders: Record<string, string> | undefined,
 ): Promise<Omit<SafeResponse, 'url'>> {
   return new Promise((resolve, reject) => {
     const send = url.protocol === 'https:' ? httpsRequest : httpRequest
@@ -144,6 +152,7 @@ function once(
         headers: {
           'user-agent': userAgent ?? 'SurefyOS-Crawler',
           accept: 'text/html,application/xhtml+xml,text/plain,application/pdf;q=0.8,*/*;q=0.5',
+          ...extraHeaders,
         },
       },
       (response) => {

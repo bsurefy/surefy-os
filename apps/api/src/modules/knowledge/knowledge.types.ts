@@ -2,6 +2,7 @@
 import type { OrgRole, TeamRefDto, UserRefDto } from '@surefy/contracts'
 
 import type { DbExecutor } from '@/core/database/index.js'
+import type { ConnectionPrincipal, ConnectionUse } from '@/modules/connections/index.js'
 import type { ModelGatewayService } from '@/modules/modelGateway/index.js'
 import type { TenantContext } from '@/types/context.js'
 
@@ -141,4 +142,36 @@ export interface KnowledgeFiles {
   /** The whole object (parsed JSON, a crawled page); null when missing. */
   read(key: string): Promise<Buffer | null>
   delete(key: string): Promise<void>
+}
+
+/** A connection as a connector source needs it: its app and whether it works. */
+export interface KnowledgeConnectionRef {
+  id: string
+  providerKey: string
+  status: string
+}
+
+/** The connections module's use of a connection (knowledge connectors, V1). */
+export interface KnowledgeConnections {
+  /** Throws the connections module's errors when the connection is gone or not the person's to use. */
+  assertUsable(
+    tx: DbExecutor,
+    orgId: string,
+    principal: ConnectionPrincipal,
+    connectionId: string,
+  ): Promise<KnowledgeConnectionRef>
+  /** The decrypted secret for one sync or listing; an expired connection throws. */
+  open(orgId: string, principal: ConnectionPrincipal, connectionId: string): Promise<ConnectionUse>
+  /** The app refused the access token although the connection was active: it is expired now. */
+  markExpired(orgId: string, connectionId: string): Promise<void>
+  statuses(
+    tx: DbExecutor,
+    orgId: string,
+    connectionIds: readonly string[],
+  ): Promise<ReadonlyMap<string, { status: string }>>
+}
+
+/** A member's teams, for whose rights a sync runs (access module). */
+export interface KnowledgePeople {
+  forMember(orgId: string, userId: string): Promise<{ teamIds: readonly string[] } | null>
 }

@@ -19,7 +19,7 @@ import { NO_SECRET } from './connections.secrets.js'
 
 import type { ConnectionsRepository } from './connections.repository.js'
 import type { ConnectionSecrets, SealedSecret } from './connections.secrets.js'
-import type { ConnectionsContext } from './connections.types.js'
+import type { ConnectionsContext, ConnectionsOutbox } from './connections.types.js'
 import type { ConnectionPresenter } from './connectionsPresenter.js'
 import type { ProviderAccount } from './providers/index.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
@@ -69,6 +69,7 @@ export class ConnectionWriter {
       secrets: ConnectionSecrets
       presenter: ConnectionPresenter
       audit: AuditRecorder
+      outbox: ConnectionsOutbox
     },
   ) {}
 
@@ -125,6 +126,12 @@ export class ConnectionWriter {
         action: CONNECTION_AUDIT_ACTIONS.CONNECTION_RECONNECTED,
         target: { type: 'connection', id: row.id },
         metadata: { labels: { providerKey: row.providerKey, scope: row.scope } },
+      })
+      // what paused on the expired sign-in (connector syncs) resumes
+      await this.deps.outbox.write(tx, {
+        orgId: ctx.orgId,
+        topic: 'connection.reconnected',
+        payload: { version: 1, id: row.id },
       })
       const [dto] = await this.deps.presenter.present(tx, ctx.orgId, ctx.userId, [updated])
       if (dto === undefined) throw new Error('presenter returned no connection')

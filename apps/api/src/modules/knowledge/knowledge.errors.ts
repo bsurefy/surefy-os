@@ -99,3 +99,21 @@ export class KnowledgeGranteeNotFoundError extends NotFoundError {
     super(ERROR_CODES.MEMBER_NOT_FOUND, 'Member not found')
   }
 }
+
+/** A connector's sign-in expired: browsing answers 409 and the person reconnects. */
+export class KnowledgeConnectionExpiredError extends ConflictError {
+  constructor() {
+    super(ERROR_CODES.KNOWLEDGE_CONNECTION_EXPIRED, 'The sign-in expired; reconnect the account')
+  }
+}
+
+/** Not an active Google Drive or Notion connection the person may use. */
+export class KnowledgeConnectionInvalidError extends UnprocessableError {
+  constructor() {
+    super(
+      ERROR_CODES.KNOWLEDGE_CONNECTION_INVALID,
+      'Choose an active Google Drive or Notion connection you may use',
+      { details: [{ field: 'connectionId' }] },
+    )
+  }
+}

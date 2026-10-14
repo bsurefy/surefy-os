@@ -188,6 +188,11 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     outbox: () => outbox.service,
     audit: audit.service,
+    // connector sources are the dependents so far; read when asked, because knowledge is built later
+    dependents: {
+      counts: (tx, orgId, ids) => knowledge.connectionDependents.counts(tx, orgId, ids),
+      impact: (tx, orgId, id) => knowledge.connectionDependents.impact(tx, orgId, id),
+    },
     ...(overrides.connections?.http === undefined ? {} : { http: overrides.connections.http }),
   })
   // tools for agent runs: the executor (agentRuns) is their only caller
@@ -365,6 +370,9 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     ml: integrations.ml,
     files: overrides.knowledge?.files ?? createKnowledgeFiles(integrations.storage),
     ...(overrides.knowledge?.get === undefined ? {} : { get: overrides.knowledge.get }),
+    connections: connections.service,
+    people: access.service,
+    http: connections.http,
     gateway: modelGateway.service,
     models: createKnowledgeModels(modelGrants),
     teams: teams.service,

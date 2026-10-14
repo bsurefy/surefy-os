@@ -15,6 +15,13 @@ const knowledgePurgedPayload = purgedPayload.extend({ documentIds: z.array(z.uui
 const connectionExpiredPayload = z.object({ version: z.literal(1), id: z.uuid() })
 
 /**
+ * A connection was signed in again (`connections`, Reconnect) or disconnected (Disconnect, or the
+ * removal of the member who owned a personal one). Ids only: the knowledge module resumes or
+ * removes the connector sources that sync through it.
+ */
+const connectionChangedPayload = z.object({ version: z.literal(1), id: z.uuid() })
+
+/**
  * An approval changed state (`approvals`): created, decided by a person, expired (the timeout
  * rejected or continued) or escalated. Ids only: handlers load the current row. The run and flow
  * modules continue their runs from `approval.decided` and `approval.expired`.
@@ -66,6 +73,8 @@ export const OUTBOX_PAYLOADS = {
   'budgets.changed': budgetsChangedPayload,
   'budget.threshold_reached': budgetThresholdReachedPayload,
   'connection.expired': connectionExpiredPayload,
+  'connection.reconnected': connectionChangedPayload,
+  'connection.revoked': connectionChangedPayload,
   'guard.rules_changed': guardRulesChangedPayload,
   'chat.purged': purgedPayload,
   // prompts hold no stored objects: nothing handles it

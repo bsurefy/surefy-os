@@ -713,6 +713,17 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
       refresh: 'off',
     }),
   },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/connector-items': {
+    class: 'orgScoped',
+    query: { connectionId: '00000000-0000-7000-8000-000000000000' },
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/connectors': {
+    class: 'orgScoped',
+    payload: () => ({
+      connectionId: '00000000-0000-7000-8000-000000000000',
+      folders: [{ externalId: 'intruder', name: 'Intruder' }],
+    }),
+  },
   'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/bulk': {
     class: 'orgScoped',
     payload: (f) => ({ action: 'remove', sourceIds: [f.params.sourceId] }),
