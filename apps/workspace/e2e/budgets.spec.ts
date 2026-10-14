@@ -37,7 +37,7 @@ const organizationCard = (page: Page) => page.getByRole('region', { name: 'Organ
 
 /** Picks the stub model on the provider key (a cloud model) or on the local server. */
 async function pickModel(page: Page, where: 'cloud' | 'local') {
-  await page.getByRole('button', { name: 'Model', exact: true }).click()
+  await page.getByRole('button', { name: 'Model or agent', exact: true }).click()
   await page
     .getByRole('option', { name: where === 'cloud' ? /Sent to/ : /Stays on your server/ })
     .click()
