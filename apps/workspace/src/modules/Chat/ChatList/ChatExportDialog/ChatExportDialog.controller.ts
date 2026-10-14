@@ -14,10 +14,11 @@ import { CHAT_EXPORT_KIND } from '../ChatList.constants'
 
 import type { ChatExportFormat } from '../ChatList.constants'
 
-/** Export one chat: pick a format, start, follow it to Ready, download. */
+/** Export one chat: pick a format, with or without sources, start, follow it to Ready, download. */
 export function useChatExportController(orgId: string, chatId: string) {
   const t = useTranslations('chat.list.export')
   const [format, setFormat] = useState<ChatExportFormat>('pdf')
+  const [includeSources, setIncludeSources] = useState(true)
   const [exportId, setExportId] = useState<string | null>(null)
   const create = useCreateExportMutation(orgId)
   const retry = useRetryExportMutation(orgId)
@@ -31,11 +32,16 @@ export function useChatExportController(orgId: string, chatId: string) {
     t,
     format,
     onFormatChange: setFormat,
+    includeSources,
+    onIncludeSourcesChange: setIncludeSources,
     current: exportId ? current : undefined,
     isStarting: create.isPending,
     onStart: () => {
       create.mutate(
-        { kind: CHAT_EXPORT_KIND[format], params: { version: 1, format, chatId, filters: {} } },
+        {
+          kind: CHAT_EXPORT_KIND[format],
+          params: { version: 1, format, chatId, includeSources, filters: {} },
+        },
         {
           onSuccess: (created) => {
             setExportId(created.id)

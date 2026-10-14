@@ -4,18 +4,27 @@ export {
   chatFoldersApi,
   chatMessagesApi,
   chatsApi,
+  chatSharesApi,
   chatStreamPath,
+  sharedChatsApi,
 } from './chats.api'
 export {
   useChatAttachmentMutations,
   useClearChatFeedbackMutation,
   useCreateChatFolderMutation,
+  useCreateChatSharesMutation,
   useDeleteChatFolderMutation,
   useDeleteChatMutation,
+  useDeleteChatShareMutation,
   useRestoreChatMutation,
   useSetChatFeedbackMutation,
   useUpdateChatFolderMutation,
   useUpdateChatMutation,
 } from './chats.mutations'
 export { CHAT_MESSAGES_PAGE_SIZE, chatKeys, chatQueries } from './chats.queries'
-export type { ChatListFilters, ChatMessageFilters } from './chats.queries'
+export type {
+  ChatListFilters,
+  ChatMessageFilters,
+  ChatShareTargetFilters,
+  SharedChatFilters,
+} from './chats.queries'

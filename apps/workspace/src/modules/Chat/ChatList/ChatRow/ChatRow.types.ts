@@ -12,4 +12,5 @@ export interface ChatRowContext {
   actions: ChatActions
   onRename: (chat: ChatDto) => void
   onExport: (chat: ChatDto) => void
+  onShare: (chat: ChatDto) => void
 }

@@ -61,6 +61,8 @@ export default function MessageList({ c }: Readonly<{ c: ThreadViewController }>
           )
         }
         const info = c.modelInfo(row.modelKey)
+        // an agent answers under its own name, whichever model it runs on
+        const answeredBy = c.agent?.name ?? info.name
         return (
           <div key={row.id} className="flex flex-col gap-6">
             {switchPart?.kind === 'switch' && (
@@ -70,7 +72,7 @@ export default function MessageList({ c }: Readonly<{ c: ThreadViewController }>
             )}
             <AssistantMessage
               row={row}
-              modelName={info.name}
+              modelName={answeredBy}
               providerName={info.providerName}
               isLocal={info.isLocal}
               isLast={position === lastIndex}

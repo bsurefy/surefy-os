@@ -70,7 +70,11 @@ function partsOfDto(parts: readonly ChatMessagePart[]) {
         })
         break
       case 'data':
-        if (part.name !== 'approval') notes.push({ name: part.name, ...part.data } as ThreadNote)
+        notes.push(
+          part.name === 'approval'
+            ? { name: 'approval', approvalId: part.data.approvalId }
+            : ({ name: part.name, ...part.data } as ThreadNote),
+        )
         break
     }
   }
@@ -120,6 +124,7 @@ function toolStateOf(state: string): 'pending' | 'done' | 'error' {
 interface LiveParts {
   visible: ThreadPart[]
   sources: ThreadSource[]
+  notes: ThreadNote[]
   modelKey: string | null
   dataLocation: ThreadMessage['dataLocation']
   piiMasked: boolean
@@ -149,6 +154,14 @@ function readLivePart(part: ThreadUiMessage['parts'][number], live: LiveParts): 
       toolName: part.toolName,
       state: toolStateOf(part.state),
     })
+  } else if (part.type === 'data-approval-required') {
+    live.notes.push({
+      name: 'approval',
+      approvalId: part.data.approvalId,
+      title: part.data.title,
+      assignees: part.data.assignees,
+      expiresAt: part.data.expiresAt,
+    })
   } else if (part.type === 'data-model') {
     live.modelKey = part.data.model.modelKey
     live.dataLocation = part.data.dataLocation
@@ -161,6 +174,7 @@ export function fromUi(message: ThreadUiMessage, isStreaming: boolean): ThreadMe
   const live: LiveParts = {
     visible: [],
     sources: [],
+    notes: [],
     modelKey: null,
     dataLocation: null,
     piiMasked: false,
@@ -180,7 +194,7 @@ export function fromUi(message: ThreadUiMessage, isStreaming: boolean): ThreadMe
     status: isStreaming ? 'streaming' : 'complete',
     parts: live.visible,
     sources: live.sources,
-    notes: [],
+    notes: live.notes,
     modelKey: live.modelKey,
     dataLocation: live.dataLocation,
     piiMasked: live.piiMasked,

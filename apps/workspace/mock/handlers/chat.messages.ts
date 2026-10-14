@@ -30,6 +30,9 @@ import type {
 import { defineFactory, fixtureUuid } from '@surefy/web-core/testing'
 import { defineMockHandler, mockError, mockOk, mockPage } from '@surefy/web-core/testing/mock'
 
+import { REFUND_SMALL_ID } from './approvals.fixtures'
+import { agentRefOf, resetAgentChatsMock, streamAgentAnswer } from './chat.agents'
+
 const MESSAGE_KIND = 72
 const ATTACHMENT_KIND = 73
 const KNOWLEDGE_BASE_KIND = 80
@@ -87,6 +90,8 @@ export interface ChatStore {
   /** Inserts a chat the first message created. */
   create: (chat: ChatDto) => void
   update: (chat: ChatDto) => void
+  /** A chat someone shared with the signed-in person: its messages and sources can be read. */
+  findShared: (chatId: string) => { chat: ChatDto; text: string } | undefined
 }
 
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
@@ -151,7 +156,12 @@ const CHATS = {
   refunds: fixtureUuid(70, 2),
   onboarding: fixtureUuid(70, 3),
   sql: fixtureUuid(70, 5),
+  agentRefund: fixtureUuid(70, 10),
+  agentGone: fixtureUuid(70, 11),
 } as const
+
+/** The run behind the seeded agent answer that waits for the refund approval. */
+const SEEDED_AGENT_RUN_ID = fixtureUuid(78, 1)
 
 /** The seeded history: a cited answer, a reasoning-and-tool answer, a stopped one and a model switch. */
 function seedMessages(): Map<string, ChatMessageDto[]> {
@@ -233,6 +243,41 @@ function seedMessages(): Map<string, ChatMessageDto[]> {
       ],
     ],
     [
+      CHATS.agentRefund,
+      [
+        userText(11, CHATS.agentRefund, 'Order #1001 arrived broken. Can I get a refund?'),
+        assistant(
+          12,
+          CHATS.agentRefund,
+          [
+            {
+              type: 'tool',
+              toolCallId: 'call-1',
+              toolName: 'lookup_order',
+              state: 'done',
+              input: { order: '#1001' },
+              output: { status: 'delivered', damaged: true },
+            },
+            {
+              type: 'text',
+              text: 'I found order #1001: it arrived damaged. A refund of $42 needs approval first, so I asked for it.',
+            },
+            { type: 'data', name: 'approval', data: { approvalId: REFUND_SMALL_ID } },
+          ],
+          { status: 'streaming', agentRunId: SEEDED_AGENT_RUN_ID, usage: null },
+        ),
+      ],
+    ],
+    [
+      CHATS.agentGone,
+      [
+        userText(13, CHATS.agentGone, 'Check the March invoices against the orders.'),
+        assistant(14, CHATS.agentGone, [
+          { type: 'text', text: 'All 42 March invoices match their orders.' },
+        ]),
+      ],
+    ],
+    [
       CHATS.onboarding,
       [
         userText(9, CHATS.onboarding, 'A first-week checklist for new engineers.'),
@@ -268,13 +313,14 @@ export function resetChatMessagesMock(): void {
   attachments = new Map()
   ordinal = 100
   streamDelayMs = 25
+  resetAgentChatsMock()
 }
 
 /** Messages of a chat; a seeded chat without a scripted history gets one question and one answer. */
 function messagesOf(store: ChatStore, chatId: string): ChatMessageDto[] {
   const existing = messages.get(chatId)
   if (existing) return existing
-  const found = store.find(chatId)
+  const found = store.find(chatId) ?? store.findShared(chatId)
   if (!found || found.chat.messageCount === 0) return []
   const history = [
     userText(nextOrdinal(), chatId, found.text),
@@ -556,6 +602,10 @@ const path = '/orgs/:orgId/chats/:chatId'
 const messagesPath = `${path}/messages`
 const noContent = () => new Response(null, { status: 204 })
 const chatNotFound = () => mockError(HTTP_NOT_FOUND, ERROR_CODES.CHAT_NOT_FOUND, 'Chat not found')
+const agentNotFound = () =>
+  mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_NOT_FOUND, 'Agent not found')
+const hasAgentId = (input: z.infer<typeof sendChatMessageInputSchema>) =>
+  input.trigger === 'submit' && input.newChat?.agentId !== undefined
 const messageNotFound = () =>
   mockError(HTTP_NOT_FOUND, ERROR_CODES.CHAT_MESSAGE_NOT_FOUND, 'Message not found')
 
@@ -570,6 +620,7 @@ function newChatFrom(chatId: string, text: string, modelKey: string, input: unkn
     isPrivate?: boolean
     knowledgeScope?: ChatDto['knowledgeScope']
     knowledgeBaseIds?: string[]
+    agentId?: string
   }
   const now = new Date().toISOString()
   return {
@@ -580,7 +631,7 @@ function newChatFrom(chatId: string, text: string, modelKey: string, input: unkn
     isPinned: false,
     pinnedAt: null,
     isPrivate: settings.isPrivate ?? false,
-    agent: null,
+    agent: settings.agentId ? agentRefOf(settings.agentId) : null,
     knowledgeScope: settings.knowledgeScope ?? 'all',
     knowledgeBaseIds: settings.knowledgeBaseIds ?? [],
     currentModelKey: modelKey,
@@ -730,7 +781,9 @@ function failureBeforeStream(scenario: string): Response | null {
  * message stream format. Scenarios: `model-offline`, `budget-reached`, `rate-limited` fail before
  * the first byte; `interrupted` fails half way; `source-removed` and
  * `source-no-access` change the source preview; `attachment-too-large`, `attachment-unsupported`
- * and `attachment-upload-fails` fail the attachment steps.
+ * and `attachment-upload-fails` fail the attachment steps. An agent chat answers with its run's
+ * event stream (`chat.agents.ts`); its agent must still be available. Chats shared with the person
+ * can read their messages and sources.
  */
 export function createChatMessageHandlers(store: ChatStore) {
   const requireChat = (chatId: unknown) => {
@@ -745,11 +798,12 @@ export function createChatMessageHandlers(store: ChatStore) {
       response: pageResponse(chatMessageDtoSchema),
       scenarios: {
         default: ({ params, request }) => {
-          if (!requireChat(params.chatId)) return chatNotFound()
+          const chatId = String(params.chatId)
+          if (!requireChat(chatId) && !store.findShared(chatId)) return chatNotFound()
           const url = new URL(request.url)
           const limit = Number(url.searchParams.get('limit') ?? PAGE_SIZE.default)
           const start = Number(url.searchParams.get('cursor') ?? 0)
-          const ordered = [...messagesOf(store, String(params.chatId))].sort((a, b) =>
+          const ordered = [...messagesOf(store, chatId)].sort((a, b) =>
             a.createdAt.localeCompare(b.createdAt),
           )
           const items =
@@ -783,6 +837,13 @@ export function createChatMessageHandlers(store: ChatStore) {
               modelKey,
               input.trigger === 'submit' ? input.newChat : undefined,
             )
+          // an agent chat needs an agent the person may still use
+          if (
+            chat.agent?.isAvailable === false ||
+            (isNewChat && hasAgentId(input) && !chat.agent)
+          ) {
+            return agentNotFound()
+          }
           if (isNewChat) store.create(chat)
           const list = isNewChat ? [] : messagesOf(store, chatId)
           if (isNewChat) messages.set(chatId, list)
@@ -803,6 +864,47 @@ export function createChatMessageHandlers(store: ChatStore) {
             list.push(failedAnswer(chatId, scenario, modelKey))
             store.update({ ...chat, messageCount: list.length, currentModelKey: modelKey })
             return failure
+          }
+
+          if (chat.agent) {
+            const assistantId = nextId()
+            return sseResponse(request.signal, (write, isAborted) =>
+              streamAgentAnswer(
+                {
+                  chat,
+                  assistantId,
+                  userMessageId: prepared.userMessageId,
+                  prompt: prepared.prompt,
+                  isNewChat,
+                  delayMs: streamDelayMs,
+                  persist: (parts, status, agentRunId, streamed) => {
+                    const now = new Date().toISOString()
+                    list.push(
+                      assistant(nextOrdinal(), chat.id, parts, {
+                        id: assistantId,
+                        status,
+                        agentRunId,
+                        usage:
+                          status === 'complete'
+                            ? usage(Math.max(1, Math.round(streamed.length / 4)))
+                            : null,
+                        createdAt: now,
+                        updatedAt: now,
+                      }),
+                    )
+                    const latest = store.find(chat.id)?.chat ?? chat
+                    store.update({
+                      ...latest,
+                      messageCount: list.length,
+                      lastMessageAt: now,
+                      updatedAt: now,
+                    })
+                  },
+                },
+                write,
+                isAborted,
+              ),
+            )
           }
 
           const plan = planAnswer(prepared.prompt, chat)

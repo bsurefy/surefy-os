@@ -9,6 +9,7 @@ import { Spinner } from '@surefy/ui/components/Feedback'
 import { Button } from '@surefy/ui/primitives/button'
 
 import AnswerText from '../AnswerText'
+import ApprovalCard from '../ApprovalCard'
 import FailureCard from '../FailureCard'
 import SourcesList from '../SourcesList'
 
@@ -23,6 +24,8 @@ export interface AssistantMessageProps {
   isLocal: boolean
   isLast: boolean
   isBusy: boolean
+  /** A chat shared with the person: the answer can be read and copied, nothing else. */
+  isReadOnly?: boolean
   failure: Omit<FailureCardProps, 'code' | 'isRetryable' | 'onRetry' | 'modelName'>
   onOpenSource: (index: number) => void
   onCopy: () => void
@@ -54,6 +57,7 @@ function Notes({ notes }: Readonly<{ notes: readonly ThreadNote[] }>) {
             </p>
           )
         }
+        if (note.name === 'approval') return <ApprovalCard key={note.approvalId} note={note} />
         if (note.name === 'knowledge-skipped') {
           return (
             <p key={note.name} className="text-caption text-muted-foreground">
@@ -78,6 +82,7 @@ export default function AssistantMessage({
   isLocal,
   isLast,
   isBusy,
+  isReadOnly = false,
   failure,
   onOpenSource,
   onCopy,
@@ -164,7 +169,7 @@ export default function AssistantMessage({
       {(isStopped || row.notes.some((note) => note.name === 'stopped')) && (
         <p className="text-caption text-muted-foreground flex items-center gap-2">
           {t('stopped')}
-          {isLast && !isBusy && (
+          {isLast && !isBusy && !isReadOnly && (
             <Button variant="link" size="sm" onClick={onContinue}>
               {t('continue')}
             </Button>
@@ -174,14 +179,17 @@ export default function AssistantMessage({
       {isInterrupted && (
         <p className="text-caption text-destructive flex items-center gap-2" role="alert">
           {t('interrupted')}
-          {isLast && !isBusy && (
+          {isLast && !isBusy && !isReadOnly && (
             <Button variant="link" size="sm" onClick={onRegenerate}>
               {t('retry')}
             </Button>
           )}
         </p>
       )}
-      {(isFailed || budgetNote) && (
+      {isReadOnly && isFailed && (
+        <p className="text-caption text-muted-foreground">{t('failedShort')}</p>
+      )}
+      {!isReadOnly && (isFailed || budgetNote) && (
         <FailureCard
           {...failure}
           code={isFailed ? row.errorCode : 'BUDGET_EXCEEDED'}
@@ -202,39 +210,47 @@ export default function AssistantMessage({
             <Copy aria-hidden />
             {t('copyShort')}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t('regenerate')}
-            className="text-muted-foreground"
-            disabled={isBusy}
-            onClick={onRegenerate}
-          >
-            <RefreshCw aria-hidden />
-            {t('regenerateShort')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('helpful')}
-            aria-pressed={row.feedback?.rating === 'helpful'}
-            onClick={() => {
-              onRate('helpful')
-            }}
-          >
-            {row.feedback?.rating === 'helpful' ? <Check aria-hidden /> : <ThumbsUp aria-hidden />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('notHelpful')}
-            aria-pressed={row.feedback?.rating === 'not_helpful'}
-            onClick={() => {
-              onRate('not_helpful')
-            }}
-          >
-            <ThumbsDown aria-hidden />
-          </Button>
+          {!isReadOnly && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={t('regenerate')}
+                className="text-muted-foreground"
+                disabled={isBusy}
+                onClick={onRegenerate}
+              >
+                <RefreshCw aria-hidden />
+                {t('regenerateShort')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('helpful')}
+                aria-pressed={row.feedback?.rating === 'helpful'}
+                onClick={() => {
+                  onRate('helpful')
+                }}
+              >
+                {row.feedback?.rating === 'helpful' ? (
+                  <Check aria-hidden />
+                ) : (
+                  <ThumbsUp aria-hidden />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('notHelpful')}
+                aria-pressed={row.feedback?.rating === 'not_helpful'}
+                onClick={() => {
+                  onRate('not_helpful')
+                }}
+              >
+                <ThumbsDown aria-hidden />
+              </Button>
+            </>
+          )}
           {row.sources.length > 0 && (
             <span className="text-caption text-muted-foreground ml-1">
               {t('answeredFrom', { count: row.sources.length })}

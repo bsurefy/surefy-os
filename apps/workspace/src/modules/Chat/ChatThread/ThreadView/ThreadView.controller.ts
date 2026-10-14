@@ -2,18 +2,23 @@
 'use no memo'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
+import { agentQueries } from '@/api/agents'
 import { useClearChatFeedbackMutation, useSetChatFeedbackMutation } from '@/api/chats'
 import { modelQueries } from '@/api/models'
+import { ROUTES } from '@/constants/routes'
 import { getProviderName } from '@/modules/Vault'
+import { toRoute } from '@/modules/Workspace'
 import type { ChatDto, ChatMessageDto } from '@surefy/contracts'
 import { PERMISSIONS } from '@surefy/contracts'
 import { toast } from '@surefy/ui/components/Feedback'
 import { useCan } from '@surefy/web-core/access'
 
 import { useChatActions } from '../../ChatList/ChatList.hooks'
+import { AGENT_UNAVAILABLE_ERRORS, USABLE_AGENTS_LIMIT } from '../ChatThread.constants'
 import { useFollowOutput, useIsOnline } from '../ChatThread.hooks'
 import { buildRows, getMessageText } from '../ChatThread.utils'
 import { isLocalModel, useThreadSettings } from './ThreadView.settings'
@@ -31,6 +36,9 @@ export interface ThreadViewProps {
   chatId: string
   isNew: boolean
   chat: ChatDto | null
+  /** The agent a new chat will talk to (`?agent=`); null for a model chat. */
+  agentId: string | null
+  onAgentChange: (agentId: string | null) => void
   history: readonly ChatMessageDto[]
   hasEarlier: boolean
   isLoadingEarlier: boolean
@@ -49,18 +57,31 @@ const lastModelOf = (history: readonly ChatMessageDto[]): string | null =>
 export function useThreadViewController(props: ThreadViewProps) {
   const { orgId, orgSlug, chatId, isNew, chat, history } = props
   const t = useTranslations('chat.thread')
+  const router = useRouter()
   const isOnline = useIsOnline()
   const canManageVault = useCan(PERMISSIONS.VAULT_MANAGE)
+  const canUseAgents = useCan(PERMISSIONS.AGENTS_INVOKE)
   const modelsQuery = useInfiniteQuery(
     modelQueries.usable(orgId, { type: 'chat', limit: MODELS_LIMIT }),
   )
   const models = modelsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  const agentsQuery = useInfiniteQuery({
+    ...agentQueries.usable(orgId, { limit: USABLE_AGENTS_LIMIT }),
+    enabled: canUseAgents,
+  })
+  const usableAgents = agentsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  // an agent chat talks to its agent for good; a new chat picks one from the URL
+  const agentRef = chat?.agent ?? null
+  const agentId = agentRef?.id ?? (isNew ? props.agentId : null)
+  const usableAgent = usableAgents.find((candidate) => candidate.id === agentId)
+  const isAgentChat = agentId !== null
   const chatActions = useChatActions(orgId, orgSlug, chatId)
   const attachments = useAttachments(orgId, chatId)
   const [text, setText] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isRenameOpen, setIsRenameOpen] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
   const [preview, setPreview] = useState<SourcePreviewTarget | null>(null)
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null)
   const setFeedback = useSetChatFeedbackMutation(orgId, chatId)
@@ -80,14 +101,32 @@ export function useThreadViewController(props: ThreadViewProps) {
     isNew,
     history,
     refetchHistory: props.refetchHistory,
-    modelKey: settings.settings.modelKey,
-    newChat: {
-      isPrivate: settings.settings.isPrivate,
-      knowledgeScope: settings.settings.knowledgeScope,
-      knowledgeBaseIds: settings.settings.knowledgeBaseIds,
-    },
-    lastAnswerModelKey: lastModelOf(history),
+    // the agent's own model answers an agent chat
+    modelKey: isAgentChat ? null : settings.settings.modelKey,
+    newChat: isAgentChat
+      ? { agentId }
+      : {
+          isPrivate: settings.settings.isPrivate,
+          knowledgeScope: settings.settings.knowledgeScope,
+          knowledgeBaseIds: settings.settings.knowledgeBaseIds,
+        },
+    lastAnswerModelKey: isAgentChat ? null : lastModelOf(history),
   })
+
+  // paused, archived or no longer shared: the history stays, read only
+  const isAgentGone =
+    agentRef?.isAvailable === false ||
+    (isNew && isAgentChat && agentsQuery.isSuccess && usableAgent === undefined) ||
+    (isAgentChat && AGENT_UNAVAILABLE_ERRORS.includes(stream.errorCode ?? ''))
+  const agent = isAgentChat
+    ? {
+        id: agentId,
+        name: agentRef?.name ?? usableAgent?.name ?? null,
+        description: usableAgent?.description ?? null,
+        conversationStarters: usableAgent?.conversationStarters ?? [],
+        isGone: isAgentGone,
+      }
+    : null
 
   const baseRows = buildRows(stream.live, history, stream.activity !== 'idle', stream.stoppedId)
   const rows = baseRows.map((row, position): ThreadMessage => {
@@ -115,10 +154,16 @@ export function useThreadViewController(props: ThreadViewProps) {
     attachments.hasImages && currentModel !== undefined && !currentModel.supportsVision
   const hasModels = modelsQuery.isPending ? undefined : models.length > 0
   const isIdle = stream.activity === 'idle'
+  const lastRow = rows.at(-1)
+  // an agent answer whose run waits for an approval: the next message waits too
+  const isWaitingForRun =
+    isIdle && lastRow?.role === 'assistant' && lastRow.status === 'streaming' && lastRow.isPersisted
+  const canAnswer = agent ? agent.name !== null && !agent.isGone : hasModels === true
   const canSend =
     isOnline &&
     isIdle &&
-    hasModels === true &&
+    !isWaitingForRun &&
+    canAnswer &&
     trimmed.length > 0 &&
     !attachments.hasUnfinished &&
     !isVisionBlocked
@@ -138,6 +183,24 @@ export function useThreadViewController(props: ThreadViewProps) {
     errorCode: stream.errorCode,
     models,
     hasModels,
+    agent,
+    isWaitingForRun,
+    picker: {
+      agents: usableAgents,
+      canUseAgents,
+      isModelsPending: modelsQuery.isPending,
+      /** An agent chat that exists cannot change its agent. */
+      isAgentLocked: chat !== null && agentRef !== null,
+      onModelSelect: (modelKey: string) => {
+        if (isNew && isAgentChat) props.onAgentChange(null)
+        settings.onModelChange(modelKey)
+      },
+      onAgentSelect: (id: string) => {
+        if (isNew) props.onAgentChange(id)
+        // a model chat that exists stays as it is: the agent starts a new chat
+        else router.push(toRoute(`${ROUTES.workspace.chat(orgSlug)}?agent=${id}`))
+      },
+    },
     canManageVault,
     settings,
     stream,
@@ -222,8 +285,18 @@ export function useThreadViewController(props: ThreadViewProps) {
         toast.success(t('actions.copied'))
       })
     },
+    chatActions,
     onDeleteChat: () => {
       if (chat) chatActions.onDelete(chat)
+    },
+    shareDialog: {
+      isOpen: isShareOpen,
+      onOpen: () => {
+        setIsShareOpen(true)
+      },
+      onClose: () => {
+        setIsShareOpen(false)
+      },
     },
     renameDialog: {
       isOpen: isRenameOpen,

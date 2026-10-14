@@ -18,4 +18,9 @@ export {
   useUpdateAgentMutation,
 } from './agents.mutations'
 export { agentKeys, agentQueries } from './agents.queries'
-export type { AgentImpactAction, AgentListFilters, AgentVersionListFilters } from './agents.queries'
+export type {
+  AgentImpactAction,
+  AgentListFilters,
+  AgentVersionListFilters,
+  UsableAgentFilters,
+} from './agents.queries'

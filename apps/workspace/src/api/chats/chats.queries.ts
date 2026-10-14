@@ -5,7 +5,13 @@ import { PAGE_SIZE } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { HttpClient } from '@surefy/web-core/http'
 
-import { chatFoldersApi, chatMessagesApi, chatsApi } from './chats.api'
+import {
+  chatFoldersApi,
+  chatMessagesApi,
+  chatsApi,
+  chatSharesApi,
+  sharedChatsApi,
+} from './chats.api'
 
 export interface ChatListFilters {
   q?: string
@@ -27,6 +33,17 @@ export interface ChatMessageFilters {
   cursor?: string
 }
 
+export interface SharedChatFilters {
+  limit?: number
+  cursor?: string
+}
+
+export interface ChatShareTargetFilters {
+  q?: string
+  limit?: number
+  cursor?: string
+}
+
 /** The thread loads the latest messages first and pages backwards. */
 export const CHAT_MESSAGES_PAGE_SIZE = 50
 
@@ -41,6 +58,14 @@ export const chatKeys = {
     [...chatKeys.all(orgId), 'messages', chatId] as const,
   source: (orgId: string, chatId: string, messageId: string, index: number) =>
     [...chatKeys.messages(orgId, chatId), 'source', messageId, index] as const,
+  shares: (orgId: string, chatId: string) => [...chatKeys.all(orgId), 'shares', chatId] as const,
+  shareTargets: (orgId: string, filters: ChatShareTargetFilters) =>
+    [...chatKeys.all(orgId), 'share-targets', filters] as const,
+  sharedLists: (orgId: string) => [...chatKeys.all(orgId), 'shared'] as const,
+  sharedList: (orgId: string, filters: SharedChatFilters) =>
+    [...chatKeys.sharedLists(orgId), 'list', filters] as const,
+  sharedDetail: (orgId: string, chatId: string) =>
+    [...chatKeys.sharedLists(orgId), 'detail', chatId] as const,
 }
 
 // `http` defaults to the browser client; server components pass getServerHttpClient()
@@ -97,5 +122,39 @@ export const chatQueries = {
         chatMessagesApi.sourcePreview(http, orgId, chatId, messageId, index, signal),
       // access is re-checked on every opening
       gcTime: 0,
+    }),
+  shares: (orgId: string, chatId: string, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: chatKeys.shares(orgId, chatId),
+      queryFn: ({ signal }) => chatSharesApi.list(http, orgId, chatId, signal),
+    }),
+  /** The share dialog's search; the first page is enough to pick from. */
+  shareTargets: (orgId: string, filters: ChatShareTargetFilters, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: chatKeys.shareTargets(orgId, filters),
+      queryFn: ({ signal }) =>
+        chatSharesApi
+          .targets(http, orgId, { ...filters, limit: filters.limit ?? PAGE_SIZE.default }, signal)
+          .then((page) => page.items),
+    }),
+  /** "Shared with me", newest message first. */
+  sharedList: (orgId: string, filters: SharedChatFilters, http: HttpClient = apiClient) =>
+    infiniteQueryOptions({
+      queryKey: chatKeys.sharedList(orgId, filters),
+      queryFn: ({ pageParam, signal }) =>
+        sharedChatsApi.list(
+          http,
+          orgId,
+          { ...filters, limit: filters.limit ?? PAGE_SIZE.default, cursor: pageParam },
+          signal,
+        ),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    }),
+  /** The view-only header of a chat someone shared with the person. */
+  sharedDetail: (orgId: string, chatId: string, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: chatKeys.sharedDetail(orgId, chatId),
+      queryFn: ({ signal }) => sharedChatsApi.get(http, orgId, chatId, signal),
     }),
 }

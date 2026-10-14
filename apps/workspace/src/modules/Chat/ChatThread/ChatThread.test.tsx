@@ -371,7 +371,7 @@ describe('ChatThread: rating, settings and offline', () => {
     expect(screen.getByRole('button', { name: 'Knowledge scope' })).toHaveTextContent(
       'All knowledge',
     )
-    expect(screen.getByRole('button', { name: 'Model' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Model or agent' })).toBeVisible()
   })
 
   it('makes a chat private and shows the lock badge', async () => {
@@ -385,9 +385,9 @@ describe('ChatThread: rating, settings and offline', () => {
   it('warns before moving a conversation from a local model to a cloud one', async () => {
     const { user } = openChat(SEEDED_CHAT_IDS.refunds)
     await screen.findByRole('article', { name: 'Answer' })
-    await user.click(screen.getByRole('button', { name: 'Model' }))
+    await user.click(screen.getByRole('button', { name: 'Model or agent' }))
     await user.click(await screen.findByRole('option', { name: /llama3.1:70b/ }))
-    await user.click(screen.getByRole('button', { name: 'Model' }))
+    await user.click(screen.getByRole('button', { name: 'Model or agent' }))
     await user.click(await screen.findByRole('option', { name: /^GPT-4\.1\b(?! mini)/ }))
     const dialog = await screen.findByRole('alertdialog')
     expect(within(dialog).getByText(/will be sent to OpenAI/)).toBeVisible()

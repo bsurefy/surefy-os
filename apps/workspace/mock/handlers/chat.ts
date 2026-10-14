@@ -23,7 +23,9 @@ import {
   mockPage,
 } from '@surefy/web-core/testing/mock'
 
+import { ARCHIVED_AGENT_ID, SUPPORT_AGENT_ID } from './agentIds'
 import { createChatMessageHandlers, resetChatMessagesMock } from './chat.messages'
+import { createChatShareHandlers, findSharedChat, resetChatSharesMock } from './chat.shares'
 
 const CHAT_KIND = 70
 const FOLDER_KIND = 71
@@ -122,6 +124,14 @@ function seedChats(): ChatState[] {
     },
     live('Weekly sync notes', DAY_MS + 2 * HOUR_MS, 'Action items from Monday.'),
     live('Pricing page copy', 4 * DAY_MS, 'Shorter headlines for the pricing page.'),
+    live('Refund for order #1001', 9 * DAY_MS, 'Order #1001 arrived broken.', {
+      agent: { id: SUPPORT_AGENT_ID, name: 'Support triage', isAvailable: true },
+      currentModelKey: 'openai/gpt-4.1',
+    }),
+    live('March invoice check', 20 * DAY_MS, 'Check the March invoices against the orders.', {
+      agent: { id: ARCHIVED_AGENT_ID, name: 'Old invoice checker', isAvailable: false },
+      currentModelKey: 'openai/gpt-4.1',
+    }),
   ]
 }
 
@@ -138,6 +148,7 @@ export function resetChatMock(): void {
   chats = seedChats()
   folders = seedFolders()
   resetChatMessagesMock()
+  resetChatSharesMock(SEEDED_CHAT_IDS.quarterly)
 }
 
 /** Chat ids of the seed, in the order they were created. */
@@ -151,7 +162,13 @@ export const SEEDED_CHAT_IDS = {
   brainstorm: fixtureUuid(CHAT_KIND, 7),
   sync: fixtureUuid(CHAT_KIND, 8),
   pricing: fixtureUuid(CHAT_KIND, 9),
+  /** An agent chat with "Support triage", waiting for a refund approval. */
+  agentRefund: fixtureUuid(CHAT_KIND, 10),
+  /** An agent chat whose agent was archived: read only. */
+  agentGone: fixtureUuid(CHAT_KIND, 11),
 } as const
+
+resetChatSharesMock(SEEDED_CHAT_IDS.quarterly)
 
 const folderCount = (folderId: string) =>
   chats.filter(({ chat }) => chat.folderId === folderId && !chat.deletedAt).length
@@ -215,7 +232,9 @@ const folderNameTaken = () =>
  * stay for component tests and for `MOCK_DOMAINS=chat`, to look at the states. Messages,
  * streaming, feedback, sources and attachments are in `chat.messages.ts` (S3-07). Scenarios: `folder-name-taken` fails a
  * folder create or rename with `CHAT_FOLDER_NAME_TAKEN`; `restore-gone` makes a restore answer
- * `CHAT_NOT_FOUND` (past the 30 days); `delete-fails` fails a chat delete.
+ * `CHAT_NOT_FOUND` (past the 30 days); `delete-fails` fails a chat delete. Shares and the chats
+ * shared with Maya are in `chat.shares.ts` (S6-13); two seeded chats talk to agents, one of them
+ * no longer available.
  */
 const chatMessageHandlers = createChatMessageHandlers({
   find: (chatId) => findChat(chatId),
@@ -225,12 +244,14 @@ const chatMessageHandlers = createChatMessageHandlers({
   update: (chat) => {
     setChat(chat)
   },
+  findShared: findSharedChat,
 })
 
 export const chatDomain = defineMockDomain(
   'chat',
   [
     ...chatMessageHandlers,
+    ...createChatShareHandlers((chatId) => findChat(chatId)?.chat),
     defineMockHandler({
       method: 'get',
       path,

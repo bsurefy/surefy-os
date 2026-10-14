@@ -26,15 +26,26 @@ import type {
   TestAgentToolInput,
   UpdateAgentChannelInput,
   UpdateAgentInput,
+  UsableAgentDto,
 } from '@surefy/contracts'
 import type { HttpClient } from '@surefy/web-core/http'
 
-import type { AgentListFilters, AgentVersionListFilters } from './agents.queries'
+import type {
+  AgentListFilters,
+  AgentVersionListFilters,
+  UsableAgentFilters,
+} from './agents.queries'
 
 /** Agents: the editor's agent with its draft, live metadata, and the versions it reads. */
 export const agentsApi = {
   list: (http: HttpClient, orgId: string, query: AgentListFilters, signal?: AbortSignal) =>
     http.getPage<AgentDto>(`/orgs/${orgId}/agents`, { params: { ...query }, signal }),
+  /** Agents shared with the signed-in person, as Chat lists them (`agents:invoke`). */
+  usable: (http: HttpClient, orgId: string, query: UsableAgentFilters, signal?: AbortSignal) =>
+    http.getPage<UsableAgentDto>(`/orgs/${orgId}/agents/usable`, {
+      params: { ...query },
+      signal,
+    }),
   /** From a template, or from scratch without a template key; counts toward the plan's agent limit. */
   create: (http: HttpClient, orgId: string, input: CreateAgentInput) =>
     http.post<AgentDto>(`/orgs/${orgId}/agents`, input),

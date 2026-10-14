@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useQueryStates } from 'nuqs'
 import { useState } from 'react'
 
 import { chatQueries } from '@/api/chats'
@@ -12,12 +13,14 @@ import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 
 import { SEARCH_DEBOUNCE_MS } from './ChatList.constants'
 import { useChatActions, useChatPages } from './ChatList.hooks'
+import { chatThreadSearchParams } from '../ChatThread/ChatThread.searchParams'
 
 import type { ChatListView } from './ChatList.constants'
 import type { NameTarget } from './NameDialog'
 
 /** The dialog that is open over the list, if any. */
-export type ChatListDialog = NameTarget | { kind: 'export'; chat: ChatDto }
+export type ChatListDialog =
+  NameTarget | { kind: 'export'; chat: ChatDto } | { kind: 'share'; chat: ChatDto }
 
 /**
  * The chat list beside the thread: Pinned, Folders and the date groups, or the search results, or
@@ -28,6 +31,7 @@ export function useChatListController() {
   const tErrors = useTranslations('errors')
   const orgId = useCurrentOrgId()
   const { orgSlug, chatId } = useParams<{ orgSlug: string; chatId?: string }>()
+  const [{ agent: agentParam }] = useQueryStates(chatThreadSearchParams)
   const [search, setSearch] = useState('')
   const query = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS)
   const [view, setView] = useState<ChatListView>('chats')
@@ -61,7 +65,12 @@ export function useChatListController() {
       onExport: (chat: ChatDto) => {
         setDialog({ kind: 'export', chat })
       },
+      onShare: (chat: ChatDto) => {
+        setDialog({ kind: 'share', chat })
+      },
     },
+    /** The agent of the new chat being written, highlighted in "Agents shared with you". */
+    activeAgentId: chatId === undefined ? agentParam : null,
     actions,
     search,
     onSearchChange: setSearch,

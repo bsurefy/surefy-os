@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { Check, Download, Ellipsis, FolderInput, Pencil, Pin, PinOff, Trash2 } from 'lucide-react'
+import {
+  Bot,
+  Check,
+  Download,
+  Ellipsis,
+  FolderInput,
+  Pencil,
+  Pin,
+  PinOff,
+  Share2,
+  Trash2,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
@@ -23,7 +34,10 @@ import {
 
 import type { ChatRowContext } from './ChatRow.types'
 
-/** One chat in the list: a link to the thread and its "⋯" menu (Rename, Pin, Move, Export, Delete). */
+/**
+ * One chat in the list: a link to the thread and its "⋯" menu (Rename, Pin, Move, Share, Export,
+ * Delete). An agent chat shows a small agent mark.
+ */
 export default function ChatRow({ chat, ctx }: Readonly<{ chat: ChatDto; ctx: ChatRowContext }>) {
   const t = useTranslations('chat.list')
   const { actions, folders } = ctx
@@ -44,6 +58,12 @@ export default function ChatRow({ chat, ctx }: Readonly<{ chat: ChatDto; ctx: Ch
         <span className="flex items-center gap-1.5">
           {chat.isPinned && (
             <Pin aria-label={t('pinned')} className="text-muted-foreground size-3 shrink-0" />
+          )}
+          {chat.agent && (
+            <Bot
+              aria-label={t('row.agent', { name: chat.agent.name })}
+              className="text-muted-foreground size-3 shrink-0"
+            />
           )}
           <span className="truncate">{title}</span>
         </span>
@@ -112,6 +132,16 @@ export default function ChatRow({ chat, ctx }: Readonly<{ chat: ChatDto; ctx: Ch
                 ))}
               </DropdownMenuSubContent>
             </DropdownMenuSub>
+            {!chat.isPrivate && (
+              <DropdownMenuItem
+                onSelect={() => {
+                  ctx.onShare(chat)
+                }}
+              >
+                <Share2 aria-hidden />
+                {t('row.share')}
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onSelect={() => {
                 ctx.onExport(chat)

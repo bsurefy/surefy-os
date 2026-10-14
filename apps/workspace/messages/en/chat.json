@@ -45,7 +45,9 @@
       "noFolder": "No folder",
       "noFolders": "No folders yet",
       "export": "Export",
-      "delete": "Delete"
+      "delete": "Delete",
+      "share": "Share",
+      "agent": "Agent: {name}"
     },
     "toasts": {
       "chatDeleted": "Chat deleted",
@@ -101,10 +103,25 @@
       "ready": "Your export is ready.",
       "failed": "The export failed.",
       "expired": "The export expired.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "includeSources": "Include sources",
+      "includeSourcesHelp": "Adds the documents and web pages each answer cited."
     },
     "open": "Chats",
-    "sheetDescription": "Your chats, folders and recently deleted chats."
+    "sheetDescription": "Your chats, folders and recently deleted chats.",
+    "agents": {
+      "title": "Agents shared with you",
+      "more": "Show more"
+    },
+    "shared": {
+      "title": "Shared with me",
+      "by": "From {name}"
+    },
+    "deleteShared": {
+      "title": "Delete “{title}”?",
+      "description": "{count, plural, one {# person} other {# people}} will lose access. You can restore it for {days} days.",
+      "confirm": "Delete chat"
+    }
   },
   "thread": {
     "title": "New chat",
@@ -160,7 +177,9 @@
         "member": "Your admin hasn't enabled any models yet. Ask an admin to connect one.",
         "open": "Open Vault"
       },
-      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>."
+      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>.",
+      "agentDescription": "Ask a question to get started.",
+      "starters": "Conversation starters"
     },
     "header": {
       "menu": "Chat options",
@@ -172,7 +191,10 @@
         "needsLocal": "Needs a local model · Ask an admin"
       },
       "export": "Export",
-      "delete": "Delete chat"
+      "delete": "Delete chat",
+      "share": "Share",
+      "privateNotShared": "Private chats are never shared",
+      "untitled": "New chat"
     },
     "scope": {
       "trigger": "Knowledge scope",
@@ -235,7 +257,8 @@
       "copyShort": "Copy",
       "regenerateShort": "Regenerate",
       "answeredFrom": "{count, plural, one {Answered from # source} other {Answered from # sources}}",
-      "sourcesFromKnowledge": "Sources from your knowledge"
+      "sourcesFromKnowledge": "Sources from your knowledge",
+      "failedShort": "This answer failed."
     },
     "user": {
       "label": "Your message",
@@ -326,10 +349,92 @@
         "CHAT_ATTACHMENT_UNSUPPORTED": "isn't a supported type. Use PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD or CSV.",
         "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
       },
-      "stopShort": "Stop"
+      "stopShort": "Stop",
+      "waitingForRun": "The agent is waiting for an approval. You can write again once it goes on."
+    },
+    "picker": {
+      "label": "Model or agent",
+      "placeholder": "Choose a model",
+      "tabs": {
+        "models": "Models",
+        "agents": "Agents"
+      },
+      "searchAgents": "Search agents",
+      "noAgentMatch": "No agents match",
+      "sharedWithYou": "Shared with you",
+      "noAgents": {
+        "title": "No agents yet",
+        "description": "Agents your team shares with you appear here."
+      },
+      "agentLocked": "This chat talks to {name}"
+    },
+    "agentUnavailable": {
+      "title": "{name} isn't available to you anymore",
+      "titleUnknown": "This agent isn't available to you",
+      "description": "The conversation so far stays here to read.",
+      "action": "Start a chat with a model"
+    },
+    "approval": {
+      "waiting": "Waiting for approval",
+      "waitingFor": "Waiting for approval by {assignees}",
+      "expires": "Expires {when}",
+      "approved": "Approved",
+      "approvedBy": "Approved by {name}",
+      "rejected": "Rejected",
+      "rejectedWith": "Rejected · {reason}",
+      "timedOut": "Timed out",
+      "timedOutWith": "Timed out · {action}",
+      "timeoutActions": {
+        "reject": "the action was rejected",
+        "escalate": "sent to the next approvers",
+        "continue": "the agent went on"
+      },
+      "canceled": "Withdrawn"
+    },
+    "shared": {
+      "badge": "View only",
+      "banner": "Shared by {name} · view only",
+      "bannerUnknown": "Shared with you · view only",
+      "description": "You can read this chat and open its sources. Only its owner can continue it."
     }
   },
   "commands": {
     "newChat": "New chat"
+  },
+  "share": {
+    "title": "Share “{title}”",
+    "description": "People you share with can read this chat and open its sources. They can't write in it.",
+    "picker": {
+      "label": "People and teams",
+      "placeholder": "Add people or teams",
+      "search": "Search people and teams",
+      "empty": "No one matches",
+      "loading": "Searching…",
+      "remove": "Remove {name}",
+      "more": "+{count}"
+    },
+    "note": "View only. Only people in your organization can open it.",
+    "access": {
+      "title": "{count, plural, one {# person has} other {# people have}} access",
+      "none": "Not shared yet"
+    },
+    "teamMembers": "{count, plural, one {# person} other {# people}}",
+    "viewOnly": "Can view",
+    "remove": "Stop sharing with {name}",
+    "unknown": "Someone",
+    "private": {
+      "title": "Private chats are never shared",
+      "description": "Turn off Private chat in the chat's menu to share it."
+    },
+    "disabled": {
+      "title": "Chat sharing is turned off",
+      "description": "An Admin can turn it on in Settings › Data & privacy."
+    },
+    "cancel": "Cancel",
+    "close": "Close",
+    "share": "Share",
+    "toasts": {
+      "shared": "Shared with {count, plural, one {# person or team} other {# people and teams}}"
+    }
   }
 }

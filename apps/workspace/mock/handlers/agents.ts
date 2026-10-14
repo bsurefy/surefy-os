@@ -5,17 +5,20 @@ import {
   createEmptyAgentDefinition,
   ERROR_CODES,
   okResponse,
+  pageResponse,
   saveAgentDraftDtoSchema,
   saveAgentDraftInputSchema,
   updateAgentInputSchema,
+  usableAgentDtoSchema,
 } from '@surefy/contracts'
-import type { AgentDefinition, AgentDetailDto } from '@surefy/contracts'
+import type { AgentDefinition, AgentDetailDto, UsableAgentDto } from '@surefy/contracts'
 import { defineFactory, fixtureUuid } from '@surefy/web-core/testing'
 import {
   defineMockDomain,
   defineMockHandler,
   mockError,
   mockOk,
+  mockPage,
 } from '@surefy/web-core/testing/mock'
 
 import { scenarioChannels } from './agentChannels'
@@ -217,6 +220,22 @@ const notFound = () => mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_NOT_FOUND, 'A
 const liveDefinitionOf = (agent: AgentDetailDto): AgentDefinition =>
   agent.id === SUPPORT_AGENT_ID ? SUPPORT_LIVE_DEFINITION : agent.draft.definition
 
+/** An agent as Chat lists it: live, with the conversation starters of its live version. */
+const toUsable = (agent: AgentDetailDto): UsableAgentDto => ({
+  id: agent.id,
+  name: agent.name,
+  description: agent.description,
+  conversationStarters: liveDefinitionOf(agent).conversationStarters,
+  model: agent.model,
+})
+
+/** Agents shared with the signed-in person that Chat can talk to: live and not paused. */
+export function usableAgents(): UsableAgentDto[] {
+  return agents
+    .filter((agent) => agent.status === 'active' && agent.liveVersion !== null)
+    .map(toUsable)
+}
+
 const store = {
   find,
   all: () => agents,
@@ -239,12 +258,28 @@ const store = {
  * Scenarios: on a draft save, `conflict` answers that someone else changed the draft first (the
  * agent then holds their newer revision) and `error` fails the save. On reading a live agent,
  * `channels-live`, `channel-error` and `widget-approved` give it external channels in that state.
+ * `GET …/usable` lists the live agents for Chat; `no-usable-agents` lists none.
  */
 export const agentsDomain = defineMockDomain(
   'agents',
   [
-    // before `/:agentId`, which would take `templates` for an id
+    // before `/:agentId`, which would take `templates` and `usable` for an id
     ...agentListHandlers(store),
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/usable`,
+      response: pageResponse(usableAgentDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const q = new URL(request.url).searchParams.get('q')?.toLowerCase()
+          return mockPage(
+            usableAgents().filter((agent) => !q || agent.name.toLowerCase().includes(q)),
+            null,
+          )
+        },
+        'no-usable-agents': () => mockPage([], null),
+      },
+    }),
     defineMockHandler({
       method: 'get',
       path: `${path}/:agentId`,

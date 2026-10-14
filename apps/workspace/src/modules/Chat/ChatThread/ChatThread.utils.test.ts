@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRows,
   fromDto,
+  fromUi,
   getCitationIndex,
   getErrorCode,
   getFailureKind,
@@ -124,5 +125,51 @@ describe('orderHistory and buildRows', () => {
     expect(row.status).toBe('stopped')
     expect(row.notes).toEqual([{ name: 'stopped' }])
     expect(row.sources).toEqual([expect.objectContaining({ index: 1, title: 'Policy' })])
+  })
+})
+
+describe('approval notes', () => {
+  const approvalId = '0190a5c4-0000-7000-8000-0000000000aa'
+
+  it('reads the stored approval card of an agent answer', () => {
+    const row = fromDto(
+      chatMessageFactory({
+        role: 'assistant',
+        status: 'streaming',
+        parts: {
+          version: 1,
+          parts: [
+            { type: 'text', text: 'A refund needs approval first.' },
+            { type: 'data', name: 'approval', data: { approvalId } },
+          ],
+        },
+      }),
+    )
+    expect(row.notes).toEqual([{ name: 'approval', approvalId }])
+  })
+
+  it('takes who decides and the expiry from the live stream', () => {
+    const assignees = [
+      {
+        subjectType: 'team' as const,
+        user: null,
+        team: { id: approvalId, name: 'Finance' },
+        role: null,
+        source: 'rule' as const,
+      },
+    ]
+    const message: ThreadUiMessage = {
+      id: 'a1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'data-approval-required',
+          data: { seq: 2, approvalId, title: 'Refund order #1001', assignees, expiresAt: null },
+        },
+      ],
+    }
+    expect(fromUi(message, true).notes).toEqual([
+      { name: 'approval', approvalId, title: 'Refund order #1001', assignees, expiresAt: null },
+    ])
   })
 })

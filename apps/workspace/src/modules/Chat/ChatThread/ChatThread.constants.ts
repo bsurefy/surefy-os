@@ -1,5 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { CHAT_ATTACHMENT_LIMITS, CHAT_DOCUMENT_TYPES, CHAT_IMAGE_TYPES } from '@surefy/contracts'
+import {
+  CHAT_ATTACHMENT_LIMITS,
+  CHAT_DOCUMENT_TYPES,
+  CHAT_IMAGE_TYPES,
+  ERROR_CODES,
+} from '@surefy/contracts'
 
 /** Messages of the thread, from the API, are loaded this many at a time (latest first). */
 export const THREAD_PAGE_SIZE = 50
@@ -47,3 +52,15 @@ export const THREAD_ERROR = {
 
 /** How long after Stop the stored (partial) answer is loaded: the server records it just after the request ends. */
 export const STOP_RECONCILE_MS = 600
+
+/** An agent answer waiting for approval re-reads the approval, and the thread its answer, this often. */
+export const APPROVAL_REFRESH_MS = 5000
+
+/** Errors that mean the chat's agent can no longer be used (paused, archived or unshared). */
+export const AGENT_UNAVAILABLE_ERRORS: readonly string[] = [
+  ERROR_CODES.AGENT_NOT_FOUND,
+  ERROR_CODES.AGENT_PAUSED,
+]
+
+/** Agents loaded for the picker and "Agents shared with you". */
+export const USABLE_AGENTS_LIMIT = 100

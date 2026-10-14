@@ -22,6 +22,12 @@ export interface AgentListFilters {
   sort?: string
 }
 
+export interface UsableAgentFilters {
+  limit?: number
+  cursor?: string
+  q?: string
+}
+
 export interface AgentVersionListFilters {
   limit?: number
   cursor?: string
@@ -33,6 +39,8 @@ export const agentKeys = {
   lists: (orgId: string) => [...agentKeys.all(orgId), 'list'] as const,
   list: (orgId: string, filters: AgentListFilters) => [...agentKeys.lists(orgId), filters] as const,
   templates: (orgId: string) => [...agentKeys.all(orgId), 'templates'] as const,
+  usable: (orgId: string, filters: UsableAgentFilters) =>
+    [...agentKeys.all(orgId), 'usable', filters] as const,
   impact: (orgId: string, agentId: string, action: AgentImpactAction) =>
     [...agentKeys.detail(orgId, agentId), 'impact', action] as const,
   detail: (orgId: string, agentId: string) => [...agentKeys.all(orgId), 'detail', agentId] as const,
@@ -59,6 +67,20 @@ export const agentQueries = {
       queryKey: agentKeys.list(orgId, filters),
       queryFn: ({ pageParam, signal }) =>
         agentsApi.list(
+          http,
+          orgId,
+          { ...filters, limit: filters.limit ?? PAGE_SIZE.default, cursor: pageParam },
+          signal,
+        ),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    }),
+  /** Agents the person may talk to in Chat ("Agents shared with you", the picker's Agents tab). */
+  usable: (orgId: string, filters: UsableAgentFilters, http: HttpClient = apiClient) =>
+    infiniteQueryOptions({
+      queryKey: agentKeys.usable(orgId, filters),
+      queryFn: ({ pageParam, signal }) =>
+        agentsApi.usable(
           http,
           orgId,
           { ...filters, limit: filters.limit ?? PAGE_SIZE.default, cursor: pageParam },

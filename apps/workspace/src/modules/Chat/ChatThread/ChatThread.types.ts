@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
+  AgentRunApprovalData,
+  AgentRunStatusData,
+  ApprovalAssigneeDto,
   BudgetLimitScope,
   ChatFeedbackDto,
   ChatMessageIdsData,
@@ -29,6 +32,9 @@ interface DataPartMap {
   model: ChatModelData
   usage: ChatUsage
   title: { title: string }
+  /** Agent chats: the run's status and the approval it waits for (agentRuns/stream.ts). */
+  run: AgentRunStatusData
+  'approval-required': AgentRunApprovalData
 }
 
 /** The SurefyOS data chunks of the stream (`data-<name>`), typed for `useChat`. */
@@ -51,6 +57,17 @@ export type ThreadNote =
   | { name: 'sources-processing'; count: number }
   | { name: 'knowledge-skipped'; reason: KnowledgeSkippedReason }
   | { name: 'budget-reached'; scope: BudgetLimitScope }
+  /**
+   * An agent action waiting for approval. The stream carries who decides and when it expires; a
+   * stored answer only has the id, and the card reads the rest from the approval.
+   */
+  | {
+      name: 'approval'
+      approvalId: string
+      title?: string
+      assignees?: ApprovalAssigneeDto[]
+      expiresAt?: string | null
+    }
 
 export type ThreadPart =
   | { kind: 'text'; text: string }
