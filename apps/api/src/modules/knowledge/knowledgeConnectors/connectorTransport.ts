@@ -35,10 +35,10 @@ export interface ConnectorTransportDeps {
   http: OutboundHttp
   get: SafeGet
   /**
-   * Addresses on the install's list of local hosts (stub servers in tests): API calls go through
-   * `external`, which allows them, instead of `provider`.
+   * Set when the addresses are on the install's list of local hosts (stub servers in tests): API
+   * calls go through `external` instead of `provider`, and downloads may reach these hosts.
    */
-  external?: boolean
+  localHosts?: readonly string[]
 }
 
 const TIMEOUT_MS = 20_000
@@ -65,7 +65,9 @@ function check(status: number, what: string): void {
 
 export function createConnectorTransport(deps: ConnectorTransportDeps): ConnectorTransport {
   const call = (url: string, request: Parameters<OutboundHttp['provider']>[1]) =>
-    deps.external === true ? deps.http.external(url, request) : deps.http.provider(url, request)
+    deps.localHosts === undefined
+      ? deps.http.provider(url, request)
+      : deps.http.external(url, request)
 
   return {
     async json(method, url, token, options = {}) {
@@ -110,6 +112,7 @@ export function createConnectorTransport(deps: ConnectorTransportDeps): Connecto
           maxBytes: KNOWLEDGE_FILE_LIMITS.maxBytes,
           userAgent: 'SurefyOS-Knowledge',
           headers: { authorization: `Bearer ${token}`, ...headers },
+          ...(deps.localHosts === undefined ? {} : { localHosts: deps.localHosts }),
         })
       } catch (error) {
         throw new ConnectorItemError(0, error instanceof Error ? error.message : 'download failed')

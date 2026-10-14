@@ -9,5 +9,6 @@ export type {
   SmtpConfig,
   StorageConfig,
 } from './config.types.js'
+export type { ConnectionProviderOrigins } from './connectionsEnv.js'
 export { envSchema, type Env } from './env.js'
 export { ConfigError, loadConfig, parseConfig } from './loadConfig.js'

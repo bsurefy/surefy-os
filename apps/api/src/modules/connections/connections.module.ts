@@ -58,7 +58,7 @@ export interface ConnectionsModuleDeps {
 export function createConnectionsModule(deps: ConnectionsModuleDeps) {
   const repository = new ConnectionsRepository()
   const secrets = new ConnectionSecrets(deps.crypto.secrets)
-  const adapters = createProviderAdapters()
+  const adapters = createProviderAdapters(deps.config.connections.providerOrigins)
   const http = deps.http ?? createOutboundHttp({ localHosts: deps.config.connections.localHosts })
   const dependents = deps.dependents ?? NO_DEPENDENTS
   const oauthApps: Readonly<Record<string, OauthApp | undefined>> =

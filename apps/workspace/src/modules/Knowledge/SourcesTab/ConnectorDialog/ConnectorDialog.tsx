@@ -2,6 +2,7 @@
 'use client'
 
 import { Plus } from 'lucide-react'
+import { useWatch } from 'react-hook-form'
 
 import AddConnectionDialog from '@/modules/Settings/ConnectionsSettings/ConnectionDialogs/AddConnectionDialog'
 import ReconnectDialog from '@/modules/Settings/ConnectionsSettings/ConnectionDialogs/ReconnectDialog'
@@ -52,7 +53,8 @@ export default function ConnectorDialog(
   const c = useConnectorDialogController(props)
   const { t, form } = c
   const { provider } = props
-  const connectionId = form.watch('connectionId')
+  // `useWatch`, not `form.watch()`: the React Compiler would keep the first value of the latter
+  const connectionId = useWatch({ control: form.control, name: 'connectionId' })
   const account = c.connection?.externalAccountLabel ?? c.connection?.name ?? ''
 
   const expired = (

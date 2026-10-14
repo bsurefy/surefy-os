@@ -55,6 +55,8 @@ export const e2e = {
   oauthPort: Number(read('OAUTH_STUB_PORT', String(Number(read('API_PORT', '4000')) + 6))),
   /** The stub MCP server (`mcpServer.ts`), which an agent's MCP tool connects to. */
   mcpPort: Number(read('MCP_STUB_PORT', String(Number(read('API_PORT', '4000')) + 5))),
+  /** The stub Google Drive and Notion (`connectorServer.ts`), which knowledge connectors sync. */
+  connectorPort: Number(read('CONNECTOR_STUB_PORT', String(Number(read('API_PORT', '4000')) + 4))),
   /** The health port of the worker that the knowledge spec starts for itself. */
   workerPort: Number(read('API_PORT', '4000')) + 7,
 }
@@ -66,6 +68,11 @@ export const mlServerUrl = `http://127.0.0.1:${String(e2e.mlPort)}`
 export const oauthServerUrl = `http://127.0.0.1:${String(e2e.oauthPort)}`
 /** The stub MCP server's endpoint and its list of calls. */
 export const mcpServerUrl = `http://127.0.0.1:${String(e2e.mcpPort)}`
+/** The stub Google Drive and Notion: one origin serves both apps' paths. */
+export const connectorServerUrl = `http://127.0.0.1:${String(e2e.connectorPort)}`
+/** The account the stub Drive belongs to, and the workspace the stub Notion integration sees. */
+export const DRIVE_ACCOUNT = 'maya@acme.test'
+export const NOTION_WORKSPACE = 'Acme Wiki'
 /** The stub's embedding model has its own address, so the chat model's listing stays one model. */
 export const embedServerUrl = `${modelServerUrl}/embed`
 
@@ -129,6 +136,13 @@ export function apiEnv(): Record<string, string> {
     // browser never reaches Slack, the spec answers in its place
     CONNECTIONS_OAUTH_SLACK_CLIENT_ID: 'e2e-slack-client-id',
     CONNECTIONS_OAUTH_SLACK_CLIENT_SECRET: 'e2e-slack-client-secret',
+    // Google Drive and Notion are set up too, and live on the stub server (`connectorServer.ts`):
+    // the browser signs in there and the API syncs from there
+    CONNECTIONS_OAUTH_GOOGLE_DRIVE_CLIENT_ID: 'e2e-drive-client-id',
+    CONNECTIONS_OAUTH_GOOGLE_DRIVE_CLIENT_SECRET: 'e2e-drive-client-secret',
+    CONNECTIONS_OAUTH_NOTION_CLIENT_ID: 'e2e-notion-client-id',
+    CONNECTIONS_OAUTH_NOTION_CLIENT_SECRET: 'e2e-notion-client-secret',
+    CONNECTIONS_PROVIDER_ORIGINS: `google-drive=${connectorServerUrl},notion=${connectorServerUrl}`,
   }
 }
 

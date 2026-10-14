@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { connectionOauthApps } from './connectionsEnv.js'
+import { connectionOauthApps, parseProviderOrigins } from './connectionsEnv.js'
 
 import type { Config, MailConfig, ProcessName, StorageConfig } from './config.types.js'
 import type { Env } from './env.js'
@@ -46,6 +46,14 @@ const toMail = (env: Env): MailConfig => {
       ...(env.SMTP_PASSWORD === undefined ? {} : { password: env.SMTP_PASSWORD }),
     },
   }
+}
+
+/** The validated `CONNECTIONS_PROVIDER_ORIGINS`; omitted when none is set. */
+const toProviderOrigins = (env: Env): Pick<Config['connections'], 'providerOrigins'> => {
+  const parsed = parseProviderOrigins(env.CONNECTIONS_PROVIDER_ORIGINS)
+  return 'origins' in parsed && Object.keys(parsed.origins).length > 0
+    ? { providerOrigins: parsed.origins }
+    : {}
 }
 
 const toOauth = (env: Env): Config['auth']['oauth'] => ({
@@ -121,6 +129,7 @@ export function toConfig(env: Env, processName: ProcessName): Config {
     connections: {
       oauthApps: connectionOauthApps(env),
       localHosts: splitList(env.CONNECTIONS_LOCAL_HOSTS).map((host) => host.toLowerCase()),
+      ...toProviderOrigins(env),
       ...(env.CONNECTIONS_SLACK_SIGNING_SECRET === undefined
         ? {}
         : { slackSigningSecret: env.CONNECTIONS_SLACK_SIGNING_SECRET }),

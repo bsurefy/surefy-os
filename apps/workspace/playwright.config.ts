@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
 import {
   apiEnv,
   apiUrl,
+  connectorServerUrl,
   mcpServerUrl,
   mlServerUrl,
   modelServerUrl,
@@ -29,9 +30,9 @@ const AGENT_SPECS = [
 
 /**
  * End-to-end specs against the real API and a fresh database (testing.md §1). `pnpm test:e2e`
- * prepares the database first; Playwright then starts the stub model, document parser and OAuth
- * servers, the API and the app, the `setup` project runs first-run setup and signs the Owner in,
- * and the specs reuse that session.
+ * prepares the database first; Playwright then starts the stub model, document parser, OAuth,
+ * MCP, Google Drive and Notion servers, the API and the app, the `setup` project runs first-run
+ * setup and signs the Owner in, and the specs reuse that session.
  */
 export default defineConfig({
   testDir: './e2e',
@@ -92,6 +93,13 @@ export default defineConfig({
       name: 'mcp',
       command: 'pnpm exec tsx e2e/support/mcpServer.ts',
       url: `${mcpServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'connectors',
+      command: 'pnpm exec tsx e2e/support/connectorServer.ts',
+      url: `${connectorServerUrl}/health/live`,
       timeout: SERVER_START_MS,
       reuseExistingServer: false,
     },

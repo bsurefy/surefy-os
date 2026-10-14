@@ -9,7 +9,8 @@ import type { LookupAddress } from 'node:dns'
 
 // Outbound requests to addresses people typed in (link sources). The address is checked when the
 // connection is made, so a host that resolves to a private address, or changes its answer between
-// a check and the connection (DNS rebinding), never reaches the internal network.
+// a check and the connection (DNS rebinding), never reaches the internal network. Node does not
+// resolve an address written as an IP, so that one is judged before the request.
 
 const blocked = new BlockList()
 for (const [network, prefix] of [
@@ -106,6 +107,11 @@ export interface SafeGetOptions {
    * redirects on the same origin only, so a redirect elsewhere never receives the credentials.
    */
   headers?: Record<string, string>
+  /**
+   * Host names (lowercase) that may be on private addresses: the install's local servers
+   * (`CONNECTIONS_LOCAL_HOSTS`), for connector downloads from a local stub. Link crawls pass none.
+   */
+  localHosts?: readonly string[]
 }
 
 const DEFAULTS = { timeoutMs: 20_000, maxBytes: 10 * 1024 * 1024, maxRedirects: 5 } as const
@@ -123,8 +129,13 @@ export const safeGet: SafeGet = async (url, options = {}) => {
     }
     if (current.username !== '' || current.password !== '')
       throw new UnsafeAddressError(current.host)
+    const isLocal = options.localHosts?.includes(current.hostname.toLowerCase()) === true
+    const literal = current.hostname.replaceAll(/^\[|\]$/g, '')
+    if (!isLocal && isIP(literal) !== 0 && !isPublicAddress(literal)) {
+      throw new UnsafeAddressError(current.host)
+    }
     const headers = current.origin === origin ? options.headers : undefined
-    const response = await once(current, settings, options.userAgent, headers)
+    const response = await once(current, settings, options.userAgent, headers, isLocal)
     const location = response.headers.location
     if (response.status >= 300 && response.status < 400 && location !== undefined) {
       current = new URL(location, current)
@@ -140,6 +151,7 @@ function once(
   settings: { timeoutMs: number; maxBytes: number },
   userAgent: string | undefined,
   extraHeaders: Record<string, string> | undefined,
+  isLocal: boolean,
 ): Promise<Omit<SafeResponse, 'url'>> {
   return new Promise((resolve, reject) => {
     const send = url.protocol === 'https:' ? httpsRequest : httpRequest
@@ -147,7 +159,7 @@ function once(
       url,
       {
         method: 'GET',
-        lookup: checkedLookup,
+        ...(isLocal ? {} : { lookup: checkedLookup }),
         timeout: settings.timeoutMs,
         headers: {
           'user-agent': userAgent ?? 'SurefyOS-Crawler',

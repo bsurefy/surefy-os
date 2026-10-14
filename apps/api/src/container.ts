@@ -373,6 +373,12 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     connections: connections.service,
     people: access.service,
     http: connections.http,
+    // stub Drive and Notion servers (CONNECTIONS_PROVIDER_ORIGINS), in development and tests only
+    connectorEndpoints: {
+      googleDrive: config.connections.providerOrigins?.['google-drive'],
+      notion: config.connections.providerOrigins?.notion,
+    },
+    localHosts: config.connections.localHosts,
     gateway: modelGateway.service,
     models: createKnowledgeModels(modelGrants),
     teams: teams.service,

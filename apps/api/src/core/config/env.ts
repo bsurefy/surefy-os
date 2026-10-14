@@ -59,6 +59,16 @@ export const envSchema = z.preprocess(
     .and(storageEnvSchema)
     .and(mailEnvSchema)
     .and(oauthEnvSchema)
-    .and(connectionsEnvSchema),
+    .and(connectionsEnvSchema)
+    .superRefine((env, ctx) => {
+      // other Drive and Notion servers are for stub servers in tests, never a real install
+      if (env.NODE_ENV === 'production' && env.CONNECTIONS_PROVIDER_ORIGINS !== '') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CONNECTIONS_PROVIDER_ORIGINS'],
+          message: 'is for development and tests only',
+        })
+      }
+    }),
 )
 export type Env = z.infer<typeof envSchema>

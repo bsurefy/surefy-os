@@ -72,6 +72,8 @@ export interface KnowledgeModuleDeps {
   http: OutboundHttp
   /** Other Drive and Notion API addresses (stub servers in end-to-end tests). */
   connectorEndpoints?: KnowledgeConnectorEndpoints
+  /** The install's local hosts, which connector downloads from those addresses may reach. */
+  localHosts?: readonly string[]
   /** Replaces the outbound HTTP client of link crawls and connector downloads (tests). */
   get?: SafeGet
 }
@@ -111,6 +113,7 @@ export function createKnowledgeModule(deps: KnowledgeModuleDeps) {
     http: deps.http,
     get,
     ...(deps.connectorEndpoints === undefined ? {} : { endpoints: deps.connectorEndpoints }),
+    ...(deps.localHosts === undefined ? {} : { localHosts: deps.localHosts }),
   })
   const sync = new KnowledgeSyncService({
     db: deps.db,

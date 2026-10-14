@@ -17,13 +17,23 @@ export interface KnowledgeConnectorEndpoints {
   notion?: string
 }
 
-/** One client per connector; overridden addresses are called as local hosts (`external`). */
+/**
+ * One client per connector; overridden addresses are called as local hosts: API calls through
+ * `external`, downloads with the install's local hosts allowed.
+ */
 export function createKnowledgeConnectors(
-  deps: Omit<ConnectorTransportDeps, 'external'> & { endpoints?: KnowledgeConnectorEndpoints },
+  deps: Omit<ConnectorTransportDeps, 'localHosts'> & {
+    endpoints?: KnowledgeConnectorEndpoints
+    localHosts?: readonly string[]
+  },
 ): KnowledgeConnectorClients {
   const endpoints = deps.endpoints ?? {}
   const transport = (overridden: boolean) =>
-    createConnectorTransport({ http: deps.http, get: deps.get, external: overridden })
+    createConnectorTransport({
+      http: deps.http,
+      get: deps.get,
+      ...(overridden ? { localHosts: deps.localHosts ?? [] } : {}),
+    })
   return {
     google_drive: createGoogleDriveConnector(
       transport(endpoints.googleDrive !== undefined),

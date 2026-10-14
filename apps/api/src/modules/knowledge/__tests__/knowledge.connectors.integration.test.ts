@@ -14,6 +14,7 @@ import {
   connectionDtoSchema,
   connectionImpactDtoSchema,
   ERROR_CODES,
+  knowledgeBaseDtoSchema,
   knowledgeConnectorItemsDtoSchema,
   knowledgeDocumentDtoSchema,
   knowledgeSourceDtoSchema,
@@ -21,7 +22,7 @@ import {
   oauthStartDtoSchema,
 } from '@surefy/contracts'
 
-import { expectData, expectError, expectPage } from '../../../../test/helpers/request.js'
+import { expectData, expectError, expectPage, request } from '../../../../test/helpers/request.js'
 import {
   GOOGLE_ENV,
   setupConnections,
@@ -465,5 +466,49 @@ describe('connector sources', () => {
       422,
       ERROR_CODES.KNOWLEDGE_CONNECTION_INVALID,
     )
+  })
+
+  it("refuses another organization's connection without calling the app", async () => {
+    const { setup, connectionId } = await setupDrive()
+    // a base of B that takes documents, so the connection is what is checked
+    await seedEmbeddingModel(setup, 'b')
+    const bea = setup.sessionOf(setup.b.members.bea)
+    const own = expectData(
+      await request(setup.app, 'POST', basesUrl(setup.b.id), {
+        headers: bea,
+        payload: { name: 'Library of B' },
+      }),
+      201,
+      knowledgeBaseDtoSchema,
+    )
+    const ownSources = basesUrl(setup.b.id, `/${own.id}/sources`)
+    const driveCalls = setup.http.callsTo('/drive/v3/').length
+
+    // B's Owner, in B's own base, names A's Drive connection: it is not one B may use
+    expectError(
+      await request(
+        setup.app,
+        'GET',
+        `${ownSources}/connector-items?connectionId=${connectionId}`,
+        {
+          headers: bea,
+        },
+      ),
+      422,
+      ERROR_CODES.KNOWLEDGE_CONNECTION_INVALID,
+    )
+    expectError(
+      await request(setup.app, 'POST', `${ownSources}/connectors`, {
+        headers: bea,
+        payload: { connectionId, folders: [{ externalId: 'f-hr', name: 'HR' }] },
+      }),
+      422,
+      ERROR_CODES.KNOWLEDGE_CONNECTION_INVALID,
+    )
+    expect(setup.http.callsTo('/drive/v3/')).toHaveLength(driveCalls)
+    const sourcesOfB = await setup.db.tenant(setup.b.id, (tx) =>
+      tx.select().from(knowledgeSources).where(eq(knowledgeSources.organizationId, setup.b.id)),
+    )
+    expect(sourcesOfB).toEqual([])
   })
 })
