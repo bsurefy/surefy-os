@@ -17,11 +17,13 @@ import { AgentRunsService } from './agentRuns.service.js'
 import { RunStreamer } from './agentRuns.streamer.js'
 import { AgentRunSweeper } from './agentRuns.sweeper.js'
 import { ModelTurns } from './agentRuns.turns.js'
+import { NO_CHAT_ANSWERS } from './agentRuns.types.js'
 
 import type { ExecuteAgentRunPayload } from './agentRuns.jobs.js'
 import type {
   AgentRunsAgents,
   AgentRunsApprovals,
+  AgentRunsChatAnswers,
   AgentRunsDispatcher,
   AgentRunsEvents,
   AgentRunsGateway,
@@ -61,6 +63,8 @@ export interface AgentRunsModuleDeps {
   audit: AuditRecorder
   /** The outbox service; read when an event is written, because the outbox is built after this. */
   outbox: () => AgentRunsOutbox
+  /** The chats module's answers of chat runs; read when a run pauses or ends (built after this). */
+  chatAnswers?: () => AgentRunsChatAnswers
   /** The live view of runs; a Redis stream unless a test replaces it. */
   events?: AgentRunsEvents
   /** The heartbeat interval; tests shorten it. */
@@ -81,6 +85,12 @@ export function createAgentRunsModule(deps: AgentRunsModuleDeps) {
     write: (tx, event) => deps.outbox().write(tx, event),
     kick: () => deps.outbox().kick(),
   }
+  const chatAnswers: AgentRunsChatAnswers = {
+    waiting: (tx, orgId, runId, approvalIds) =>
+      (deps.chatAnswers?.() ?? NO_CHAT_ANSWERS).waiting(tx, orgId, runId, approvalIds),
+    finished: (tx, run, steps) =>
+      (deps.chatAnswers?.() ?? NO_CHAT_ANSWERS).finished(tx, run, steps),
+  }
   const recorder = new StepRecorder({ db: deps.db, repository, events })
   const lifecycle = new RunLifecycle({
     db: deps.db,
@@ -89,6 +99,7 @@ export function createAgentRunsModule(deps: AgentRunsModuleDeps) {
     audit: deps.audit,
     outbox,
     events,
+    chatAnswers,
   })
 
   // the executor job is declared after the executor, and the dispatcher that enqueues it before
@@ -132,6 +143,7 @@ export function createAgentRunsModule(deps: AgentRunsModuleDeps) {
       tools: deps.tools,
       approvals: deps.approvals,
       audit: deps.audit,
+      chatAnswers,
       logger: deps.logger,
     }),
     logger: deps.logger,

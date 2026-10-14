@@ -68,6 +68,8 @@ export const OUTBOX_PAYLOADS = {
   'connection.expired': connectionExpiredPayload,
   'guard.rules_changed': guardRulesChangedPayload,
   'chat.purged': purgedPayload,
+  // prompts hold no stored objects: nothing handles it
+  'prompt.purged': purgedPayload,
   'knowledge_base.purged': knowledgePurgedPayload,
   'knowledge_source.purged': knowledgePurgedPayload,
 } as const

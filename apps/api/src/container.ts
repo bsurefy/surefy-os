@@ -41,7 +41,12 @@ import {
   createAuthUsers,
   createSignupPolicy,
 } from './modules/auth/index.js'
-import { createChatDocumentParser, createChatsModule } from './modules/chats/index.js'
+import {
+  createChatAgentRuns,
+  createChatDocumentParser,
+  createChatOrganizations,
+  createChatsModule,
+} from './modules/chats/index.js'
 import { createConnectionsModule, type OutboundHttp } from './modules/connections/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createFilesModule } from './modules/files/index.js'
@@ -387,6 +392,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     approvals: approvals.service,
     audit: audit.service,
     outbox: () => outbox.service,
+    chatAnswers: () => chats.agentAnswers,
   })
   const agentPublishing = createAgentPublishingModule({
     db,
@@ -423,6 +429,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       ml: integrations.ml,
       storage: integrations.storage,
     }),
+    agents: createChatAgentRuns({
+      agents: createAgentRunsAgents(agents.repository),
+      runs: agentRuns,
+    }),
+    organizations: createChatOrganizations(organizations.service),
+    users,
+    notifications: notifications.service,
+    audit: audit.service,
   })
   const dataControl = createDataControlModule({
     db,

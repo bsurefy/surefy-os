@@ -580,7 +580,7 @@ function newChatFrom(chatId: string, text: string, modelKey: string, input: unkn
     isPinned: false,
     pinnedAt: null,
     isPrivate: settings.isPrivate ?? false,
-    agentId: null,
+    agent: null,
     knowledgeScope: settings.knowledgeScope ?? 'all',
     knowledgeBaseIds: settings.knowledgeBaseIds ?? [],
     currentModelKey: modelKey,

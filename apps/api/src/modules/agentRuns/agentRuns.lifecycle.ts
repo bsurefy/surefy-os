@@ -7,6 +7,7 @@ import { outcomeSentence, summarize } from './agentRuns.summary.js'
 import type { AgentRunsRepository } from './agentRuns.repository.js'
 import type {
   AgentRunsApprovals,
+  AgentRunsChatAnswers,
   AgentRunsEvents,
   AgentRunsOutbox,
   RunRow,
@@ -21,6 +22,7 @@ export interface LifecycleDeps {
   audit: AuditRecorder
   outbox: AgentRunsOutbox
   events: AgentRunsEvents
+  chatAnswers: AgentRunsChatAnswers
 }
 
 export type EndStatus = Extract<AgentRunStatus, 'succeeded' | 'failed' | 'canceled' | 'timed_out'>
@@ -38,8 +40,8 @@ export interface EndRequest {
 
 /**
  * Ending a run (backend/agent-runs.md, §7): one conditional update, and in the same transaction
- * the run's pending approvals are canceled, the summary is written and `agent_run.finished` is
- * put in the outbox. The caller that gets the row owns the follow-up; the others do nothing, so
+ * the run's pending approvals are canceled, the summary is written, a chat run's answer is
+ * written and `agent_run.finished` is put in the outbox. The caller that gets the row owns the follow-up; the others do nothing, so
  * a cancel, a timeout and the executor can race safely.
  */
 export class RunLifecycle {
@@ -65,6 +67,7 @@ export class RunLifecycle {
         { orgId, userId: null, via: 'system', teamIds: [], access: { permissions: [] } },
         { agentRunId: runId },
       )
+      if (row.trigger === 'chat') await this.deps.chatAnswers.finished(tx, row, steps)
       await this.deps.outbox.write(tx, {
         orgId,
         topic: 'agent_run.finished',

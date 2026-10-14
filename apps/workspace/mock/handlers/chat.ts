@@ -45,7 +45,7 @@ export const chatFactory = defineFactory(chatDtoSchema, (sequence): ChatDto => (
   isPinned: false,
   pinnedAt: null,
   isPrivate: false,
-  agentId: null,
+  agent: null,
   knowledgeScope: 'all',
   knowledgeBaseIds: [],
   currentModelKey: null,

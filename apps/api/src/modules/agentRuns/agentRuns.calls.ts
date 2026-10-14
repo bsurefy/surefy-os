@@ -19,6 +19,7 @@ import type { RunSession } from './agentRuns.session.js'
 import type { CallState, RunState } from './agentRuns.state.js'
 import type {
   AgentRunsApprovals,
+  AgentRunsChatAnswers,
   AgentRunsEvents,
   AgentRunsGateway,
   AgentRunsGuard,
@@ -41,6 +42,7 @@ export interface CallMovesDeps {
   tools: AgentRunsTools
   approvals: AgentRunsApprovals
   audit: AuditRecorder
+  chatAnswers: AgentRunsChatAnswers
   logger: Logger
   now?: () => Date
 }
@@ -405,6 +407,8 @@ export class CallMoves {
     if (!pending) return false
     const marked = await this.deps.repository.markWaiting(tx, session.orgId, session.runId)
     if (!marked) throw new AgentRunSupersededError()
+    // a chat run's answer shows the approval cards; other runs have no chat answer
+    await this.deps.chatAnswers.waiting(tx, session.orgId, session.runId, approvalIds)
     return true
   }
 

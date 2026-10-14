@@ -74,6 +74,18 @@ export type ChatKnowledgeScope = (typeof CHAT_KNOWLEDGE_SCOPES)[number]
 
 export const CHAT_KNOWLEDGE_BASES_MAX = 100
 
+/**
+ * The shared agent an agent chat talks to (V1). `isAvailable` is false once the agent is paused,
+ * archived or no longer shared with the person: the thread keeps its history read only and says
+ * "{name} isn't available to you anymore".
+ */
+export const chatAgentRefDtoSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  isAvailable: z.boolean(),
+})
+export type ChatAgentRefDto = z.infer<typeof chatAgentRefDtoSchema>
+
 export const chatDtoSchema = z.object({
   id: z.uuid(),
   /** Empty until the first answer generates one. */
@@ -85,8 +97,8 @@ export const chatDtoSchema = z.object({
   pinnedAt: z.iso.datetime().nullable(),
   /** Local models only; excluded from Train and sharing. */
   isPrivate: z.boolean(),
-  /** A shared agent the chat talks to (V1); null for a plain model chat. */
-  agentId: z.uuid().nullable(),
+  /** The shared agent the chat talks to (V1); null for a model chat. Set when the chat is created. */
+  agent: chatAgentRefDtoSchema.nullable(),
   knowledgeScope: z.enum(CHAT_KNOWLEDGE_SCOPES),
   /** The selection when `knowledgeScope` is `selected`; empty otherwise. */
   knowledgeBaseIds: z.array(z.uuid()),

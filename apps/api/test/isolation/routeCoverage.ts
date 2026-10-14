@@ -209,6 +209,7 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'GET /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/sources/:index': {
     class: 'orgScoped',
   },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/choose': { class: 'orgScoped' },
   'PUT /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/feedback': {
     class: 'orgScoped',
     payload: () => ({ rating: 'not_helpful' }),
@@ -237,6 +238,27 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     payload: () => ({ name: 'Renamed by B' }),
   },
   'DELETE /api/v1/orgs/:orgId/chat-folders/:folderId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chats/:chatId/shares': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/shares': {
+    class: 'orgScoped',
+    payload: (f) => ({ subjects: [{ subjectType: 'user', userId: f.orgB.ownerId }] }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId/shares/:shareId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/shared-chats': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chat-share-targets': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/shared-chats/:chatId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/prompts': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/prompts': {
+    class: 'orgScoped',
+    payload: () => ({ title: 'B prompt', body: 'Hello {name}' }),
+  },
+  'GET /api/v1/orgs/:orgId/prompts/:promptId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/prompts/:promptId': {
+    class: 'orgScoped',
+    payload: () => ({ title: 'Taken over' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/prompts/:promptId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/prompts/:promptId/restore': { class: 'orgScoped' },
   'PUT /api/v1/chat-uploads/:attachmentId': {
     class: 'public',
     reason: 'Signed upload URL of an attachment; the HMAC signature is the credential',

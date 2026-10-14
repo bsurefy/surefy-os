@@ -26,7 +26,9 @@ import {
   CHAT_KNOWLEDGE_SCOPES,
   CHAT_MESSAGE_ROLES,
   CHAT_MESSAGE_STATUSES,
+  CHAT_SHARE_SUBJECT_TYPES,
   DATA_LOCATIONS,
+  PROMPT_VISIBILITIES,
 } from '@surefy/contracts'
 import type {
   ChatAttachmentKind,
@@ -36,23 +38,28 @@ import type {
   ChatMessageParts,
   ChatMessageRole,
   ChatMessageStatus,
+  ChatShareSubjectType,
   ChatVariantLabel,
   DataLocation,
+  PromptVisibility,
 } from '@surefy/contracts'
 
+import { agents } from './agents.tables.js'
 import { users } from './auth.tables.js'
-import { organizations } from './organizations.tables.js'
+import { organizationMembers, organizations } from './organizations.tables.js'
+import { teams } from './teams.tables.js'
 import { vaultModels } from './vault.tables.js'
 import { enumCheck } from '../checks.js'
-import { id, orgId, softDelete, timestamps } from '../columns.js'
+import { createdBy, id, orgId, softDelete, timestamps } from '../columns.js'
 import { bytea, tsvector } from '../columnTypes.js'
 import { tenantPolicy } from '../policies.js'
 
-// Chat (database/chat.md, §1–7): folders, chats and their knowledge scope, messages with their
-// structured parts, citations, answer feedback and attachments. Shares and the prompt library
-// (§8–10) arrive with V1. Until the knowledge tables exist (B3-03), `chat_knowledge_bases` and
-// `chat_message_citations` hold the knowledge ids without foreign keys; B3-03's migration adds
-// them. `agent_id` and `agent_run_id` are plain columns until Agents (V1).
+// Chat (database/chat.md): folders, chats and their knowledge scope, messages with their
+// structured parts, citations, answer feedback and attachments (§1–7), shares and the prompt
+// library (§8–10). `chat_knowledge_bases` and `chat_message_citations` hold the knowledge ids
+// without foreign keys. `chat_messages.agent_run_id` → `agent_runs` is declared in the
+// `chat-v1-security` migration: `agent_runs` already references `chats`, and the table files do
+// not import each other in a cycle.
 
 export const VARIANT_LABELS = ['a', 'b'] as const
 
@@ -99,8 +106,8 @@ export const chats = pgTable(
     pinnedAt: timestamp({ withTimezone: true }),
     /** Local models only; excluded from Train and sharing. */
     isPrivate: boolean().notNull().default(false),
-    /** V1: → agents (set null). */
-    agentId: uuid(),
+    /** A shared agent the chat talks to (V1). */
+    agentId: uuid().references(() => agents.id, { onDelete: 'set null' }),
     knowledgeScope: text().$type<ChatKnowledgeScope>().notNull().default('all'),
     /** The model picked for the next message; `auto` with routing (V2). */
     currentModelKey: text(),
@@ -182,7 +189,7 @@ export const chatMessages = pgTable(
     authorUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
     modelKey: text(),
     vaultModelId: uuid().references(() => vaultModels.id, { onDelete: 'set null' }),
-    /** V1: → agent_runs (set null). */
+    /** Answers from an agent (V1): → agent_runs (set null), declared in the migration. */
     agentRunId: uuid(),
     /** Compare (V1): both answers to one prompt share it. */
     variantGroupId: uuid(),
@@ -371,5 +378,129 @@ export const chatAttachments = pgTable(
       .on(t.createdAt)
       .where(sql`${t.messageId} is null`),
     tenantPolicy('chat_attachments', t.organizationId),
+  ],
+)
+
+/** A view-only share of one chat with a person or a team of the same organization. */
+export const chatShares = pgTable(
+  'chat_shares',
+  {
+    id: id(),
+    organizationId: orgId(organizations),
+    chatId: uuid().notNull(),
+    subjectType: text().$type<ChatShareSubjectType>().notNull(),
+    /** ⇉ (organization_id, user_id) → organization_members (cascade). */
+    userId: uuid(),
+    /** ⇉ (organization_id, team_id) → teams (cascade). */
+    teamId: uuid(),
+    sharedByUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps(),
+  },
+  (t) => [
+    unique('chat_shares_organization_id_id_key').on(t.organizationId, t.id),
+    unique('chat_shares_subject_key')
+      .on(t.organizationId, t.chatId, t.subjectType, t.userId, t.teamId)
+      .nullsNotDistinct(),
+    foreignKey({
+      name: 'chat_shares_organization_id_chat_id_fkey',
+      columns: [t.organizationId, t.chatId],
+      foreignColumns: [chats.organizationId, chats.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'chat_shares_organization_id_user_id_fkey',
+      columns: [t.organizationId, t.userId],
+      foreignColumns: [organizationMembers.organizationId, organizationMembers.userId],
+    }).onDelete('cascade'), // removing a member removes the shares with them
+    foreignKey({
+      name: 'chat_shares_organization_id_team_id_fkey',
+      columns: [t.organizationId, t.teamId],
+      foreignColumns: [teams.organizationId, teams.id],
+    }).onDelete('cascade'),
+    enumCheck('chat_shares_subject_type_check', t.subjectType, CHAT_SHARE_SUBJECT_TYPES),
+    check(
+      'chat_shares_subject_check',
+      sql`(${t.subjectType} = 'user' and ${t.userId} is not null and ${t.teamId} is null) or (${t.subjectType} = 'team' and ${t.teamId} is not null and ${t.userId} is null)`,
+    ),
+    index('chat_shares_organization_id_user_id_idx')
+      .on(t.organizationId, t.userId)
+      .where(sql`${t.userId} is not null`),
+    index('chat_shares_organization_id_team_id_idx')
+      .on(t.organizationId, t.teamId)
+      .where(sql`${t.teamId} is not null`),
+    index('chat_shares_shared_by_user_id_idx')
+      .on(t.sharedByUserId)
+      .where(sql`${t.sharedByUserId} is not null`),
+    tenantPolicy('chat_shares', t.organizationId),
+  ],
+)
+
+/** A reusable prompt with `{variables}`, personal or shared; soft delete, restorable for 30 days. */
+export const prompts = pgTable(
+  'prompts',
+  {
+    id: id(),
+    organizationId: orgId(organizations),
+    /** Required for personal prompts; null for a shared prompt whose owner was erased. */
+    ownerUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    title: text().notNull(),
+    body: text().notNull(),
+    /** Names parsed from the `{name}` placeholders of the body on save, in order of first use. */
+    variables: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'`),
+    visibility: text().$type<PromptVisibility>().notNull().default('personal'),
+    ...createdBy(users),
+    updatedByUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    ...softDelete(users),
+    ...timestamps(),
+  },
+  (t) => [
+    unique('prompts_organization_id_id_key').on(t.organizationId, t.id),
+    enumCheck('prompts_visibility_check', t.visibility, PROMPT_VISIBILITIES),
+    check(
+      'prompts_personal_owner_check',
+      sql`${t.visibility} <> 'personal' or ${t.ownerUserId} is not null`,
+    ),
+    check('prompts_deleted_check', sql`${t.deletedByUserId} is null or ${t.deletedAt} is not null`),
+    index('prompts_organization_id_owner_user_id_idx')
+      .on(t.organizationId, t.ownerUserId, t.updatedAt.desc())
+      .where(sql`${t.deletedAt} is null`),
+    index('prompts_organization_id_shared_idx')
+      .on(t.organizationId, t.updatedAt.desc())
+      .where(sql`${t.visibility} = 'shared' and ${t.deletedAt} is null`),
+    index('prompts_organization_id_deleted_at_idx')
+      .on(t.organizationId, t.deletedAt.desc())
+      .where(sql`${t.deletedAt} is not null`),
+    index('prompts_deleted_at_idx')
+      .on(t.deletedAt)
+      .where(sql`${t.deletedAt} is not null`),
+    tenantPolicy('prompts', t.organizationId),
+  ],
+)
+
+/** Limits a shared prompt to teams; a shared prompt without rows is seen by the organization. */
+export const promptShares = pgTable(
+  'prompt_shares',
+  {
+    organizationId: orgId(organizations),
+    promptId: uuid().notNull(),
+    teamId: uuid().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ name: 'prompt_shares_pkey', columns: [t.promptId, t.teamId] }),
+    foreignKey({
+      name: 'prompt_shares_organization_id_prompt_id_fkey',
+      columns: [t.organizationId, t.promptId],
+      foreignColumns: [prompts.organizationId, prompts.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'prompt_shares_organization_id_team_id_fkey',
+      columns: [t.organizationId, t.teamId],
+      foreignColumns: [teams.organizationId, teams.id],
+    }).onDelete('cascade'),
+    index('prompt_shares_organization_id_team_id_idx').on(t.organizationId, t.teamId),
+    tenantPolicy('prompt_shares', t.organizationId),
   ],
 )

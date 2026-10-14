@@ -12,6 +12,7 @@ import {
   chatMessageFeedback,
   chatMessages,
   chats,
+  chatShares,
   guardStatsDaily,
   knowledgeChunks,
   knowledgeDocuments,
@@ -19,6 +20,8 @@ import {
   organizationPurges,
   organizationSlugHistory,
   outboxEvents,
+  prompts,
+  promptShares,
   runStatsDaily,
 } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
@@ -45,11 +48,11 @@ import type { TwoOrgSetup } from '../helpers/orgSetup.js'
 import type { SendEmailPayload } from '@/modules/notifications/index.js'
 
 /**
- * One chat of Uma's in A, with a folder, an answer with a citation and a rating, and an
- * attachment: every chat table holds a row of A. Written straight to the tables, so the suite
- * does not need a model.
+ * One chat of Uma's in A, with a folder, an answer with a citation and a rating, an attachment,
+ * a share with the team, and a shared prompt limited to the team: every chat table holds a row
+ * of A. Written straight to the tables, so the suite does not need a model.
  */
-async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string) {
+async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string, teamId: string) {
   return setup.db.tenant(orgId, async (tx) => {
     const [folder] = await tx
       .insert(chatFolders)
@@ -131,11 +134,37 @@ async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string) {
       })
       .returning({ id: chatAttachments.id })
     if (attachment === undefined) throw new Error('chat seed failed')
+    const [share] = await tx
+      .insert(chatShares)
+      .values({
+        organizationId: orgId,
+        chatId: chat.id,
+        subjectType: 'team',
+        teamId,
+        sharedByUserId: userId,
+      })
+      .returning({ id: chatShares.id })
+    const [prompt] = await tx
+      .insert(prompts)
+      .values({
+        organizationId: orgId,
+        ownerUserId: userId,
+        title: PROMPT_TITLE,
+        body: PROMPT_BODY,
+        variables: ['customer'],
+        visibility: 'shared',
+        createdByUserId: userId,
+      })
+      .returning({ id: prompts.id })
+    if (share === undefined || prompt === undefined) throw new Error('chat seed failed')
+    await tx.insert(promptShares).values({ organizationId: orgId, promptId: prompt.id, teamId })
     return {
       chatId: chat.id,
       messageId: answer.id,
       folderId: folder.id,
       attachmentId: attachment.id,
+      shareId: share.id,
+      promptId: prompt.id,
     }
   })
 }
@@ -162,6 +191,8 @@ const GUARDRAIL_NAME = 'Secret Payroll Block 0517'
 const PII_LABEL = 'Secret Employee Number'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
+const PROMPT_TITLE = 'Secret Renewal Prompt'
+const PROMPT_BODY = 'Draft the secret renewal offer for {customer}'
 const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
 const KNOWLEDGE_PASSAGE = 'The secret leave policy grants nineteen days'
 
@@ -490,7 +521,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       spentMicros: 2_500_000,
     }),
   )
-  const chat = await seedChat(setup, a.id, uma.id)
+  const chat = await seedChat(setup, a.id, uma.id, team.id)
   const entryId = await setup.db.system('test', async (tx) => {
     await tx.insert(organizationPurges).values({
       organizationId: a.id,
@@ -601,6 +632,8 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       messageId: chat.messageId,
       folderId: chat.folderId,
       attachmentId: chat.attachmentId,
+      shareId: chat.shareId,
+      promptId: chat.promptId,
       index: '1',
       baseId: knowledgeBase.id,
       sourceId: knowledge.sourceId,
@@ -659,6 +692,10 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       CHAT_TITLE,
       CHAT_TEXT,
       'secret-plan.pdf',
+      chat.shareId,
+      chat.promptId,
+      PROMPT_TITLE,
+      PROMPT_BODY,
       knowledgeBase.id,
       'Secret Handbook',
       knowledge.sourceId,

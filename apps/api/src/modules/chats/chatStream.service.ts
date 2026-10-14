@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { randomUUID } from 'node:crypto'
+
 import { toUIMessageStream } from 'ai'
 
-import { AppError } from '@/core/errors/index.js'
+import { AppError, ForbiddenError } from '@/core/errors/index.js'
 import { providerErrorFrom } from '@/integrations/ai/index.js'
+import { AgentRunAgentNotFoundError, AgentRunAgentPausedError } from '@/modules/agentRuns/index.js'
 import { ModelNotAllowedError } from '@/modules/modelGateway/index.js'
-import { ERROR_CODES } from '@surefy/contracts'
+import { AGENT_RUN_INPUT_MESSAGES_MAX, ERROR_CODES, PERMISSIONS } from '@surefy/contracts'
 import type {
+  AgentRunMessage,
+  ChatMessageDto,
   ChatMessageIdsData,
   ChatMessagePart,
   ChatModelData,
@@ -19,6 +24,7 @@ import type {
 import { modelCallContext, requireUser } from './chatContext.js'
 import { PartsBuilder } from './chatParts.js'
 import { buildModelMessages } from './chatPrompt.js'
+import { chatRunResponse } from './chatRunStream.js'
 import {
   INTERRUPTED_ERROR_CODE,
   SOURCES_PROMPT,
@@ -30,12 +36,15 @@ import {
 import {
   ChatAttachmentNotFoundError,
   ChatAttachmentNotReadyError,
+  ChatCompareNotAvailableError,
+  ChatCompareUnresolvedError,
   ChatMessageNotFoundError,
   ChatMessageStateInvalidError,
   ChatModelNoVisionError,
   ChatNotFoundError,
   ChatStreamInProgressError,
 } from './chats.errors.js'
+import { toMessageDto } from './chats.mapper.js'
 import {
   cleanTitle,
   contentTextOf,
@@ -51,6 +60,8 @@ import type { ChatMessagesRepository } from './chatMessages.repository.js'
 import type { ChatAttachmentRow, ChatMessageRow, ChatRow } from './chats.mapper.js'
 import type { ChatsRepository } from './chats.repository.js'
 import type {
+  ChatAgent,
+  ChatAgentRuns,
   ChatGateway,
   ChatModelInfo,
   ChatPii,
@@ -74,10 +85,16 @@ export interface ChatStreamServiceDeps {
   gateway: ChatGateway
   pii: ChatPii
   retrieval: ChatRetrieval
+  agents: ChatAgentRuns
   storage: StorageProvider
   logger: Logger
   now?: () => number
 }
+
+/** What a send answers: the model's stream, or for an agent chat the run's event stream. */
+export type ChatSendResult =
+  | { kind: 'stream'; stream: ReadableStream<UIMessageChunk> }
+  | { kind: 'response'; response: Response }
 
 /** Everything the transaction that opens an answer decided, for the model call and the stream. */
 interface Prepared {
@@ -95,6 +112,20 @@ interface Prepared {
   initialParts: ChatMessagePart[]
   /** The personal-data filter changed what was sent to the model. */
   piiMasked: boolean
+  /** Compare: the answer this one sits next to (A for answer B). */
+  variant: { groupId: string; label: 'a' | 'b' } | null
+}
+
+/** An agent chat's send: the messages are stored, the run starts after the commit. */
+interface PreparedAgentSend {
+  chat: ChatRow
+  agent: ChatAgent
+  model: ChatModelInfo | undefined
+  history: ChatMessageRow[]
+  userMessageId: string
+  assistantMessageId: string
+  /** Set when this first message named the chat. */
+  title: string | null
 }
 
 /** What a send does to the thread (see `plan`). */
@@ -167,9 +198,13 @@ export class ChatStreamService {
     chatId: string,
     input: SendChatMessageInput,
     signal: AbortSignal,
-  ): Promise<ReadableStream<UIMessageChunk>> {
+  ): Promise<ChatSendResult> {
     const userId = requireUser(ctx)
-    const prepared = await this.prepare(ctx, userId, chatId, input)
+    const opened = await this.prepare(ctx, userId, chatId, input)
+    if ('agent' in opened) {
+      return { kind: 'response', response: await this.startAgentRun(ctx, opened) }
+    }
+    const prepared = opened
     const retrieval = await this.retrieve(ctx, prepared, signal)
     const builder = new PartsBuilder([...prepared.initialParts, ...retrieval.parts], this.deps.now)
     let stream: GatewayStream
@@ -202,7 +237,44 @@ export class ChatStreamService {
       await this.settleBeforeStream(ctx.orgId, prepared, error, signal, builder)
       throw error
     }
-    return this.open(ctx, userId, sent, stream, builder, retrieval.notes, signal)
+    return {
+      kind: 'stream',
+      stream: this.open(ctx, userId, sent, stream, builder, retrieval.notes, signal),
+    }
+  }
+
+  /**
+   * Compare's "Continue with A/B": the other answer becomes `superseded` and the chat goes on
+   * with the chosen answer's model. Both answers must have finished.
+   */
+  async choose(ctx: TenantContext, chatId: string, messageId: string): Promise<ChatMessageDto> {
+    const userId = requireUser(ctx)
+    const { chats, messages } = this.deps
+    return this.deps.db.tenant(ctx.orgId, async (tx) => {
+      const chat = await chats.lockOwned(tx, ctx.orgId, userId, chatId)
+      if (chat === undefined) throw new ChatNotFoundError()
+      const thread = await messages.thread(tx, ctx.orgId, chatId)
+      const chosen = thread.find((message) => message.id === messageId)
+      if (chosen === undefined) throw new ChatMessageNotFoundError()
+      const other =
+        chosen.variantGroupId === null
+          ? undefined
+          : thread.find((m) => m.id !== chosen.id && m.variantGroupId === chosen.variantGroupId)
+      if (chosen.role !== 'assistant' || other === undefined) {
+        throw new ChatMessageStateInvalidError('Only an answer of an open comparison is chosen')
+      }
+      if (chosen.status === 'streaming' || other.status === 'streaming') {
+        throw new ChatMessageStateInvalidError('Both answers must finish first')
+      }
+      const superseded = await messages.supersede(tx, ctx.orgId, [other.id])
+      await chats.bumpMessages(tx, ctx.orgId, chatId, {
+        delta: -superseded,
+        lastMessageAt: chat.lastMessageAt ?? new Date(this.now()),
+        ...(chosen.modelKey === null ? {} : { currentModelKey: chosen.modelKey }),
+      })
+      const feedback = await messages.feedbackOf(tx, ctx.orgId, userId, [chosen.id])
+      return toMessageDto(chosen, feedback.get(chosen.id) ?? null)
+    })
   }
 
   // ── Opening the answer ──────────────────────────────────────────────────────────────────────
@@ -212,13 +284,22 @@ export class ChatStreamService {
     userId: string,
     chatId: string,
     input: SendChatMessageInput,
-  ): Promise<Prepared> {
+  ): Promise<Prepared | PreparedAgentSend> {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
       const chat = await this.openChat(tx, ctx, userId, chatId, input)
-      await this.assertIdle(tx, ctx.orgId, chatId)
+      const agent = chat.agentId === null ? null : await this.agentOf(tx, ctx, chat, input)
       const thread = await this.deps.messages.thread(tx, ctx.orgId, chatId)
+      const compared = input.trigger === 'compare' ? comparedAnswer(thread, input.messageId) : null
+      await this.assertIdle(tx, ctx.orgId, chatId, compared?.id)
+      if (compared === null) assertResolved(thread)
       const plan = await this.plan(tx, ctx.orgId, chatId, thread, input)
+      if (agent !== null && plan.text !== null) {
+        return this.writeAgentSend(tx, { ctx, userId, chat, agent, plan })
+      }
       const model = await this.pickModel(tx, ctx, chat, plan.requestedModelKey)
+      if (compared !== null && compared.modelKey === model.modelKey) {
+        throw new ChatCompareNotAvailableError('Answer B needs another model than answer A')
+      }
       const carried = await this.carriedAttachments(
         tx,
         ctx.orgId,
@@ -226,8 +307,39 @@ export class ChatStreamService {
         plan.attachmentIds,
         model,
       )
-      return this.write(tx, { ctx, userId, chat, model, plan, carried })
+      return this.write(tx, { ctx, userId, chat, model, plan, carried, compared })
     })
+  }
+
+  /**
+   * The agent an agent chat talks to, for this send: a new message only, text only, while the
+   * person may still use the agent ("Support triage isn't available to you anymore").
+   */
+  private async agentOf(
+    tx: DbExecutor,
+    ctx: TenantContext,
+    chat: ChatRow,
+    input: SendChatMessageInput,
+  ): Promise<ChatAgent> {
+    if (input.trigger === 'compare') {
+      throw new ChatCompareNotAvailableError('Agent chats have no compare')
+    }
+    if (input.trigger !== 'submit') {
+      throw new ChatMessageStateInvalidError('An agent chat takes new messages only')
+    }
+    // the agent's own model answers: `modelKey` and `webSearch` are ignored; files are not taken
+    if (input.attachmentIds.length > 0) {
+      throw new ChatMessageStateInvalidError('An agent chat takes text only')
+    }
+    return this.usableAgent(tx, ctx, chat.agentId ?? '')
+  }
+
+  private async usableAgent(tx: DbExecutor, ctx: TenantContext, agentId: string) {
+    if (!ctx.access.permissions.includes(PERMISSIONS.AGENTS_INVOKE)) throw new ForbiddenError()
+    const agent = await this.deps.agents.findUsable(tx, ctx, agentId)
+    if (agent === undefined) throw new AgentRunAgentNotFoundError()
+    if (agent.status !== 'active') throw new AgentRunAgentPausedError()
+    return agent
   }
 
   /** The chat row, locked; created with its first message; or given its settings if an attachment made it. */
@@ -246,23 +358,32 @@ export class ChatStreamService {
       if (existing === undefined) throw new ChatNotFoundError()
       return existing
     }
+    const { agentId, ...newChat } = input.newChat ?? {}
+    if (agentId !== undefined) {
+      // an agent chat follows the agent's own model, knowledge and privacy
+      if (newChat.isPrivate === true) {
+        throw new ChatMessageStateInvalidError('An agent chat cannot be private')
+      }
+      await this.usableAgent(tx, ctx, agentId)
+    }
     const settings = await resolveSettings(
       this.settingsDeps,
       tx,
       ctx,
       userId,
-      input.newChat ?? {},
+      newChat,
       existing ?? null,
     )
+    const patch = agentId === undefined ? settings.patch : { ...settings.patch, agentId }
     const chat =
       existing === undefined
         ? await chats.insert(tx, {
             id: chatId,
             organizationId: ctx.orgId,
             ownerUserId: userId,
-            ...settings.patch,
+            ...patch,
           })
-        : await chats.update(tx, ctx.orgId, chatId, settings.patch)
+        : await chats.update(tx, ctx.orgId, chatId, patch)
     if (chat === undefined) throw new ChatNotFoundError() // the id belongs to someone else
     if (settings.knowledgeBaseIds !== undefined) {
       await chats.replaceKnowledgeBases(tx, ctx.orgId, chatId, settings.knowledgeBaseIds)
@@ -270,8 +391,16 @@ export class ChatStreamService {
     return chat
   }
 
-  /** One answer at a time per chat; a stale `streaming` row is settled first. */
-  private async assertIdle(tx: DbExecutor, orgId: string, chatId: string): Promise<void> {
+  /**
+   * One answer at a time per chat, except Compare's answer B next to answer A; a stale
+   * `streaming` row is settled first.
+   */
+  private async assertIdle(
+    tx: DbExecutor,
+    orgId: string,
+    chatId: string,
+    besideId?: string,
+  ): Promise<void> {
     const { messages } = this.deps
     await messages.interruptStale(
       tx,
@@ -279,7 +408,9 @@ export class ChatStreamService {
       INTERRUPTED_ERROR_CODE,
       { orgId, chatId },
     )
-    if (await messages.hasStreaming(tx, orgId, chatId)) throw new ChatStreamInProgressError()
+    if (await messages.hasStreaming(tx, orgId, chatId, besideId)) {
+      throw new ChatStreamInProgressError()
+    }
   }
 
   /** What the trigger does to the thread: which messages stay, which are replaced, what is new. */
@@ -321,6 +452,18 @@ export class ChatStreamService {
           superseded: [...replaced],
           text: input.text,
           attachmentIds: input.attachmentIds,
+        },
+        input.modelKey,
+      )
+    }
+    if (input.trigger === 'compare') {
+      // answer B reads what answer A read: the thread up to the message both answer
+      return withModel(
+        {
+          history: thread.slice(0, thread.indexOf(target) + 1),
+          superseded: [],
+          text: null,
+          attachmentIds: [],
         },
         input.modelKey,
       )
@@ -382,10 +525,22 @@ export class ChatStreamService {
       model: ChatModelInfo
       plan: Plan
       carried: ChatAttachmentRow[]
+      /** Compare: answer A, which this answer (B) sits next to. */
+      compared: ChatMessageRow | null
     },
   ): Promise<Prepared> {
-    const { ctx, userId, chat, model, plan, carried } = open
+    const { ctx, userId, chat, model, plan, carried, compared } = open
     const { messages, attachments, chats } = this.deps
+    const variant =
+      compared === null
+        ? null
+        : { groupId: compared.variantGroupId ?? randomUUID(), label: 'b' as const }
+    if (compared !== null && variant !== null) {
+      await messages.update(tx, ctx.orgId, compared.id, {
+        variantGroupId: variant.groupId,
+        variantLabel: 'a',
+      })
+    }
     const lastModel = await messages.lastAnswerModel(tx, ctx.orgId, chat.id)
     const supersededCount = await messages.supersede(tx, ctx.orgId, plan.superseded)
     let userMessage: ChatMessageRow | null = null
@@ -414,8 +569,9 @@ export class ChatStreamService {
         userMessage.id,
       )
     }
+    // answer B is no switch: the chat stays on answer A's model until one is chosen
     const initialParts: ChatMessagePart[] =
-      lastModel !== null && lastModel !== model.modelKey
+      variant === null && lastModel !== null && lastModel !== model.modelKey
         ? [{ type: 'model-switch', fromModelKey: lastModel, toModelKey: model.modelKey }]
         : []
     const assistant = await messages.insert(tx, {
@@ -426,13 +582,15 @@ export class ChatStreamService {
       parts: emptyParts(initialParts),
       modelKey: model.modelKey,
       dataLocation: dataLocationOf(model.source),
+      ...(variant === null ? {} : { variantGroupId: variant.groupId, variantLabel: variant.label }),
     })
     await chats.bumpMessages(tx, ctx.orgId, chat.id, {
       delta: (userMessage === null ? 0 : 1) + 1 - supersededCount,
       lastMessageAt: new Date(this.now()),
-      currentModelKey: model.modelKey,
+      ...(variant === null ? { currentModelKey: model.modelKey } : {}),
     })
     const history = userMessage === null ? plan.history : [...plan.history, userMessage]
+    const compareTarget = variant === null ? undefined : plan.history.at(-1)
     const lastQuestion = [...history].reverse().find((message) => message.role === 'user')
     return {
       chat,
@@ -443,14 +601,127 @@ export class ChatStreamService {
         ctx.orgId,
         history.map((message) => message.id),
       ),
-      userMessageId: userMessage?.id ?? null,
+      // Compare names the message both answers reply to
+      userMessageId: userMessage?.id ?? compareTarget?.id ?? null,
       assistantMessageId: assistant.id,
       question: plan.text ?? lastQuestion?.contentText ?? '',
       continuing: plan.continuing,
       needsTitle: chat.title === '' && !chat.titleGenerated && plan.text !== null,
       initialParts,
       piiMasked: false,
+      variant,
     }
+  }
+
+  /**
+   * An agent chat's message: the user message and the assistant message that streams until the
+   * run ends. The first message names the chat from the question; the agent's model is not
+   * asked, so naming it costs nothing and reaches no provider.
+   */
+  private async writeAgentSend(
+    tx: DbExecutor,
+    open: { ctx: TenantContext; userId: string; chat: ChatRow; agent: ChatAgent; plan: Plan },
+  ): Promise<PreparedAgentSend> {
+    const { ctx, userId, chat, agent, plan } = open
+    const { messages, chats } = this.deps
+    const text = plan.text ?? ''
+    const userMessage = await messages.insert(tx, {
+      organizationId: ctx.orgId,
+      chatId: chat.id,
+      role: 'user',
+      status: 'complete',
+      contentText: text,
+      parts: emptyParts([{ type: 'text', text }]),
+      authorUserId: userId,
+    })
+    const model =
+      agent.modelKey === null
+        ? undefined
+        : await this.deps.models.find(tx, ctx.orgId, agent.modelKey)
+    const assistant = await messages.insert(tx, {
+      organizationId: ctx.orgId,
+      chatId: chat.id,
+      role: 'assistant',
+      status: 'streaming',
+      parts: emptyParts(),
+      modelKey: agent.modelKey,
+      dataLocation: model === undefined ? null : dataLocationOf(model.source),
+    })
+    await chats.bumpMessages(tx, ctx.orgId, chat.id, {
+      delta: 2,
+      lastMessageAt: new Date(this.now()),
+    })
+    const title = chat.title === '' && !chat.titleGenerated ? fallbackTitle(text) : ''
+    if (title !== '') {
+      await chats.update(tx, ctx.orgId, chat.id, { title, titleGenerated: true })
+    }
+    return {
+      chat,
+      agent,
+      model,
+      history: [...plan.history, userMessage],
+      userMessageId: userMessage.id,
+      assistantMessageId: assistant.id,
+      title: title === '' ? null : title,
+    }
+  }
+
+  /**
+   * Starts the `chat` run with the conversation so far and answers with its event stream. A run
+   * that cannot start fails the answer before the first byte; closing the stream never cancels
+   * the run, whose end writes the answer.
+   */
+  private async startAgentRun(ctx: TenantContext, sent: PreparedAgentSend): Promise<Response> {
+    const { messages } = this.deps
+    let run: { id: string }
+    try {
+      run = await this.deps.agents.start(ctx, {
+        agentId: sent.agent.id,
+        chatId: sent.chat.id,
+        messages: runMessagesOf(sent.history),
+      })
+    } catch (error) {
+      await this.deps.db
+        .tenant(ctx.orgId, (tx) =>
+          messages.update(tx, ctx.orgId, sent.assistantMessageId, {
+            status: 'failed',
+            errorCode: errorCodeOf(error),
+          }),
+        )
+        .catch((writeError: unknown) => {
+          this.deps.logger.error({ err: writeError }, 'chat answer not marked failed')
+        })
+      throw error
+    }
+    await this.deps.db.tenant(ctx.orgId, (tx) =>
+      messages.update(tx, ctx.orgId, sent.assistantMessageId, { agentRunId: run.id }),
+    )
+    const chunks: UIMessageChunk[] = [
+      {
+        type: 'data-message',
+        data: { userMessageId: sent.userMessageId, assistantMessageId: sent.assistantMessageId },
+      },
+    ]
+    if (sent.model !== undefined) {
+      const modelData: ChatModelData = {
+        model: {
+          modelKey: sent.model.modelKey,
+          displayName: sent.model.displayName,
+          providerKey: sent.model.providerKey,
+          source: sent.model.source,
+        },
+        dataLocation: dataLocationOf(sent.model.source),
+        piiMasked: false,
+        routed: false,
+        fallback: null,
+      }
+      chunks.push({ type: 'data-model', data: modelData })
+    }
+    if (sent.title !== null) chunks.push({ type: 'data-title', data: { title: sent.title } })
+    return chatRunResponse(await this.deps.agents.stream(ctx, run.id), {
+      assistantMessageId: sent.assistantMessageId,
+      chunks,
+    })
   }
 
   /** Knowledge in scope: the passages become numbered sources and part of the system prompt. */
@@ -843,4 +1114,38 @@ function sourcePartOf(passage: RetrievedPassage, index: number): SourcePart {
 
 function usageOf(call: ModelCallResultDto, reasoningTokens: number): ChatUsage {
   return { ...call.usage, reasoningTokens }
+}
+
+/** Compare answers the latest message once: answer A must be the newest message and not compared. */
+function comparedAnswer(thread: readonly ChatMessageRow[], userMessageId: string): ChatMessageRow {
+  const index = thread.findIndex((message) => message.id === userMessageId)
+  if (index < 0) throw new ChatMessageNotFoundError()
+  const answer = thread[index + 1]
+  if (
+    thread[index]?.role !== 'user' ||
+    answer?.role !== 'assistant' ||
+    index + 2 !== thread.length ||
+    answer.variantGroupId !== null
+  ) {
+    throw new ChatMessageStateInvalidError('Compare answers the latest message once')
+  }
+  return answer
+}
+
+/** Until answer A or B is chosen, the chat takes no other message. */
+function assertResolved(thread: readonly ChatMessageRow[]): void {
+  const groups = new Set<string>()
+  for (const message of thread) {
+    if (message.variantGroupId === null) continue
+    if (groups.has(message.variantGroupId)) throw new ChatCompareUnresolvedError()
+    groups.add(message.variantGroupId)
+  }
+}
+
+/** What an agent run starts from: the latest messages with text, the question last. */
+function runMessagesOf(history: readonly ChatMessageRow[]): AgentRunMessage[] {
+  return history
+    .filter((message) => message.contentText.trim() !== '')
+    .slice(-AGENT_RUN_INPUT_MESSAGES_MAX)
+    .map((message) => ({ role: message.role, text: message.contentText.slice(0, 100_000) }))
 }

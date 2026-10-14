@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { ChatAgentAnswers } from './chatAgentAnswers.js'
 import { ChatAttachmentsRepository } from './chatAttachments.repository.js'
 import { ChatAttachmentsService } from './chatAttachments.service.js'
 import { ChatMaintenanceService } from './chatMaintenance.service.js'
@@ -6,6 +7,7 @@ import { ChatMessagesRepository } from './chatMessages.repository.js'
 import { ChatMessagesService } from './chatMessages.service.js'
 import { createChatModels } from './chatModels.js'
 import { createChatPurgeHandlers } from './chatPurge.js'
+import { ChatReaders } from './chatReaders.js'
 import { ChatsController } from './chats.controller.js'
 import {
   createCleanupChatAttachmentsJob,
@@ -17,13 +19,22 @@ import { chatsRoutes } from './chats.routes.js'
 import { ChatsService } from './chats.service.js'
 import {
   noChatRetrieval,
+  type ChatAgentRuns,
+  type ChatAudit,
   type ChatDocumentParser,
   type ChatGateway,
+  type ChatNotifications,
+  type ChatOrganizations,
   type ChatPii,
   type ChatRetrieval,
+  type ChatUserRefs,
 } from './chats.types.js'
 import { deriveUploadKey } from './chats.utils.js'
+import { ChatSharesRepository } from './chatShares.repository.js'
+import { ChatSharesService } from './chatShares.service.js'
 import { ChatStreamService } from './chatStream.service.js'
+import { PromptsRepository } from './prompts.repository.js'
+import { PromptsService } from './prompts.service.js'
 
 import type { Database } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
@@ -45,22 +56,62 @@ export interface ChatsModuleDeps {
   parser: ChatDocumentParser
   /** Knowledge retrieval for answers with sources; chats answer without sources until it exists. */
   retrieval?: ChatRetrieval
+  /** Agent chats: the agents a person may talk to and the `chat` runs that answer. */
+  agents: ChatAgentRuns
+  /** Whether the organization allows chat sharing. */
+  organizations: ChatOrganizations
+  users: ChatUserRefs
+  notifications: ChatNotifications
+  audit: ChatAudit
 }
 
 /**
  * Chats: the person's conversations, folders, messages, feedback, attachments and the streaming
- * endpoint. Answers come only through the model gateway; knowledge arrives through the
- * `retrieval` port.
+ * endpoint; shares, the prompt library, Compare and agent chats (V1). Answers come only through
+ * the model gateway or an agent run; knowledge arrives through the `retrieval` port.
  */
 export function createChatsModule(deps: ChatsModuleDeps) {
   const chats = new ChatsRepository()
   const messages = new ChatMessagesRepository()
   const attachmentRows = new ChatAttachmentsRepository()
+  const shareRows = new ChatSharesRepository()
   const models = createChatModels(deps.models)
   const retrieval = deps.retrieval ?? noChatRetrieval
+  const readers = new ChatReaders({ chats, shares: shareRows, organizations: deps.organizations })
 
-  const chatsService = new ChatsService({ db: deps.db, repository: chats, models })
-  const messagesService = new ChatMessagesService({ db: deps.db, chats, messages, retrieval })
+  const chatsService = new ChatsService({
+    db: deps.db,
+    repository: chats,
+    shares: shareRows,
+    models,
+    agents: deps.agents,
+  })
+  const messagesService = new ChatMessagesService({
+    db: deps.db,
+    chats,
+    messages,
+    readers,
+    retrieval,
+  })
+  const shares = new ChatSharesService({
+    db: deps.db,
+    chats,
+    shares: shareRows,
+    readers,
+    agents: deps.agents,
+    organizations: deps.organizations,
+    users: deps.users,
+    notifications: deps.notifications,
+    audit: deps.audit,
+    logger: deps.logger,
+  })
+  const prompts = new PromptsService({
+    db: deps.db,
+    repository: new PromptsRepository(),
+    users: deps.users,
+    audit: deps.audit,
+  })
+  const agentAnswers = new ChatAgentAnswers({ messages, models })
   const stream = new ChatStreamService({
     db: deps.db,
     chats,
@@ -70,6 +121,7 @@ export function createChatsModule(deps: ChatsModuleDeps) {
     gateway: deps.gateway,
     pii: deps.pii,
     retrieval,
+    agents: deps.agents,
     storage: deps.storage,
     logger: deps.logger,
   })
@@ -105,7 +157,11 @@ export function createChatsModule(deps: ChatsModuleDeps) {
     messages: messagesService,
     stream,
     attachments,
+    shares,
+    prompts,
     maintenance,
+    /** Agent answers: `agentRuns` writes them in the transactions that pause and end a chat run. */
+    agentAnswers,
     /** `chat.purged` removes the purged chat's stored objects. */
     outboxHandlers: createChatPurgeHandlers(deps.storage),
     jobs: [
@@ -119,6 +175,8 @@ export function createChatsModule(deps: ChatsModuleDeps) {
         messages: messagesService,
         stream,
         attachments,
+        shares,
+        prompts,
       }),
     ),
   }

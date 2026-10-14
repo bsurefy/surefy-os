@@ -245,6 +245,7 @@ describe('purge_soft_deleted', () => {
 
     expect(await container.modules.dataControl.retention.purgeSoftDeleted()).toEqual({
       chats: 1,
+      prompts: 0,
       knowledge_sources: 1,
       knowledge_bases: 1,
     })
@@ -292,6 +293,7 @@ describe('purge_soft_deleted', () => {
     // a second run finds nothing
     expect(await container.modules.dataControl.retention.purgeSoftDeleted()).toEqual({
       chats: 0,
+      prompts: 0,
       knowledge_sources: 0,
       knowledge_bases: 0,
     })

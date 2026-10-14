@@ -302,6 +302,20 @@
       "when": 1791961784934,
       "tag": "0042_budgets-security",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791968402618,
+      "tag": "0043_chat-v1",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791968415225,
+      "tag": "0044_chat-v1-security",
+      "breakpoints": true
     }
   ]
 }

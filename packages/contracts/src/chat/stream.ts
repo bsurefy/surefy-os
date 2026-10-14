@@ -27,6 +27,11 @@ import { modelKeySchema } from '../models/keys.js'
 //   Until one answer is chosen (schemas.ts `choose`), a new message fails with
 //   CHAT_COMPARE_UNRESOLVED. Agent chats have no compare (CHAT_COMPARE_NOT_AVAILABLE); in a private
 //   chat both models are local.
+// - Agent chats (V1): `newChat.agentId` on the first `submit` makes the chat talk to a shared agent
+//   for good (`agents:invoke`; AGENT_NOT_FOUND for agents the person may not use, AGENT_PAUSED
+//   while paused). Each message starts a run (trigger `chat`) of the agent's published version and
+//   the answer is that run's event stream (agentRuns/stream.ts); the agent's model answers, so
+//   `modelKey` and `webSearch` are ignored.
 
 const messageTextSchema = z.string().trim().min(1).max(100_000)
 
@@ -38,6 +43,10 @@ const attachmentIdsSchema = z.array(z.uuid()).max(CHAT_MESSAGE_ATTACHMENTS_MAX)
 /** The composer's web search toggle (V1), for this answer only; absent means off. */
 const webSearchSchema = z.boolean().optional()
 
+/** The settings a chat is created with; `agentId` makes it an agent chat (V1). */
+export const newChatInputSchema = chatSettingsInputSchema.extend({ agentId: z.uuid().optional() })
+export type NewChatInput = z.infer<typeof newChatInputSchema>
+
 const submitMessageInputSchema = z.object({
   trigger: z.literal('submit'),
   text: messageTextSchema,
@@ -46,7 +55,7 @@ const submitMessageInputSchema = z.object({
   modelKey: modelKeySchema.optional(),
   webSearch: webSearchSchema,
   /** Used only when this request creates the chat; ignored otherwise. */
-  newChat: chatSettingsInputSchema.optional(),
+  newChat: newChatInputSchema.optional(),
 })
 
 const regenerateMessageInputSchema = z.object({

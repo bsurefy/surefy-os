@@ -19,6 +19,7 @@ import {
 import { toFeedbackDto, toMessageDto } from './chats.mapper.js'
 
 import type { ChatMessagesRepository } from './chatMessages.repository.js'
+import type { ChatReaders } from './chatReaders.js'
 import type { ChatsRepository } from './chats.repository.js'
 import type { ChatRetrieval } from './chats.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
@@ -28,17 +29,23 @@ export interface ChatMessagesServiceDeps {
   db: Database
   chats: ChatsRepository
   messages: ChatMessagesRepository
+  readers: ChatReaders
   retrieval: ChatRetrieval
   now?: () => number
 }
 
-/** The thread of a chat: its messages, the person's ratings, and the source preview. */
+/**
+ * The thread of a chat: its messages, the person's ratings, and the source preview. The thread
+ * and the source preview are also read by the people the chat is shared with; rating stays the
+ * owner's.
+ */
 export class ChatMessagesService {
   constructor(private readonly deps: ChatMessagesServiceDeps) {}
 
   /**
    * One page of the thread. Reading a chat also settles its answers that stopped streaming for
-   * more than two minutes (`interrupted`), so a crash never leaves a message streaming.
+   * more than two minutes (`interrupted`), so a crash never leaves a message streaming. Agent
+   * answers are settled by their run instead.
    */
   async list(
     ctx: TenantContext,
@@ -48,7 +55,7 @@ export class ChatMessagesService {
     const userId = requireUser(ctx)
     const { messages } = this.deps
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
-      await this.requireChat(tx, ctx.orgId, userId, chatId)
+      await this.deps.readers.readable(tx, ctx, userId, chatId)
       await messages.interruptStale(tx, this.staleBefore(), INTERRUPTED_ERROR_CODE, {
         orgId: ctx.orgId,
         chatId,
@@ -128,9 +135,10 @@ export class ChatMessagesService {
   ): Promise<ChatSourcePreviewDto> {
     const userId = requireUser(ctx)
     const found = await this.deps.db.tenant(ctx.orgId, async (tx) => {
-      await this.requireChat(tx, ctx.orgId, userId, chatId)
+      await this.deps.readers.readable(tx, ctx, userId, chatId)
       return this.deps.messages.find(tx, ctx.orgId, chatId, messageId)
     })
+    if (found?.status === 'superseded') throw new ChatMessageNotFoundError()
     const source = found?.parts.parts.find(
       (part): part is SourcePart => part.type === 'source' && part.index === index,
     )
