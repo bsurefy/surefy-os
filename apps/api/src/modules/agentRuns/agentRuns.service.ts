@@ -14,6 +14,7 @@ import {
 } from './agentRuns.errors.js'
 import { rowOf } from './agentRuns.recorder.js'
 import { inputOf } from './agentRuns.state.js'
+import { isRetryable } from './agentRuns.types.js'
 
 import type { RunLifecycle } from './agentRuns.lifecycle.js'
 import type { AgentRunsRepository } from './agentRuns.repository.js'
@@ -41,8 +42,6 @@ export interface AgentRunsServiceDeps {
   audit: AuditRecorder
   now?: () => Date
 }
-
-const FINISHED = ['failed', 'timed_out', 'canceled'] as const
 
 const startOfMonth = (now: Date): Date =>
   new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
@@ -97,10 +96,7 @@ export class AgentRunsService {
     const starter = await this.starterOf(ctx)
     const run = await this.deps.db.tenant(ctx.orgId, async (tx) => {
       const original = await this.steerable(tx, ctx, runId)
-      if (
-        !(FINISHED as readonly string[]).includes(original.status) &&
-        !(original.isTest && original.status === 'succeeded')
-      ) {
+      if (!isRetryable(original)) {
         throw new AgentRunNotRetryableError(
           original.status === 'succeeded' ? 'succeeded' : 'active',
         )

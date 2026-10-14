@@ -20,7 +20,12 @@ const SERVER_START_MS = 180_000
  * (one worker runs the projects in the order listed): a key can only be revoked and stays listed, so
  * the API keys and Connections specs, which start from an empty organization, must run first.
  */
-const AGENT_SPECS = ['**/agents.spec.ts', '**/approvals.spec.ts', '**/guard.spec.ts']
+const AGENT_SPECS = [
+  '**/agents.spec.ts',
+  '**/approvals.spec.ts',
+  '**/guard.spec.ts',
+  '**/insightsRuns.spec.ts',
+]
 
 /**
  * End-to-end specs against the real API and a fresh database (testing.md §1). `pnpm test:e2e`

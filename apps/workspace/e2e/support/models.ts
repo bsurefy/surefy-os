@@ -127,8 +127,15 @@ export async function removeStubModel(page: Page): Promise<void> {
   )
   const server = servers.find((entry) => entry.name === STUB_SERVER_NAME)
   if (server) await callApi(page, 'DELETE', `${vault}/local-servers/${server.id}`)
-  const keys = await callApi<{ id: string; name: string }[]>(page, 'GET', `${vault}/credentials`)
-  const provider = keys.find((entry) => entry.name === STUB_PROVIDER_NAME)
+  const keys = await callApi<{ id: string; name: string; status: string }[]>(
+    page,
+    'GET',
+    `${vault}/credentials`,
+  )
+  // another spec may have revoked it already, and revoking twice is refused
+  const provider = keys.find(
+    (entry) => entry.name === STUB_PROVIDER_NAME && entry.status !== 'revoked',
+  )
   // a key cannot be deleted, only revoked: its secret goes at once and its models are unusable
   if (provider) await callApi(page, 'POST', `${vault}/credentials/${provider.id}/revoke`)
 }

@@ -238,3 +238,10 @@ export interface StartedRun {
 
 export const isActiveStatus = (status: AgentRunStatus): boolean =>
   status === 'queued' || status === 'running' || status === 'waiting_approval'
+
+/** Runs that ended without an answer; a retry starts a new run with the same input. */
+const FINISHED = ['failed', 'timed_out', 'canceled'] as const
+
+/** Retry is for a run that ended without an answer, and for any finished test run. */
+export const isRetryable = (run: Pick<RunRow, 'status' | 'isTest'>): boolean =>
+  (FINISHED as readonly string[]).includes(run.status) || (run.isTest && run.status === 'succeeded')

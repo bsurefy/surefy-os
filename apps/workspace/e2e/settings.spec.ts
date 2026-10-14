@@ -31,6 +31,7 @@ test.describe('Settings › navigation', () => {
       'Vault',
       'Connections',
       'API keys',
+      'Usage & budgets',
       'Data & privacy',
       'Security',
       'Install',
