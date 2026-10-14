@@ -74,18 +74,17 @@ export class AgentPresenter {
       rows.flatMap((row) => (row.agent.ownerUserId === null ? [] : [row.agent.ownerUserId])),
     )
     const modelKeys = [...new Set(rows.map((row) => row.liveModelKey ?? modelKeyOf(row.agent)))]
-    const [models, unavailable, audiences, runs, waiting, connections] = await Promise.all([
-      this.deps.models.refs(tx, orgId, modelKeys),
-      this.deps.models.unavailable(tx, orgId, modelKeys),
-      this.audiences(tx, orgId, agentIds),
-      this.deps.runs.summaries(tx, orgId, agentIds),
-      this.deps.approvals.waitingCounts(tx, orgId, agentIds),
-      this.deps.connections.statuses(
-        tx,
-        orgId,
-        rows.flatMap((row) => connectionIdsOf(row.liveTools)),
-      ),
-    ])
+    // one transaction runs one query at a time
+    const models = await this.deps.models.refs(tx, orgId, modelKeys)
+    const unavailable = await this.deps.models.unavailable(tx, orgId, modelKeys)
+    const audiences = await this.audiences(tx, orgId, agentIds)
+    const runs = await this.deps.runs.summaries(tx, orgId, agentIds)
+    const waiting = await this.deps.approvals.waitingCounts(tx, orgId, agentIds)
+    const connections = await this.deps.connections.statuses(
+      tx,
+      orgId,
+      rows.flatMap((row) => connectionIdsOf(row.liveTools)),
+    )
     return rows.map((row) => {
       const { agent } = row
       const summary = runs.get(agent.id) ?? EMPTY_RUN_SUMMARY

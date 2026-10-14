@@ -36,15 +36,14 @@ export class ConnectionPresenter {
         ),
       ),
     ]
-    const [teams, users, usedBy] = await Promise.all([
-      teamIds.length === 0 ? [] : this.deps.teams.findRefsInTx(tx, orgId, teamIds),
-      userIds.length === 0 ? new Map() : this.deps.users.findUserRefs(userIds),
-      this.deps.dependents.counts(
-        tx,
-        orgId,
-        rows.map((row) => row.id),
-      ),
-    ])
+    // one transaction runs one query at a time
+    const teams = teamIds.length === 0 ? [] : await this.deps.teams.findRefsInTx(tx, orgId, teamIds)
+    const users = userIds.length === 0 ? new Map() : await this.deps.users.findUserRefs(userIds)
+    const usedBy = await this.deps.dependents.counts(
+      tx,
+      orgId,
+      rows.map((row) => row.id),
+    )
     const refs = {
       teams: new Map(teams.map((team) => [team.id, team])),
       users,

@@ -113,12 +113,11 @@ export class AgentRunsQueries {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
       const view = await this.view(tx, ctx, runId)
       const steps = await this.deps.reads.listSteps(tx, ctx.orgId, view.run)
-      const [lookups, resolutions] = await Promise.all([
-        this.lookups(tx, ctx.orgId, [view]),
+      const lookups = await this.lookups(tx, ctx.orgId, [view])
+      const resolutions =
         view.run.status === 'waiting_approval'
-          ? this.deps.approvals.resolutionsForRun(tx, ctx.orgId, view.run.id)
-          : Promise.resolve([]),
-      ])
+          ? await this.deps.approvals.resolutionsForRun(tx, ctx.orgId, view.run.id)
+          : []
       return runDetailDto(
         view,
         lookups,

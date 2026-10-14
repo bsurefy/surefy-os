@@ -143,12 +143,11 @@ export class GuardRuleSets {
     tx: Parameters<GuardRepository['findSettings']>[0],
     orgId: string,
   ): Promise<GuardRuleSet> {
-    const [settings, currency, guardrails, piiRules] = await Promise.all([
-      this.deps.repository.findSettings(tx, orgId),
-      this.deps.repository.organizationCurrency(tx, orgId),
-      this.deps.repository.listEnabledGuardrails(tx, orgId),
-      this.deps.repository.listPiiRules(tx, orgId),
-    ])
+    // one transaction runs one query at a time
+    const settings = await this.deps.repository.findSettings(tx, orgId)
+    const currency = await this.deps.repository.organizationCurrency(tx, orgId)
+    const guardrails = await this.deps.repository.listEnabledGuardrails(tx, orgId)
+    const piiRules = await this.deps.repository.listPiiRules(tx, orgId)
     return {
       settings: settingsOf(settings, currency),
       guardrails: guardrails.map(toStoredGuardrail),

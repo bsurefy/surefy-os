@@ -46,13 +46,14 @@ export class GuardRefsLoader {
     const userIds = idsOf(wanted.userIds)
     const teamIds = idsOf(wanted.teamIds)
     const agentIds = idsOf(wanted.agentIds)
-    const [users, teams, agents] = await Promise.all([
-      userIds.length === 0 ? new Map<string, UserRefDto>() : this.users.findUserRefs(userIds),
-      teamIds.length === 0 ? [] : this.teams.findRefsInTx(tx, orgId, teamIds),
+    // one transaction runs one query at a time
+    const users =
+      userIds.length === 0 ? new Map<string, UserRefDto>() : await this.users.findUserRefs(userIds)
+    const teams = teamIds.length === 0 ? [] : await this.teams.findRefsInTx(tx, orgId, teamIds)
+    const agents =
       agentIds.length === 0
         ? new Map<string, string>()
-        : this.subjects.agentNames(tx, orgId, agentIds),
-    ])
+        : await this.subjects.agentNames(tx, orgId, agentIds)
     return { users, teams: new Map(teams.map((team) => [team.id, team])), agents }
   }
 }

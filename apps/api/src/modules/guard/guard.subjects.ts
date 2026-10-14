@@ -73,29 +73,28 @@ async function agentsOfTeam(
   live: readonly LiveAgent[],
 ): Promise<LiveAgent[]> {
   if (live.length === 0) return []
-  const [members, access] = await Promise.all([
-    tx
-      .select({ userId: teamMembers.userId })
-      .from(teamMembers)
-      .where(and(eq(teamMembers.organizationId, orgId), eq(teamMembers.teamId, teamId))),
-    tx
-      .select({
-        agentId: agentAccess.agentId,
-        subjectType: agentAccess.subjectType,
-        teamId: agentAccess.teamId,
-        userId: agentAccess.userId,
-      })
-      .from(agentAccess)
-      .where(
-        and(
-          eq(agentAccess.organizationId, orgId),
-          inArray(
-            agentAccess.agentId,
-            live.map((agent) => agent.id),
-          ),
+  // one transaction runs one query at a time
+  const members = await tx
+    .select({ userId: teamMembers.userId })
+    .from(teamMembers)
+    .where(and(eq(teamMembers.organizationId, orgId), eq(teamMembers.teamId, teamId)))
+  const access = await tx
+    .select({
+      agentId: agentAccess.agentId,
+      subjectType: agentAccess.subjectType,
+      teamId: agentAccess.teamId,
+      userId: agentAccess.userId,
+    })
+    .from(agentAccess)
+    .where(
+      and(
+        eq(agentAccess.organizationId, orgId),
+        inArray(
+          agentAccess.agentId,
+          live.map((agent) => agent.id),
         ),
       ),
-  ])
+    )
   const memberIds = new Set(members.map((member) => member.userId))
   const reached = new Set<string>()
   for (const row of access) {

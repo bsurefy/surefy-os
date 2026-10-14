@@ -141,10 +141,9 @@ export class AgentAudience {
   ): Promise<void> {
     const teamIds = entries.flatMap((entry) => (entry.subjectType === 'team' ? [entry.teamId] : []))
     const userIds = entries.flatMap((entry) => (entry.subjectType === 'user' ? [entry.userId] : []))
-    const [teams, members] = await Promise.all([
-      this.deps.teams.findRefsInTx(tx, orgId, teamIds),
-      this.deps.repository.activeMemberIds(tx, orgId, userIds),
-    ])
+    // one transaction runs one query at a time
+    const teams = await this.deps.teams.findRefsInTx(tx, orgId, teamIds)
+    const members = await this.deps.repository.activeMemberIds(tx, orgId, userIds)
     const knownTeams = new Set(teams.map((team) => team.id))
     const missing = [
       ...teamIds.filter((id) => !knownTeams.has(id)).map((id) => ({ field: 'teamId', id })),
