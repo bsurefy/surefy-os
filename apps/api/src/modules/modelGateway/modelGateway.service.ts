@@ -24,6 +24,8 @@ import { costMicros, toUsageDto, type MeteredUsage } from './modelGateway.utils.
 import { ModelResolver, type Unresolved } from './modelResolver.js'
 
 import type {
+  ModelCallBudgets,
+  ModelCallBudgetVerdict,
   ModelCallContext,
   ModelCallGuard,
   ModelCallRecord,
@@ -83,12 +85,15 @@ export interface ModelGatewayDeps {
   fallbackOf: (orgId: string) => Promise<VaultFallback>
   vaultRepository: VaultRepository
   guards: () => readonly ModelCallGuard[]
+  /** Budget enforcement (the usage module); without it no budget applies. */
+  budgets?: ModelCallBudgets
   usage: UsageRecorder
   logger: Logger
   now?: () => number
 }
 
 const DEFAULT_RETRIES = 1
+const ALLOW: ModelCallBudgetVerdict = { action: 'allow' }
 /** The reason a model's answer to a decision could not be used (the call's error detail). */
 const DECISION_OUTPUT_INVALID = 'DECISION_OUTPUT_INVALID'
 const LAST_USED_WRITE_MS = 5 * 60_000
@@ -312,6 +317,14 @@ export class ModelGatewayService {
     ModelResolver.assertAllowed(resolved)
     if ('reason' in resolved) throw new ModelProviderUnavailableError(null)
     const attempt: Attempt = { resolved, fallback: null, index: 0, kind: 'embedding' }
+    if (resolved.credentialScope !== 'local') {
+      // a knowledge base keeps its embedding model: a reached budget cannot switch it
+      const verdict = await this.budgetVerdict(ctx)
+      if (verdict.action !== 'allow') {
+        await this.finish(ctx, attempt, 'blocked', null, this.now(), null, null)
+        throw verdict.error
+      }
+    }
     await this.runGuards(ctx, attempt)
     const started = this.now()
     if (resolved.embeddingModel === undefined) throw new ModelProviderUnavailableError(null)
@@ -352,8 +365,12 @@ export class ModelGatewayService {
 
   /**
    * The requested model, then the fallback order, each resolved when its turn comes; models the
-   * caller may not use, and ones without a usable key or server, are skipped. Guards run before
-   * each attempt; a blocked call is metered and its error thrown.
+   * caller may not use, and ones without a usable key or server, are skipped. A reached budget
+   * stops cloud models: `pause_cloud_models` refuses a requested cloud model (metered as blocked),
+   * `switch_to_local` moves the call to the first local model in the order (fallback reason
+   * `budget`); cloud models later in the order are skipped, and `BUDGET_EXCEEDED` is thrown when
+   * no local model is left. Guards run before each attempt; a blocked call is metered and its
+   * error thrown.
    */
   private async *attempts(
     ctx: ModelCallContext,
@@ -370,6 +387,7 @@ export class ModelGatewayService {
     const order = [modelKey, ...settings.order.filter((key) => key !== modelKey)]
     let requested: ModelRefDto | null = refOf(first)
     let tried = 0
+    const budget = this.budgetGate(ctx)
     for (const [index, key] of order.entries()) {
       const resolved: ResolvedModel | Unresolved =
         index === 0 ? first : await this.deps.resolver.resolve(ctx, key, kind)
@@ -379,12 +397,59 @@ export class ModelGatewayService {
         resolved,
         fallback:
           index === 0 ? null : { from: requested, to: resolved.ref, reason: 'provider_error' },
-        index: tried++,
+        index: tried,
         kind: usageKind,
       }
+      if (!(await budget.admit(attempt, index === 0))) continue
+      tried++
       await this.runGuards(ctx, attempt)
       yield attempt
     }
+    budget.assertTried(tried)
+  }
+
+  /**
+   * The budget step of one call: the verdict is asked once, when the first cloud model comes up.
+   * `admit` is false for a cloud model a reached budget stops, and throws for a requested cloud
+   * model it pauses (metered as blocked); the first local model after a stopped one is the
+   * budget's switch.
+   */
+  private budgetGate(ctx: ModelCallContext) {
+    let verdict: Promise<ModelCallBudgetVerdict> | undefined
+    let stoppedBy: Exclude<ModelCallBudgetVerdict, { action: 'allow' }> | null = null
+    let admitted = 0
+    return {
+      admit: async (attempt: Attempt, requested: boolean): Promise<boolean> => {
+        if (attempt.resolved.credentialScope === 'local') {
+          if (stoppedBy !== null && attempt.fallback !== null && admitted === 0) {
+            attempt.fallback.reason = 'budget'
+          }
+          admitted++
+          return true
+        }
+        verdict ??= this.budgetVerdict(ctx)
+        const allowed = await verdict
+        if (allowed.action === 'allow') {
+          admitted++
+          return true
+        }
+        if (allowed.action === 'pause_cloud_models' && requested) {
+          await this.finish(ctx, attempt, 'blocked', null, this.now(), null, null)
+          throw allowed.error
+        }
+        stoppedBy = allowed
+        return false
+      },
+      /** Every candidate was stopped by the budget: its error. */
+      assertTried: (tried: number): void => {
+        if (tried === 0 && stoppedBy !== null) throw stoppedBy.error
+      },
+    }
+  }
+
+  /** What the reached budgets allow (the usage module caches the budgets and counters). */
+  private budgetVerdict(ctx: ModelCallContext): Promise<ModelCallBudgetVerdict> {
+    return this.deps.budgets?.check(ctx) ?? Promise.resolve(ALLOW)
   }
 
   private async runGuards(ctx: ModelCallContext, attempt: Attempt): Promise<void> {

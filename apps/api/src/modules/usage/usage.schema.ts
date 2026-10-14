@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {
+  insightsBudgetMeterDtoSchema,
+  insightsBudgetMeterQuerySchema,
   insightsBreakdownDtoSchema,
   insightsBreakdownQuerySchema,
   insightsOverviewDtoSchema,
@@ -15,6 +17,14 @@ import {
 } from '@surefy/contracts'
 
 const TAGS = ['insights']
+
+export const getInsightsBudgetMeterRoute = {
+  tags: TAGS,
+  summary: "This month's spend against the organization, a team or a person's budget",
+  params: orgParamsSchema,
+  querystring: insightsBudgetMeterQuerySchema,
+  response: { 200: okResponse(insightsBudgetMeterDtoSchema) },
+}
 
 export const getInsightsOverviewRoute = {
   tags: TAGS,

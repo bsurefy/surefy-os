@@ -4,6 +4,7 @@ import { defineGuard } from '@/plugins/access.plugin.js'
 import { PERMISSIONS } from '@surefy/contracts'
 
 import {
+  getInsightsBudgetMeterRoute,
   getInsightsBreakdownRoute,
   getInsightsOverviewRoute,
   getInsightsRunsOverviewRoute,
@@ -44,6 +45,11 @@ export function usageRoutes(controller: UsageController): FastifyPluginAsyncZod 
       '/orgs/:orgId/insights/timeseries',
       { schema: getInsightsTimeseriesRoute, preHandler: read },
       controller.timeseries,
+    )
+    app.get(
+      '/orgs/:orgId/insights/budget-meter',
+      { schema: getInsightsBudgetMeterRoute, preHandler: read },
+      controller.budgetMeter,
     )
     app.get(
       '/orgs/:orgId/insights/runs-overview',

@@ -250,6 +250,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   const usage = createUsageModule({
     db,
     cache,
+    queues,
     logger,
     teams: teams.service,
     users,
@@ -257,6 +258,10 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     // the agents module is built below; Insights reads it per request
     agents: () => usageAgents,
     approvals: approvals.service,
+    organizations: organizations.service,
+    notifications: notifications.service,
+    audit: audit.service,
+    outbox: () => outbox.service,
   })
   const access = createAccessModule({
     db,
@@ -303,6 +308,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     access: access.service,
     hooks,
     usage: usage.meter,
+    budgets: usage.budgets,
   })
   const guard = createGuardModule({
     db,
@@ -443,6 +449,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       ...guard.outboxHandlers,
       ...agentRuns.outboxHandlers,
       ...agentPublishing.outboxHandlers,
+      ...usage.outboxHandlers,
     ],
     hooks,
   })

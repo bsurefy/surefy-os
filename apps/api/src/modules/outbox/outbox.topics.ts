@@ -44,6 +44,18 @@ const agentRunFinishedPayload = z.object({
   status: z.enum(['succeeded', 'failed', 'canceled', 'timed_out']),
 })
 
+/**
+ * A budget was created, changed or deleted (`usage`). Ids only: the handler drops the
+ * organization's cached budget set so the next model call loads the current one.
+ */
+const budgetsChangedPayload = z.object({ version: z.literal(1) })
+
+/**
+ * A budget's alert threshold was crossed this month (`usage`): the `budget_alerts` row. The
+ * handler notifies the Admins and Owners, the team lead and the person.
+ */
+const budgetThresholdReachedPayload = z.object({ version: z.literal(1), id: z.uuid() })
+
 export const OUTBOX_PAYLOADS = {
   'agent.published': agentPublishedPayload,
   'agent_run.finished': agentRunFinishedPayload,
@@ -51,6 +63,8 @@ export const OUTBOX_PAYLOADS = {
   'approval.decided': approvalPayload,
   'approval.expired': approvalPayload,
   'approval.escalated': approvalPayload,
+  'budgets.changed': budgetsChangedPayload,
+  'budget.threshold_reached': budgetThresholdReachedPayload,
   'connection.expired': connectionExpiredPayload,
   'guard.rules_changed': guardRulesChangedPayload,
   'chat.purged': purgedPayload,

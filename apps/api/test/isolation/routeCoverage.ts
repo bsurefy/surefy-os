@@ -260,6 +260,19 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     class: 'orgScoped',
     query: { ...INSIGHTS_RANGE, interval: 'day' },
   },
+  'GET /api/v1/orgs/:orgId/insights/budget-meter': { class: 'orgScoped' },
+
+  // usage (budgets)
+  'GET /api/v1/orgs/:orgId/budgets': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/budgets': {
+    class: 'orgScoped',
+    payload: (f) => ({ scope: 'team', teamId: f.params.teamId, amountMicros: 1_000_000 }),
+  },
+  'PATCH /api/v1/orgs/:orgId/budgets/:budgetId': {
+    class: 'orgScoped',
+    payload: () => ({ amountMicros: 1 }),
+  },
+  'DELETE /api/v1/orgs/:orgId/budgets/:budgetId': { class: 'orgScoped' },
 
   'GET /api/v1/orgs/:orgId/audit/entries': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/entries/:entryId': { class: 'orgScoped' },

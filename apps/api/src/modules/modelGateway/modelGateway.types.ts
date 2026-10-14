@@ -79,6 +79,19 @@ export interface ModelCallGuard {
   check(ctx: ModelCallContext, model: ModelRefDto): Promise<void>
 }
 
+/**
+ * What the reached budgets allow for a call to a cloud model (the usage module); local models are
+ * never checked. `switch_to_local` moves the call to the first allowed local model in the fallback
+ * order; `pause_cloud_models` refuses it. Either throws `error` when no local model can serve.
+ */
+export type ModelCallBudgetVerdict =
+  { action: 'allow' } | { action: 'switch_to_local' | 'pause_cloud_models'; error: Error }
+
+/** Budget enforcement, step 2 of a call (integrations.md, "The model gateway"). */
+export interface ModelCallBudgets {
+  check(ctx: ModelCallContext): Promise<ModelCallBudgetVerdict>
+}
+
 /** One metered call, also on abort and failure. */
 export interface ModelCallRecord {
   ctx: ModelCallContext

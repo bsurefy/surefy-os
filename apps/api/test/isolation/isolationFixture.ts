@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { QUEUES } from '@/constants/queues.js'
 import {
   auditLogs,
+  budgetAlerts,
   chatAttachments,
   chatFolders,
   chatKnowledgeBases,
@@ -23,6 +24,7 @@ import {
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
   apiKeyCreatedDtoSchema,
+  budgetDtoSchema,
   connectionDtoSchema,
   agentDetailDtoSchema,
   credentialDtoSchema,
@@ -470,6 +472,24 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     }),
   )
   await usage.rollup.aggregate('hourly')
+  // A team budget of A with a crossed alert
+  const budget = expectData(
+    await request(app, 'POST', `${orgUrl}/budgets`, {
+      headers,
+      payload: { scope: 'team', teamId: team.id, amountMicros: 5_000_000 },
+    }),
+    201,
+    budgetDtoSchema,
+  )
+  await setup.db.tenant(a.id, (tx) =>
+    tx.insert(budgetAlerts).values({
+      organizationId: a.id,
+      budgetId: budget.id,
+      periodStart: '2026-10-01',
+      thresholdBp: 5000,
+      spentMicros: 2_500_000,
+    }),
+  )
   const chat = await seedChat(setup, a.id, uma.id)
   const entryId = await setup.db.system('test', async (tx) => {
     await tx.insert(organizationPurges).values({
@@ -585,6 +605,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       baseId: knowledgeBase.id,
       sourceId: knowledge.sourceId,
       documentId: knowledge.documentId,
+      budgetId: budget.id,
     },
     markers: [
       a.id,
@@ -644,6 +665,7 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       knowledge.documentId,
       KNOWLEDGE_FILE,
       KNOWLEDGE_PASSAGE,
+      budget.id,
       ...[olivia, adam, uma].flatMap((member) => [member.id, member.memberId, member.email]),
     ],
   }

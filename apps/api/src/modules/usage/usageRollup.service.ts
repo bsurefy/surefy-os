@@ -8,15 +8,21 @@ import {
 } from './usage.constants.js'
 import { daysBetween, monthOf, utcDay } from './usage.utils.js'
 
+import type { RunStatsRepository } from './runStats.repository.js'
 import type { UsageRepository } from './usage.repository.js'
 import type { Cache } from '@/core/cache/index.js'
 import type { Database } from '@/core/database/index.js'
+import type { Logger } from '@/core/logger/index.js'
 import type { UsageRollup } from '@/database/tables/index.js'
 
 export interface UsageRollupDeps {
   db: Database
   cache: Cache
+  logger: Logger
   repository: UsageRepository
+  runStats: RunStatsRepository
+  /** Step 7: reconciles the live budget counters and pending alerts with the new totals. */
+  reconcile?: () => Promise<unknown>
   now?: () => Date
 }
 
@@ -29,16 +35,17 @@ export interface RollupResult {
   watermark: string | null
 }
 
-/** The rollups this module maintains; run and Guard stats join with their V1 modules. */
-const ROLLUPS: readonly UsageRollup[] = ['usage_daily', 'usage_monthly']
+/** The rollups this module maintains; Guard stats are the guard module's. */
+const ROLLUPS: readonly UsageRollup[] = ['usage_daily', 'usage_monthly', 'run_stats_daily']
 const DAY_MS = 86_400_000
 const REASON = 'usage-aggregation'
 
 /**
  * `aggregateUsage` (usage-budgets-and-audit.md, "Rollup maintenance"): rebuilds each UTC day of
- * the window from the events, then each month the window touches, then moves the watermark. The
- * hourly run covers the watermark minus 48 hours up to now; the nightly run the last 7 days. A
- * failed run keeps the old watermark and the next run recomputes the same days.
+ * the window from the events and finished runs, then each month the window touches, then moves
+ * the watermark and reconciles the budgets. The hourly run covers the watermark minus 48 hours up
+ * to now; the nightly run the last 7 days. A failed run keeps the old watermark and the next run
+ * recomputes the same days.
  */
 export class UsageRollupService {
   private readonly now: () => Date
@@ -56,7 +63,11 @@ export class UsageRollupService {
       const firstDay = await this.windowStart(mode, runStarted)
       const days = firstDay === null ? [] : daysBetween(firstDay, utcDay(runStarted))
       for (const day of days) {
-        await db.system(REASON, (tx) => repository.recomputeDay(tx, day))
+        await db.system(REASON, async (tx) => {
+          await repository.recomputeDay(tx, day)
+          // under the same day lock, in the same transaction
+          await this.deps.runStats.recomputeDay(tx, day)
+        })
       }
       const months = [...new Set(days.map(monthOf))]
       for (const month of months) {
@@ -74,6 +85,7 @@ export class UsageRollupService {
           )
         }
       }
+      await this.reconcile()
       return {
         mode,
         days: days.length,
@@ -87,14 +99,36 @@ export class UsageRollupService {
     }
   }
 
-  /** The first UTC day to rebuild, or null when there is nothing to aggregate yet. */
+  /** Budget reconciliation; a failure waits for the next run, the rollup itself succeeded. */
+  private async reconcile(): Promise<void> {
+    if (this.deps.reconcile === undefined) return
+    try {
+      await this.deps.reconcile()
+    } catch (error) {
+      this.deps.logger.warn({ err: error }, 'budget reconciliation failed')
+    }
+  }
+
+  /**
+   * The first UTC day to rebuild, or null when there is nothing to aggregate yet. The oldest
+   * watermark decides: a rollup that never ran (`-infinity`) starts at the first event or run.
+   */
   private async windowStart(mode: RollupMode, runStarted: Date): Promise<string | null> {
     if (mode === 'nightly') {
       return utcDay(new Date(runStarted.getTime() - NIGHTLY_LOOKBACK_DAYS * DAY_MS))
     }
-    const { db, repository } = this.deps
-    const watermark = await db.system(REASON, (tx) => repository.watermark(tx, 'usage_daily'))
-    if (watermark === null) return db.system(REASON, (tx) => repository.firstEventDay(tx))
-    return utcDay(new Date(watermark.getTime() - HOURLY_LOOKBACK_MS))
+    const { db, repository, runStats } = this.deps
+    return db.system(REASON, async (tx) => {
+      const marks: (Date | null)[] = []
+      for (const rollup of ROLLUPS) marks.push(await repository.watermark(tx, rollup))
+      if (!marks.includes(null)) {
+        const oldest = Math.min(...marks.map((mark) => mark?.getTime() ?? 0))
+        return utcDay(new Date(oldest - HOURLY_LOOKBACK_MS))
+      }
+      const firstEvent = await repository.firstEventDay(tx)
+      const firstRun = await runStats.firstRunDay(tx)
+      if (firstEvent === null || firstRun === null) return firstEvent ?? firstRun
+      return firstEvent < firstRun ? firstEvent : firstRun
+    })
   }
 }
