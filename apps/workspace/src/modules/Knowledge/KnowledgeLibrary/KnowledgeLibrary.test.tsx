@@ -72,16 +72,17 @@ describe('KnowledgeLibrary', () => {
     expect(rowOf('HR Policies')).toHaveTextContent('Local models only')
     expect(rowOf('HR Policies')).toHaveTextContent('Ready')
     expect(rowOf('Legacy notes')).toHaveTextContent('No sources')
-    expect(rowOf('Sales playbook')).toHaveTextContent('No sources')
+    expect(rowOf('Sales playbook')).toHaveTextContent('2 sources')
+    expect(rowOf('Sales playbook')).toHaveTextContent('1 needs attention')
     expect(within(table).queryByText('Old wiki')).not.toBeInTheDocument()
 
     const kpis = screen.getByRole('region', { name: 'Knowledge summary' })
     await waitFor(() => {
       expect(within(kpis).getByText('Knowledge bases').parentElement).toHaveTextContent('4')
     })
-    expect(within(kpis).getByText('Sources').parentElement).toHaveTextContent('6')
+    expect(within(kpis).getByText('Sources').parentElement).toHaveTextContent('8')
     expect(within(kpis).getByText('Processing').parentElement).toHaveTextContent('1')
-    expect(within(kpis).getByText('Needs attention').parentElement).toHaveTextContent('3')
+    expect(within(kpis).getByText('Needs attention').parentElement).toHaveTextContent('4')
   })
 
   it('opens a knowledge base from its row', async () => {
@@ -106,7 +107,9 @@ describe('KnowledgeLibrary', () => {
     await waitFor(() => {
       expect(screen.queryByText('HR Policies')).not.toBeInTheDocument()
     })
-    expect(screen.queryByText('Sales playbook')).not.toBeInTheDocument()
+    // a Notion page paused by an expired sign-in needs attention
+    expect(screen.getByText('Sales playbook')).toBeVisible()
+    expect(screen.queryByText('Legacy notes')).not.toBeInTheDocument()
   })
 
   it('keeps only Local models only bases with that filter', async () => {

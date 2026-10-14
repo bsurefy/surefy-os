@@ -233,7 +233,6 @@
         "hint": "PDF, DOCX, XLSX, CSV, PPTX, TXT, MD, HTML or images · up to {limit}",
         "browse": "Choose files"
       },
-      "addLink": "Add link",
       "upload": {
         "uploading": "Uploading",
         "done": "Uploaded",
@@ -289,7 +288,8 @@
         "failed": "Failed",
         "paused": "Paused",
         "percent": "{percent}%",
-        "failedDocuments": "{count, plural, one {# page failed} other {# pages failed}}"
+        "failedDocuments": "{count, plural, one {# page failed} other {# pages failed}}",
+        "synced": "Synced {time}"
       },
       "reasons": {
         "KNOWLEDGE_FILE_UNSUPPORTED": "This file isn't supported",
@@ -306,7 +306,12 @@
         "retry": "Retry",
         "retryOcr": "Retry with OCR",
         "sync": "Sync now",
-        "remove": "Remove"
+        "remove": "Remove",
+        "reconnect": "Reconnect",
+        "chooseFolders": {
+          "google_drive": "Choose folders",
+          "notion": "Choose pages"
+        }
       },
       "noResults": {
         "title": "No sources found",
@@ -360,10 +365,121 @@
         "syncStarted": "Syncing {name}",
         "reindexStarted": "{count, plural, one {# source} other {# sources}} queued for re-indexing"
       },
-      "links": {
-        "title": "Links",
-        "description": "Add a web page or a whole site; it is crawled and kept in sync.",
-        "hint": "Connectors for Google Drive, Notion and SharePoint come with the Bridge module."
+      "connectorLine": "{app} · {first}{more, plural, =0 {} other { + # more}}",
+      "expired": {
+        "title": "The {app} sign-in expired",
+        "description": "{count, plural, one {Syncing # source is paused} other {Syncing # sources is paused}}. Its passages stay searchable until you reconnect.",
+        "reconnect": "Reconnect",
+        "ask": "Ask {name} to reconnect",
+        "someone": "the person who connected it"
+      },
+      "connectors": {
+        "title": "Links and connectors",
+        "description": "Keep web pages, Drive folders and Notion pages in sync.",
+        "link": {
+          "name": "Website",
+          "description": "A page or a whole site",
+          "action": "Add link"
+        },
+        "connect": "Connect",
+        "synced": "{count, plural, one {# source syncing} other {# sources syncing}}",
+        "pick": {
+          "google_drive": "Choose folders to sync",
+          "notion": "Choose pages to sync"
+        },
+        "addMore": {
+          "google_drive": "Add folders",
+          "notion": "Add pages"
+        },
+        "hint": "Connectors only read the folders and pages you choose."
+      },
+      "connector": {
+        "title": "Connect {app}",
+        "editTitle": "Change {name}",
+        "description": {
+          "google_drive": "Files in the folders you choose are added and kept in sync. Removing a folder later removes its files.",
+          "notion": "The pages and databases you choose, with their child pages, are added and kept in sync."
+        },
+        "account": {
+          "label": "Account",
+          "help": "The {app} account to read from. Only accounts you may use are listed.",
+          "placeholder": "Choose an account",
+          "search": "Search accounts",
+          "empty": "No accounts yet",
+          "loading": "Loading accounts",
+          "add": "Add a {app} account",
+          "required": "Choose an account",
+          "notListed": "An account connected by someone else",
+          "status": {
+            "active": "Active",
+            "expired": "Sign-in expired",
+            "error": "Not working",
+            "revoked": "Disconnected"
+          }
+        },
+        "folders": {
+          "label": {
+            "google_drive": "Folders",
+            "notion": "Pages"
+          },
+          "help": {
+            "google_drive": "Subfolders are included.",
+            "notion": "Child pages are included."
+          },
+          "required": {
+            "google_drive": "Choose at least one folder",
+            "notion": "Choose at least one page"
+          },
+          "tooMany": "Choose at most 100"
+        },
+        "picker": {
+          "search": {
+            "folders": "Search folders",
+            "pages": "Search pages"
+          },
+          "list": {
+            "folders": "Folders",
+            "pages": "Pages"
+          },
+          "trail": "Location",
+          "top": "Top level",
+          "open": "Open {name}",
+          "inBase": "Already synced here",
+          "loading": "Loading",
+          "loadError": "The list didn't load",
+          "empty": {
+            "folders": "No folders here",
+            "pages": "No pages here"
+          },
+          "noMatches": {
+            "folders": "No folders match",
+            "pages": "No pages match"
+          },
+          "loadMore": "Load more",
+          "selected": "{count} selected",
+          "remove": "Remove {name}"
+        },
+        "expired": {
+          "title": "The sign-in for {account} expired",
+          "description": "Reconnect the account to choose folders. Sources syncing through it are paused; their passages stay searchable.",
+          "reconnect": "Reconnect",
+          "ask": "Ask {name} to reconnect",
+          "someone": "the person who connected it"
+        },
+        "syncEvery": {
+          "label": "Sync",
+          "help": "Changed files are re-indexed and deleted ones removed.",
+          "hourly": "Every hour",
+          "daily": "Every day"
+        },
+        "name": "Name",
+        "optional": "optional",
+        "namePlaceholder": "The first folder's name",
+        "cancel": "Cancel",
+        "submit": "Connect and sync",
+        "save": "Save",
+        "added": "Syncing {name}",
+        "saved": "{name} saved · Syncing the changes"
       }
     },
     "testSearch": {

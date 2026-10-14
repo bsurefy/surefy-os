@@ -1,14 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { Ellipsis, Eye, FolderOpen, Plus, RefreshCw, ScanText, Trash2 } from 'lucide-react'
+import {
+  Ellipsis,
+  Eye,
+  FolderOpen,
+  FolderTree,
+  PlugZap,
+  RefreshCw,
+  ScanText,
+  Trash2,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useFormatter, useLocale } from 'next-intl'
 
 import { ROUTES } from '@/constants/routes'
+import ReconnectDialog from '@/modules/Settings/ConnectionsSettings/ConnectionDialogs/ReconnectDialog'
 import { toRoute } from '@/modules/Workspace'
-import { KNOWLEDGE_FILE_LIMITS } from '@surefy/contracts'
+import { KNOWLEDGE_CONNECTOR_CONNECTION_PROVIDERS, KNOWLEDGE_FILE_LIMITS } from '@surefy/contracts'
 import type { KnowledgeBaseDto, KnowledgeSourceDto } from '@surefy/contracts'
 import {
   BulkActionBar,
@@ -33,11 +43,20 @@ import {
 
 import SourcePreview from '../SourcePreview'
 import AddLinkDialog from './AddLinkDialog'
+import ConnectorDialog from './ConnectorDialog'
+import ConnectorsCard from './ConnectorsCard'
 import DuplicateFileDialog from './DuplicateFileDialog'
 import RemoveSourcesDialog from './RemoveSourcesDialog'
 import { ACCEPTED_FILES, SOURCE_STATUS_FILTERS } from './SourcesTab.constants'
 import { useSourcesTabController } from './SourcesTab.controller'
-import { canRetryWithOcr, getSourceKindCode, toSourceSort } from './SourcesTab.utils'
+import { useProviderName } from './SourcesTab.hooks'
+import {
+  canRetryWithOcr,
+  getSourceKindCode,
+  isSignInExpired,
+  summarizeFolders,
+  toSourceSort,
+} from './SourcesTab.utils'
 import SourceStatus from './SourceStatus'
 
 import type { SourceStatusFilter } from './SourcesTab.constants'
@@ -45,8 +64,9 @@ import type { SourceStatusFilter } from './SourcesTab.constants'
 const toSort = (sort: string) => ({ id: sort.replace(/^-/, ''), desc: sort.startsWith('-') })
 
 /**
- * Knowledge base › Sources: add files (dropzone) and links, follow processing, see what failed and
- * why, and retry, re-index or remove (T2). People who can only search see the table.
+ * Knowledge base › Sources: add files (dropzone), links and Google Drive or Notion folders, follow
+ * processing and syncs, see what failed and why, and retry, re-index, reconnect or remove (T2).
+ * People who can only search see the table.
  */
 export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }>) {
   const c = useSourcesTabController(base)
@@ -54,6 +74,11 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
   const locale = useLocale()
   const format = useFormatter()
   const { orgSlug } = useParams<{ orgSlug: string }>()
+  const providerName = useProviderName()
+  const appOf = (source: KnowledgeSourceDto) =>
+    source.connector
+      ? providerName(KNOWLEDGE_CONNECTOR_CONNECTION_PROVIDERS[source.connector.provider])
+      : ''
 
   const columns: DataTableColumn<KnowledgeSourceDto>[] = [
     {
@@ -68,6 +93,14 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
             <span className="text-body truncate font-medium">{source.name}</span>
             {source.link && (
               <span className="text-caption text-muted-foreground truncate">{source.link.url}</span>
+            )}
+            {source.connector && (
+              <span className="text-caption text-muted-foreground truncate">
+                {t('connectorLine', {
+                  app: appOf(source),
+                  ...summarizeFolders(source.connector.folders),
+                })}
+              </span>
             )}
           </div>
         </div>
@@ -101,7 +134,10 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
   ]
 
   const rowActions = (source: KnowledgeSourceDto) => {
-    const attention = ['failed', 'partially_failed', 'paused'].includes(source.status)
+    const isExpired = isSignInExpired(source)
+    // an expired sign-in is fixed by Reconnect, not by retrying or syncing
+    const attention = ['failed', 'partially_failed', 'paused'].includes(source.status) && !isExpired
+    const connection = isExpired ? c.getConnection(source) : null
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -140,7 +176,17 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
               {t('actions.retryOcr')}
             </DropdownMenuItem>
           )}
-          {c.canManage && source.type !== 'file' && (
+          {c.canManage && isExpired && connection && c.canReconnect(connection) && (
+            <DropdownMenuItem
+              onSelect={() => {
+                c.onReconnect(connection)
+              }}
+            >
+              <PlugZap aria-hidden />
+              {t('actions.reconnect')}
+            </DropdownMenuItem>
+          )}
+          {c.canManage && source.type !== 'file' && !isExpired && (
             <DropdownMenuItem
               onSelect={() => {
                 c.onSync(source)
@@ -148,6 +194,16 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
             >
               <RefreshCw aria-hidden />
               {t('actions.sync')}
+            </DropdownMenuItem>
+          )}
+          {c.canManage && source.connector && (
+            <DropdownMenuItem
+              onSelect={() => {
+                c.onEditConnector(source)
+              }}
+            >
+              <FolderTree aria-hidden />
+              {t(`actions.chooseFolders.${source.connector.provider}`)}
             </DropdownMenuItem>
           )}
           {c.canManage && (
@@ -205,6 +261,38 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
           }
         />
       )}
+      {c.expiredSignIns.map(({ connectionId, connection, provider, sources: paused }) => (
+        <Banner
+          key={connectionId}
+          tone="warning"
+          title={t('expired.title', {
+            app: providerName(KNOWLEDGE_CONNECTOR_CONNECTION_PROVIDERS[provider]),
+          })}
+          description={t('expired.description', { count: paused.length })}
+          action={
+            connection && c.canReconnect(connection) ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  c.onReconnect(connection)
+                }}
+              >
+                {t('expired.reconnect')}
+              </Button>
+            ) : (
+              <span className="text-caption">
+                {t('expired.ask', {
+                  name:
+                    connection?.connectedBy?.name ??
+                    paused[0]?.addedBy?.name ??
+                    t('expired.someone'),
+                })}
+              </span>
+            )
+          }
+        />
+      ))}
       {c.canManage && (
         <div className="grid gap-3.5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
           <FileDropzone
@@ -221,23 +309,12 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
             onFilesAccepted={uploads.onFilesAccepted}
             onFilesRejected={uploads.onFilesRejected}
           />
-          <div className="border-border bg-surface flex flex-col gap-2.5 rounded-xl border p-4">
-            <div className="flex flex-col gap-0.5">
-              <h3 className="text-section-title">{t('links.title')}</h3>
-              <p className="text-caption text-muted-foreground">{t('links.description')}</p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={Plus}
-              className="self-start"
-              disabled={!c.canAdd}
-              onClick={c.onAddLink}
-            >
-              {t('addLink')}
-            </Button>
-            <p className="text-caption text-muted-foreground mt-auto">{t('links.hint')}</p>
-          </div>
+          <ConnectorsCard
+            isDisabled={!c.canAdd}
+            sourceCounts={c.sourceCounts}
+            onAddLink={c.onAddLink}
+            onConnect={c.onConnect}
+          />
         </div>
       )}
       {uploads.isQuotaReached && (
@@ -370,6 +447,32 @@ export default function SourcesTab({ base }: Readonly<{ base: KnowledgeBaseDto }
       </section>
       {c.isAddingLink && (
         <AddLinkDialog orgId={c.orgId} baseId={base.id} onClose={c.onCloseAddLink} />
+      )}
+      {c.connecting && (
+        <ConnectorDialog
+          orgId={c.orgId}
+          base={base}
+          provider={c.connecting}
+          onClose={c.onCloseConnect}
+        />
+      )}
+      {c.editing?.connector && (
+        <ConnectorDialog
+          orgId={c.orgId}
+          base={base}
+          provider={c.editing.connector.provider}
+          source={c.editing}
+          onClose={c.onCloseEdit}
+        />
+      )}
+      {c.reconnecting && (
+        <ReconnectDialog
+          orgId={c.orgId}
+          connection={c.reconnecting}
+          providerName={providerName(c.reconnecting.providerKey)}
+          returnTo={c.reconnectReturnTo}
+          onClose={c.onCloseReconnect}
+        />
       )}
       {c.removing && (
         <RemoveSourcesDialog

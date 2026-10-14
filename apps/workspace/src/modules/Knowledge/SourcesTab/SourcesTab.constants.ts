@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { KNOWLEDGE_FILE_TYPES } from '@surefy/contracts'
-import type { KnowledgeFileType } from '@surefy/contracts'
+import type { KnowledgeConnectorProvider, KnowledgeFileType } from '@surefy/contracts'
 
 /** The status filter of the Sources table; one status at a time (list filters are single-valued). */
 export const SOURCE_STATUS_FILTERS = [
@@ -60,3 +60,15 @@ export const OCR_TYPES: readonly string[] = [
   'image/webp',
   'image/tiff',
 ]
+
+/** The tile of each connector, on its row of the add card and on the sources it syncs. */
+export const CONNECTOR_TILES: Readonly<Record<KnowledgeConnectorProvider, string>> = {
+  google_drive: 'GD',
+  notion: 'N',
+}
+
+/** The base's connector sources, counted on the add card and checked for an expired sign-in. */
+export const CONNECTOR_SOURCES_LIMIT = 100
+
+/** The account picker and the Reconnect lookup read the first page of connections of this size. */
+export const CONNECTION_LOOKUP_LIMIT = 100

@@ -5,6 +5,7 @@ import {
   bulkKnowledgeSourcesInputSchema,
   bulkKnowledgeSourcesResultDtoSchema,
   createKnowledgeBaseInputSchema,
+  createKnowledgeConnectorSourceInputSchema,
   createKnowledgeLinkInputSchema,
   deletedKnowledgeItemDtoSchema,
   ERROR_CODES,
@@ -14,6 +15,8 @@ import {
   knowledgeAccessImpactDtoSchema,
   knowledgeBaseDtoSchema,
   knowledgeBaseImpactDtoSchema,
+  knowledgeConnectorItemsDtoSchema,
+  knowledgeConnectorOf,
   knowledgeDocumentDetailDtoSchema,
   knowledgeDocumentDownloadDtoSchema,
   knowledgeDocumentDtoSchema,
@@ -41,6 +44,9 @@ import type {
   KnowledgeAccessGrantDto,
   KnowledgeBaseDto,
   KnowledgeChunkingPreset,
+  KnowledgeConnectorItemDto,
+  KnowledgeConnectorItemKind,
+  KnowledgeConnectorProvider,
   KnowledgeDocumentDto,
   KnowledgeEmbeddingModelDto,
   KnowledgeReindexProgressDto,
@@ -56,6 +62,7 @@ import {
   mockPage,
 } from '@surefy/web-core/testing/mock'
 
+import { findMockConnection, GOOGLE_DRIVE_ID, NOTION_ID } from './connections'
 import { MAYA, OMAR } from './shell.fixtures'
 import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
 import { OLLAMA_SERVER_ID } from './vault'
@@ -89,6 +96,9 @@ export const SCAN_SOURCE_ID = fixtureUuid(SOURCE_KIND, 4)
 export const SLOW_SOURCE_ID = fixtureUuid(SOURCE_KIND, 5)
 export const HANDBOOK_SOURCE_ID = fixtureUuid(SOURCE_KIND, 6)
 export const OLD_PRICING_SOURCE_ID = fixtureUuid(SOURCE_KIND, 7)
+
+export const DRIVE_SOURCE_ID = fixtureUuid(SOURCE_KIND, 8)
+export const NOTION_SOURCE_ID = fixtureUuid(SOURCE_KIND, 9)
 
 export const REFUND_DOCUMENT_ID = fixtureUuid(DOCUMENT_KIND, 1)
 
@@ -148,6 +158,45 @@ interface ChunkState {
   content: string
   page: number | null
   headingPath: string[]
+}
+
+interface ConnectorItemState {
+  externalId: string
+  name: string
+  kind: KnowledgeConnectorItemKind
+  parentId: string | null
+}
+
+/** What the seeded Google Drive and Notion connections can see. */
+const CONNECTOR_TREES: Record<KnowledgeConnectorProvider, readonly ConnectorItemState[]> = {
+  google_drive: [
+    { externalId: 'drive-my', name: 'My Drive', kind: 'folder', parentId: null },
+    { externalId: 'drive-shared', name: 'Shared drives', kind: 'folder', parentId: null },
+    { externalId: 'drive-support', name: 'Support', kind: 'folder', parentId: 'drive-my' },
+    { externalId: 'drive-public', name: 'Public', kind: 'folder', parentId: 'drive-support' },
+    { externalId: 'drive-internal', name: 'Internal', kind: 'folder', parentId: 'drive-support' },
+    { externalId: 'drive-finance', name: 'Finance', kind: 'folder', parentId: 'drive-shared' },
+    { externalId: 'drive-sales', name: 'Sales decks', kind: 'folder', parentId: 'drive-shared' },
+  ],
+  notion: [
+    { externalId: 'notion-support', name: 'Support workspace', kind: 'page', parentId: null },
+    { externalId: 'notion-macros', name: 'Macros', kind: 'page', parentId: 'notion-support' },
+    { externalId: 'notion-runbooks', name: 'Runbooks', kind: 'page', parentId: 'notion-support' },
+    { externalId: 'notion-faq', name: 'Customer FAQ', kind: 'database', parentId: null },
+    { externalId: 'notion-wiki', name: 'Sales wiki', kind: 'page', parentId: null },
+  ],
+}
+
+/** "Shared drives › Finance": the item's ancestors, for search results outside the open level. */
+function connectorPath(tree: readonly ConnectorItemState[], item: ConnectorItemState): string {
+  const names = [item.name]
+  let parent = tree.find(({ externalId }) => externalId === item.parentId)
+  while (parent) {
+    names.unshift(parent.name)
+    const { parentId } = parent
+    parent = tree.find(({ externalId }) => externalId === parentId)
+  }
+  return names.join(' › ')
 }
 
 /** A source with no documents yet, outside any state, unless overridden. */
@@ -431,6 +480,49 @@ function seed(): void {
     passageCount: 40,
     createdAt: ago(30 * DAY_MS),
   })
+  add({
+    id: DRIVE_SOURCE_ID,
+    knowledgeBaseId: SALES_PLAYBOOK_ID,
+    type: 'connector',
+    name: 'Sales decks',
+    fileName: null,
+    contentType: null,
+    sizeBytes: null,
+    connector: {
+      provider: 'google_drive',
+      folders: [{ externalId: 'drive-sales', name: 'Sales decks' }],
+      syncEvery: 'hourly',
+    },
+    connectionId: GOOGLE_DRIVE_ID,
+    documentCount: 6,
+    passageCount: 84,
+    lastSyncedAt: ago(HOUR_MS / 2),
+    nextSyncAt: new Date(Date.now() + HOUR_MS / 2).toISOString(),
+    createdAt: ago(12 * DAY_MS),
+  })
+  add({
+    id: NOTION_SOURCE_ID,
+    knowledgeBaseId: SALES_PLAYBOOK_ID,
+    type: 'connector',
+    name: 'Sales wiki',
+    fileName: null,
+    contentType: null,
+    sizeBytes: null,
+    connector: {
+      provider: 'notion',
+      folders: [{ externalId: 'notion-wiki', name: 'Sales wiki' }],
+      syncEvery: 'daily',
+    },
+    connectionId: NOTION_ID,
+    status: 'paused',
+    errorCode: 'KNOWLEDGE_CONNECTION_EXPIRED',
+    documentCount: 14,
+    passageCount: 120,
+    lastSyncedAt: ago(3 * DAY_MS),
+    nextSyncAt: null,
+    addedBy: OMAR,
+    createdAt: ago(15 * DAY_MS),
+  })
   grants = new Map([
     [
       HELP_CENTER_ID,
@@ -682,6 +774,50 @@ function toPassage(chunk: ChunkState, relevance: number, isUsed: boolean): Knowl
   }
 }
 
+const connectionExpired = () =>
+  mockError(HTTP_CONFLICT, ERROR_CODES.KNOWLEDGE_CONNECTION_EXPIRED, 'The sign-in expired')
+const connectionInvalid = () =>
+  mockError(HTTP_UNPROCESSABLE, ERROR_CODES.KNOWLEDGE_CONNECTION_INVALID, 'Not a connector')
+
+/** The connector a connection feeds, or the error that says why it cannot be browsed or synced. */
+function connectorOf(
+  connectionId: unknown,
+): { provider: KnowledgeConnectorProvider; error: null } | { provider: null; error: Response } {
+  const connection = findMockConnection(connectionId)
+  const provider = connection ? knowledgeConnectorOf(connection.providerKey) : null
+  if (!connection || !provider || connection.status === 'revoked') {
+    return { provider: null, error: connectionInvalid() }
+  }
+  if (connection.status === 'expired') return { provider: null, error: connectionExpired() }
+  return { provider, error: null }
+}
+
+/** One level of a connector tree, or every match of `q` with its path. */
+function listConnectorItems(baseId: string, provider: KnowledgeConnectorProvider, url: URL) {
+  const tree = CONNECTOR_TREES[provider]
+  const q = url.searchParams.get('q')?.toLowerCase()
+  const parentId = url.searchParams.get('parentId')
+  const synced = new Set(
+    activeSources(baseId).flatMap(({ dto }) =>
+      (dto.connector?.folders ?? []).map(({ externalId }) => externalId),
+    ),
+  )
+  const items: KnowledgeConnectorItemDto[] = tree
+    .filter((item) => (q ? item.name.toLowerCase().includes(q) : item.parentId === parentId))
+    .map((item) => ({
+      externalId: item.externalId,
+      name: item.name,
+      kind: item.kind,
+      hasChildren: tree.some((child) => child.parentId === item.externalId),
+      path: q ? connectorPath(tree, item) : null,
+      inBase: synced.has(item.externalId),
+    }))
+  const limit = Number(url.searchParams.get('limit') ?? items.length)
+  const start = Number(url.searchParams.get('cursor') ?? 0)
+  const next = start + limit < items.length ? String(start + limit) : null
+  return mockOk({ provider, items: items.slice(start, start + limit), nextCursor: next })
+}
+
 const sourceStateInvalid = () =>
   mockError(HTTP_CONFLICT, ERROR_CODES.KNOWLEDGE_SOURCE_STATE_INVALID, 'Does not apply')
 
@@ -689,11 +825,13 @@ const sourceStateInvalid = () =>
  * Knowledge bases, sources, documents and test search (C-04's routes), live on the real API
  * (I4-05; the handlers stay for component tests and for `MOCK_DOMAINS=knowledge`, to look at the
  * states). Sources created in a test move on by themselves: queued, processing, ready; the seeded
- * ones stay as they are (ready, processing, failed, partly failed). Scenarios: `search-only` (the
- * caller can only search); `name-taken` fails a create or rename; `no-local-embedding` fails a
- * local-only create; `no-embedding-model` fails adding a source; `unsupported-file` and
- * `link-unreachable` fail an add; `reembed-running` fails a model change; `restore-name-taken`
- * fails a base restore.
+ * ones stay as they are (ready, processing, failed, partly failed). Sales playbook syncs a Google
+ * Drive folder and a Notion page paused by an expired sign-in; the connector picker browses the
+ * Drive and Notion trees of the seeded connections. Scenarios: `search-only` (the caller can only
+ * search); `name-taken` fails a create or rename; `no-local-embedding` fails a local-only create;
+ * `no-embedding-model` fails adding a source; `unsupported-file` and `link-unreachable` fail an
+ * add; `connection-expired` fails browsing folders or adding a connector, `connection-invalid`
+ * adding one; `reembed-running` fails a model change; `restore-name-taken` fails a base restore.
  */
 export const knowledgeDomain = defineMockDomain(
   'knowledge',
@@ -1292,6 +1430,61 @@ export const knowledgeDomain = defineMockDomain(
     }),
     defineMockHandler({
       method: 'get',
+      path: `${sourcesPath}/connector-items`,
+      response: okResponse(knowledgeConnectorItemsDtoSchema),
+      scenarios: {
+        default: ({ params, request }) => {
+          if (!findBase(params.baseId)) return notFound()
+          const url = new URL(request.url)
+          const { provider, error } = connectorOf(url.searchParams.get('connectionId'))
+          if (error) return error
+          return listConnectorItems(String(params.baseId), provider, url)
+        },
+        'connection-expired': () => connectionExpired(),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${sourcesPath}/connectors`,
+      response: okResponse(knowledgeSourceDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const found = findBase(params.baseId)
+          if (!found) return notFound()
+          if (!found.embeddingModel) return noEmbeddingError()
+          const input = createKnowledgeConnectorSourceInputSchema.parse(await request.json())
+          const { provider, error } = connectorOf(input.connectionId)
+          if (error) return error
+          const [first, ...more] = input.folders
+          const dto = sourceFactory({
+            id: fixtureUuid(SOURCE_KIND, sources.length + 20),
+            knowledgeBaseId: found.id,
+            type: 'connector',
+            name:
+              input.name ??
+              (more.length > 0 ? `${first?.name} + ${more.length} more` : first?.name),
+            fileName: null,
+            contentType: null,
+            sizeBytes: null,
+            connector: { provider, folders: input.folders, syncEvery: input.syncEvery },
+            connectionId: input.connectionId,
+            status: 'queued',
+            progressPercent: 0,
+            documentCount: 0,
+            passageCount: 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+          sources = [{ dto, deletedBy: null, isFrozen: false, sha256: null }, ...sources]
+          touch(found.id)
+          return mockOk(dto, { status: 201 })
+        },
+        'connection-expired': () => connectionExpired(),
+        'connection-invalid': () => connectionInvalid(),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
       path: `${sourcesPath}/:sourceId`,
       response: okResponse(knowledgeSourceDtoSchema),
       scenarios: {
@@ -1316,7 +1509,17 @@ export const knowledgeDomain = defineMockDomain(
             ocrMode: input.ocrMode ?? found.dto.ocrMode,
             link:
               found.dto.link && input.link ? { ...found.dto.link, ...input.link } : found.dto.link,
+            connector:
+              found.dto.connector && input.connector
+                ? { ...found.dto.connector, ...input.connector }
+                : found.dto.connector,
             updatedAt: new Date().toISOString(),
+          }
+          // a changed folder list syncs at once
+          if (input.connector?.folders) {
+            const queued: KnowledgeSourceDto = { ...dto, status: 'queued', progressPercent: 0 }
+            setSource({ ...found, isFrozen: false, dto: queued })
+            return mockOk(queued)
           }
           setSource({ ...found, dto })
           return mockOk(dto)
