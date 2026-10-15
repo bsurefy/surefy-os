@@ -29,23 +29,25 @@ describe('connections settings', () => {
   })
 })
 
-describe('other Drive and Notion origins', () => {
+describe('other provider origins', () => {
   const local = { ...validEnv, CONNECTIONS_LOCAL_HOSTS: '127.0.0.1' }
 
-  it('moves Drive and Notion to stub servers on a local host', () => {
+  it('moves Drive, Notion, Slack and WhatsApp to stub servers on a local host', () => {
     const config = parseConfig('api', {
       ...local,
       CONNECTIONS_PROVIDER_ORIGINS:
-        'google-drive=http://127.0.0.1:4026, notion=http://127.0.0.1:4027',
+        'google-drive=http://127.0.0.1:4026, notion=http://127.0.0.1:4027, slack=http://127.0.0.1:4028, whatsapp=http://127.0.0.1:4028',
     })
     expect(config.connections.providerOrigins).toEqual({
       'google-drive': 'http://127.0.0.1:4026',
       notion: 'http://127.0.0.1:4027',
+      slack: 'http://127.0.0.1:4028',
+      whatsapp: 'http://127.0.0.1:4028',
     })
   })
 
   it.each([
-    ['slack=http://127.0.0.1:4026', /is not google-drive or notion=origin/],
+    ['teams=http://127.0.0.1:4026', /is not google-drive or notion or slack or whatsapp=origin/],
     ['notion=http://127.0.0.1:4026/v1', /is not an http\(s\) origin/],
     ['notion=ftp://127.0.0.1', /is not an http\(s\) origin/],
     ['notion=http://stub.example.test', /is not on CONNECTIONS_LOCAL_HOSTS/],

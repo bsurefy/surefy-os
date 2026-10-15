@@ -43,6 +43,8 @@ export interface ChannelRepliesDeps {
   connections: InboundChannelsDeps['connections']
   http: OutboundHttp
   history: ChannelHistory
+  /** Stub servers that stand in for Slack and WhatsApp, in end-to-end runs. */
+  origins?: { slack?: string; whatsapp?: string }
 }
 
 /** Where the answer goes, from the run's `externalRef`. */
@@ -167,20 +169,23 @@ export class ChannelReplies {
     const connection = await openChannelConnection(this.deps.connections, orgId, channel)
     const token = target.type === 'slack' ? connection.secret.accessToken : connection.secret.token
     if (target.type === 'slack') {
-      await sendSlackReply(this.deps.http, {
-        token: token ?? '',
-        channel: target.channel,
-        thread: target.thread,
-        text,
-      })
+      await sendSlackReply(
+        this.deps.http,
+        { token: token ?? '', channel: target.channel, thread: target.thread, text },
+        this.deps.origins?.slack,
+      )
       return
     }
-    await sendWhatsappMessage(this.deps.http, {
-      token: token ?? '',
-      phoneNumberId: channel.externalAccountId ?? '',
-      to: target.to,
-      text,
-    })
+    await sendWhatsappMessage(
+      this.deps.http,
+      {
+        token: token ?? '',
+        phoneNumberId: channel.externalAccountId ?? '',
+        to: target.to,
+        text,
+      },
+      this.deps.origins?.whatsapp,
+    )
   }
 
   /**

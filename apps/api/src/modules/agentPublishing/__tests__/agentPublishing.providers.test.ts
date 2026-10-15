@@ -3,11 +3,14 @@ import { createHmac } from 'node:crypto'
 
 import { describe, expect, it } from 'vitest'
 
+import { createFakeHttp } from '../../../../test/fixtures/fakeHttp.js'
 import {
   isSlackSignatureValid,
   isWhatsappSignatureValid,
   readSlackEnvelope,
   readWhatsappMessages,
+  sendSlackReply,
+  sendWhatsappMessage,
   slackAccepts,
   splitText,
 } from '../agentPublishing.providers.js'
@@ -194,5 +197,29 @@ describe('replies', () => {
       }),
     ).toBe('Refunds take 5 days.\n\nSources:\n1. Refund policy (p. 3)\n2. FAQ')
     expect(replyText(null)).toBe(FAILED_REPLY)
+  })
+})
+
+describe('replies to a stub server', () => {
+  const STUB = 'http://127.0.0.1:4029'
+
+  it('post to the stub as a local host, and to the app itself without one', async () => {
+    const http = createFakeHttp()
+    http.on('/api/chat.postMessage', { body: { ok: true } })
+    http.on('/messages', { body: { messages: [{ id: 'm' }] } })
+    const slack = { token: 't', channel: 'C1', thread: '1.1', text: 'Hi' }
+    const whatsapp = { token: 't', phoneNumberId: '123456', to: '4915', text: 'Hi' }
+
+    await sendSlackReply(http, slack, STUB)
+    await sendSlackReply(http, slack)
+    await sendWhatsappMessage(http, whatsapp, STUB)
+    await sendWhatsappMessage(http, whatsapp)
+
+    expect(http.calls.map(({ kind, url }) => [kind, url])).toEqual([
+      ['external', `${STUB}/api/chat.postMessage`],
+      ['provider', 'https://slack.com/api/chat.postMessage'],
+      ['external', `${STUB}/v21.0/123456/messages`],
+      ['provider', 'https://graph.facebook.com/v21.0/123456/messages'],
+    ])
   })
 })

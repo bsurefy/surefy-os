@@ -224,4 +224,44 @@ describe('other origins (stub servers)', () => {
       ['external', `${STUB}/drive/v3/about?fields=user(emailAddress,permissionId)`],
     ])
   })
+
+  it('moves Slack and WhatsApp to the stub the same way', async () => {
+    const both = createProviderAdapters({ slack: STUB, whatsapp: STUB })
+    const http = createFakeHttp()
+    http.on(`${STUB}/api/oauth.v2.access`, { body: { ok: true, access_token: 'xoxb-1' } })
+    http.on(`${STUB}/api/auth.test`, { body: { ok: true, team_id: 'T1', user_id: 'U1' } })
+    http.on(`${STUB}/v21.0/123456`, { body: { display_phone_number: '+49 1' } })
+    const slackAdapter = both.get('slack')
+
+    expect(
+      slackAdapter?.authorizationCode?.authorizationUrl({
+        app,
+        redirectUri: 'r',
+        state: 's',
+        codeChallenge: 'c',
+        scopes: ['chat:write'],
+      }),
+    ).toMatch(new RegExp(`^${STUB}/oauth/v2/authorize\\?`))
+    await slackAdapter?.authorizationCode?.exchangeCode(http, {
+      app,
+      redirectUri: 'r',
+      code: 'code',
+      codeVerifier: 'v',
+    })
+    await slackAdapter?.check(http, {
+      authType: 'oauth2',
+      secret: { version: 1, accessToken: 'xoxb-1' },
+      baseUrl: null,
+    })
+    await both.get('whatsapp')?.check(http, {
+      authType: 'api_key',
+      secret: { version: 1, token: 't', extra: { phoneNumberId: '123456' } },
+      baseUrl: null,
+    })
+    expect(http.calls.map(({ kind, url }) => [kind, url])).toEqual([
+      ['external', `${STUB}/api/oauth.v2.access`],
+      ['external', `${STUB}/api/auth.test`],
+      ['external', `${STUB}/v21.0/123456?fields=display_phone_number,verified_name`],
+    ])
+  })
 })

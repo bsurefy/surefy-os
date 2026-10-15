@@ -57,6 +57,8 @@ export const e2e = {
   mcpPort: Number(read('MCP_STUB_PORT', String(Number(read('API_PORT', '4000')) + 5))),
   /** The stub Google Drive and Notion (`connectorServer.ts`), which knowledge connectors sync. */
   connectorPort: Number(read('CONNECTOR_STUB_PORT', String(Number(read('API_PORT', '4000')) + 4))),
+  /** The stub Slack, WhatsApp and website (`channelServer.ts`), which agent channels talk to. */
+  channelPort: Number(read('CHANNEL_STUB_PORT', String(Number(read('API_PORT', '4000')) + 3))),
   /** The health port of the worker that the knowledge spec starts for itself. */
   workerPort: Number(read('API_PORT', '4000')) + 7,
 }
@@ -70,6 +72,19 @@ export const oauthServerUrl = `http://127.0.0.1:${String(e2e.oauthPort)}`
 export const mcpServerUrl = `http://127.0.0.1:${String(e2e.mcpPort)}`
 /** The stub Google Drive and Notion: one origin serves both apps' paths. */
 export const connectorServerUrl = `http://127.0.0.1:${String(e2e.connectorPort)}`
+/**
+ * The stub Slack, WhatsApp and website: one origin serves all three. The website (`/site`) is the
+ * origin the widget channel lists as its own.
+ */
+export const channelServerUrl = `http://127.0.0.1:${String(e2e.channelPort)}`
+/** The Slack workspace and bot the stub signs in to, and the WhatsApp Business number it knows. */
+export const SLACK_TEAM = 'Acme Slack'
+export const SLACK_TEAM_ID = 'T0E2E'
+export const SLACK_BOT_ID = 'U0BOT'
+export const WHATSAPP_NUMBER = { id: '109876543210', display: '+49 30 1234567', name: 'Acme Shop' }
+/** The install's Slack signing secret, and the Meta app secret kept in the WhatsApp connection. */
+export const SLACK_SIGNING_SECRET = 'e2e-slack-signing-secret'
+export const WHATSAPP_APP_SECRET = 'e2e-whatsapp-app-secret'
 /** The account the stub Drive belongs to, and the workspace the stub Notion integration sees. */
 export const DRIVE_ACCOUNT = 'maya@acme.test'
 export const NOTION_WORKSPACE = 'Acme Wiki'
@@ -132,8 +147,7 @@ export function apiEnv(): Record<string, string> {
     MAIL_DRIVER: 'console',
     // The stub OAuth app is a local server: a custom API may be reached over http on this host
     CONNECTIONS_LOCAL_HOSTS: '127.0.0.1',
-    // Slack is "set up" on this install (fake app credentials), so Connections offers it; the
-    // browser never reaches Slack, the spec answers in its place
+    // Slack is "set up" on this install (fake app credentials), so Connections offers it
     CONNECTIONS_OAUTH_SLACK_CLIENT_ID: 'e2e-slack-client-id',
     CONNECTIONS_OAUTH_SLACK_CLIENT_SECRET: 'e2e-slack-client-secret',
     // Google Drive and Notion are set up too, and live on the stub server (`connectorServer.ts`):
@@ -142,7 +156,15 @@ export function apiEnv(): Record<string, string> {
     CONNECTIONS_OAUTH_GOOGLE_DRIVE_CLIENT_SECRET: 'e2e-drive-client-secret',
     CONNECTIONS_OAUTH_NOTION_CLIENT_ID: 'e2e-notion-client-id',
     CONNECTIONS_OAUTH_NOTION_CLIENT_SECRET: 'e2e-notion-client-secret',
-    CONNECTIONS_PROVIDER_ORIGINS: `google-drive=${connectorServerUrl},notion=${connectorServerUrl}`,
+    // Slack and WhatsApp live on the stub channel server (`channelServer.ts`): the browser signs in
+    // to Slack there, connections are checked there and agents answer there
+    CONNECTIONS_SLACK_SIGNING_SECRET: SLACK_SIGNING_SECRET,
+    CONNECTIONS_PROVIDER_ORIGINS: [
+      `google-drive=${connectorServerUrl}`,
+      `notion=${connectorServerUrl}`,
+      `slack=${channelServerUrl}`,
+      `whatsapp=${channelServerUrl}`,
+    ].join(','),
   }
 }
 

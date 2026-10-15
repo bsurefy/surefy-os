@@ -77,6 +77,8 @@ export interface AgentPublishingModuleDeps {
   http: OutboundHttp
   /** The Slack app's signing secret and the key of the WhatsApp verify tokens. */
   inbound: Pick<InboundChannelsDeps, 'slackSigningSecret' | 'verifyKey'>
+  /** Stub servers that stand in for Slack and WhatsApp (`CONNECTIONS_PROVIDER_ORIGINS`). */
+  origins?: { slack?: string; whatsapp?: string }
   /** The widget script; tests pass their own. */
   widgetScript?: () => Promise<WidgetScript | null>
 }
@@ -124,6 +126,7 @@ export function createAgentPublishingModule(deps: AgentPublishingModuleDeps) {
     connections: deps.connections,
     http: deps.http,
     logger: deps.logger,
+    ...(deps.origins === undefined ? {} : { origins: deps.origins }),
     ...deps.inbound,
   })
   const replies = new ChannelReplies({
@@ -136,6 +139,7 @@ export function createAgentPublishingModule(deps: AgentPublishingModuleDeps) {
     connections: deps.connections,
     http: deps.http,
     history,
+    ...(deps.origins === undefined ? {} : { origins: deps.origins }),
   })
   const widget = new WidgetChannel({
     db: deps.db,

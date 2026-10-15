@@ -12,4 +12,7 @@ export type {
 } from './connections.types.js'
 export type { ConnectionUse } from './connections.service.js'
 export { OutboundError, type HttpResult, type OutboundHttp } from './connectionsHttp.js'
-export { authHeaders as connectionAuthHeaders } from './providers/providerHttp.js'
+export {
+  authHeaders as connectionAuthHeaders,
+  providerEndpoints,
+} from './providers/providerHttp.js'

@@ -37,6 +37,8 @@ export interface InboundChannelsDeps {
   slackSigningSecret?: string
   /** The key of the WhatsApp verify tokens. */
   verifyKey: string
+  /** Stub servers that stand in for WhatsApp, in end-to-end runs (`CONNECTIONS_PROVIDER_ORIGINS`). */
+  origins?: { whatsapp?: string }
   now?: () => Date
 }
 
@@ -181,12 +183,11 @@ export class InboundChannels {
     text: string,
   ): Promise<void> {
     try {
-      await sendWhatsappMessage(this.deps.http, {
-        token: connection.secret.token ?? '',
-        phoneNumberId,
-        to,
-        text,
-      })
+      await sendWhatsappMessage(
+        this.deps.http,
+        { token: connection.secret.token ?? '', phoneNumberId, to, text },
+        this.deps.origins?.whatsapp,
+      )
     } catch (error) {
       this.deps.logger.warn(
         { err: error, connectionId: connection.id },

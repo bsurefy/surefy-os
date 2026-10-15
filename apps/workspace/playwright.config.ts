@@ -4,6 +4,7 @@ import { defineConfig, devices } from '@playwright/test'
 import {
   apiEnv,
   apiUrl,
+  channelServerUrl,
   connectorServerUrl,
   mcpServerUrl,
   mlServerUrl,
@@ -24,6 +25,7 @@ const SERVER_START_MS = 180_000
 const AGENT_SPECS = [
   '**/agents.spec.ts',
   '**/approvals.spec.ts',
+  '**/channels.spec.ts',
   '**/guard.spec.ts',
   '**/insightsRuns.spec.ts',
 ]
@@ -31,7 +33,7 @@ const AGENT_SPECS = [
 /**
  * End-to-end specs against the real API and a fresh database (testing.md §1). `pnpm test:e2e`
  * prepares the database first; Playwright then starts the stub model, document parser, OAuth,
- * MCP, Google Drive and Notion servers, the API and the app, the `setup` project runs first-run
+ * MCP, Google Drive, Notion, Slack and WhatsApp servers, the API and the app, the `setup` project runs first-run
  * setup and signs the Owner in, and the specs reuse that session.
  */
 export default defineConfig({
@@ -100,6 +102,13 @@ export default defineConfig({
       name: 'connectors',
       command: 'pnpm exec tsx e2e/support/connectorServer.ts',
       url: `${connectorServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'channels',
+      command: 'pnpm exec tsx e2e/support/channelServer.ts',
+      url: `${channelServerUrl}/health/live`,
       timeout: SERVER_START_MS,
       reuseExistingServer: false,
     },

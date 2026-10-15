@@ -2,15 +2,15 @@
 import { customApi, mcpServer } from './customEndpoint.js'
 import { createGoogleDriveAdapter } from './googleDrive.js'
 import { createNotionAdapter } from './notion.js'
-import { slack } from './slack.js'
-import { whatsapp } from './whatsapp.js'
+import { createSlackAdapter } from './slack.js'
+import { createWhatsappAdapter } from './whatsapp.js'
 
 import type { ProviderAdapter } from './provider.types.js'
 import type { ConnectionProviderOrigins } from '@/core/config/index.js'
 
 /**
  * The adapters by `provider_key`. Bridge providers join with the bridge catalog (V2). `origins`
- * moves Google Drive and Notion to stub servers (`CONNECTIONS_PROVIDER_ORIGINS`).
+ * moves Google Drive, Notion, Slack and WhatsApp to stub servers (`CONNECTIONS_PROVIDER_ORIGINS`).
  */
 export function createProviderAdapters(
   origins: ConnectionProviderOrigins = {},
@@ -18,8 +18,8 @@ export function createProviderAdapters(
   const adapters: readonly ProviderAdapter[] = [
     createGoogleDriveAdapter(origins['google-drive']),
     createNotionAdapter(origins.notion),
-    slack,
-    whatsapp,
+    createSlackAdapter(origins.slack),
+    createWhatsappAdapter(origins.whatsapp),
     customApi,
     mcpServer,
   ]

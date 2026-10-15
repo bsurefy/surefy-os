@@ -456,6 +456,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     audit: audit.service,
     connections: connections.service,
     http: connections.http,
+    // stub Slack and WhatsApp servers (CONNECTIONS_PROVIDER_ORIGINS), in development and tests only
+    origins: {
+      ...(config.connections.providerOrigins?.slack === undefined
+        ? {}
+        : { slack: config.connections.providerOrigins.slack }),
+      ...(config.connections.providerOrigins?.whatsapp === undefined
+        ? {}
+        : { whatsapp: config.connections.providerOrigins.whatsapp }),
+    },
     inbound: {
       verifyKey: config.crypto.encryptionKey,
       ...(config.connections.slackSigningSecret === undefined

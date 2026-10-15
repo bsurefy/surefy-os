@@ -2,6 +2,7 @@
 import { expect, test } from '@playwright/test'
 
 import {
+  channelServerUrl,
   OAUTH_CLIENT_ID,
   OAUTH_CLIENT_SECRET,
   oauthServerUrl,
@@ -191,8 +192,8 @@ test.describe('Settings › Connections › returning from an app', () => {
 
   test('a declined sign-in at the app saves nothing', async ({ page }) => {
     await openConnections(page)
-    // the browser never reaches Slack: the spec answers for it, as Slack does when a person declines
-    await page.route('https://slack.com/**', async (route) => {
+    // Slack is the stub channel server: the spec answers for it, as Slack does when a person declines
+    await page.route(`${channelServerUrl}/oauth/v2/authorize**`, async (route) => {
       const state = new URL(route.request().url()).searchParams.get('state') ?? ''
       const back = new URL('/settings/connections/callback', webUrl)
       back.searchParams.set('error', 'access_denied')

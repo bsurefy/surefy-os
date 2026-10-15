@@ -10,8 +10,8 @@ import { z } from 'zod'
  * `CONNECTIONS_LOCAL_HOSTS` lists the hosts that may be reached over plain http, and on private
  * addresses, by custom APIs and MCP servers (comma-separated host names, for local servers).
  *
- * `CONNECTIONS_PROVIDER_ORIGINS` moves every address SurefyOS calls for Google Drive or Notion
- * (sign-in, tokens, API, downloads) to another origin, path kept:
+ * `CONNECTIONS_PROVIDER_ORIGINS` moves every address SurefyOS calls for Google Drive, Notion,
+ * Slack or WhatsApp (sign-in, tokens, API, downloads, replies) to another origin, path kept:
  * `google-drive=http://127.0.0.1:4026,notion=http://127.0.0.1:4026`. It exists for the stub
  * servers of the end-to-end run: the origin's host must be a local host, and production refuses it.
  */
@@ -19,7 +19,12 @@ export const CONNECTION_OAUTH_APP_KEYS = ['google-drive', 'notion', 'slack'] as 
 export type ConnectionOauthAppKey = (typeof CONNECTION_OAUTH_APP_KEYS)[number]
 
 /** The providers whose addresses `CONNECTIONS_PROVIDER_ORIGINS` may move. */
-export const CONNECTION_ORIGIN_PROVIDER_KEYS = ['google-drive', 'notion'] as const
+export const CONNECTION_ORIGIN_PROVIDER_KEYS = [
+  'google-drive',
+  'notion',
+  'slack',
+  'whatsapp',
+] as const
 export type ConnectionOriginProviderKey = (typeof CONNECTION_ORIGIN_PROVIDER_KEYS)[number]
 export type ConnectionProviderOrigins = Partial<Record<ConnectionOriginProviderKey, string>>
 
