@@ -57,6 +57,8 @@ export const e2e = {
   mcpPort: Number(read('MCP_STUB_PORT', String(Number(read('API_PORT', '4000')) + 5))),
   /** The stub Google Drive and Notion (`connectorServer.ts`), which knowledge connectors sync. */
   connectorPort: Number(read('CONNECTOR_STUB_PORT', String(Number(read('API_PORT', '4000')) + 4))),
+  /** The stub SearXNG (`searchServer.ts`), which Chat's web search asks. */
+  searchPort: Number(read('SEARCH_STUB_PORT', String(Number(read('API_PORT', '4000')) + 2))),
   /** The stub Slack, WhatsApp and website (`channelServer.ts`), which agent channels talk to. */
   channelPort: Number(read('CHANNEL_STUB_PORT', String(Number(read('API_PORT', '4000')) + 3))),
   /** The health port of the worker that the knowledge spec starts for itself. */
@@ -77,6 +79,8 @@ export const connectorServerUrl = `http://127.0.0.1:${String(e2e.connectorPort)}
  * origin the widget channel lists as its own.
  */
 export const channelServerUrl = `http://127.0.0.1:${String(e2e.channelPort)}`
+/** The stub SearXNG instance; its address is what an Admin adds as the search provider. */
+export const searchServerUrl = `http://127.0.0.1:${String(e2e.searchPort)}`
 /** The Slack workspace and bot the stub signs in to, and the WhatsApp Business number it knows. */
 export const SLACK_TEAM = 'Acme Slack'
 export const SLACK_TEAM_ID = 'T0E2E'
