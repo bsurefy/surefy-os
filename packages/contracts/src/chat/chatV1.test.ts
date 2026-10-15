@@ -9,10 +9,12 @@ import {
   chatMessagePartsSchema,
   chatSharedParamsSchema,
   chatSharesDtoSchema,
+  chatShareTargetDtoSchema,
   createChatSharesInputSchema,
   createPromptInputSchema,
   ERROR_CODES,
   fillPromptVariables,
+  listChatShareTargetsQuerySchema,
   listPromptsQuerySchema,
   notificationParamsSchema,
   parsePromptVariables,
@@ -74,7 +76,7 @@ describe('chat shares', () => {
     const detail = sharedChatDetailDtoSchema.parse({
       id,
       title: 'Q3 numbers',
-      agentId: null,
+      agent: { id: id2, name: 'Support triage', isAvailable: false },
       lastMessageAt: null,
       messageCount: 4,
       owner: user,
@@ -83,6 +85,19 @@ describe('chat shares', () => {
       folderId: id2,
     })
     expect(detail).not.toHaveProperty('folderId')
+    expect(detail.agent?.isAvailable).toBe(false)
+  })
+
+  it('offers people and teams as share targets', () => {
+    expect(chatShareTargetDtoSchema.safeParse({ subjectType: 'user', user }).success).toBe(true)
+    expect(
+      chatShareTargetDtoSchema.safeParse({
+        subjectType: 'team',
+        team: { id: id2, name: 'Support', memberCount: 8 },
+      }).success,
+    ).toBe(true)
+    expect(chatShareTargetDtoSchema.safeParse({ subjectType: 'team', user }).success).toBe(false)
+    expect(listChatShareTargetsQuerySchema.parse({ q: ' sup ' }).q).toBe('sup')
   })
 
   it('sends the share notification as plain params', () => {
@@ -164,6 +179,24 @@ describe('prompts', () => {
         updatedAt: '2026-10-01T10:00:00.000Z',
       }).success,
     ).toBe(true)
+  })
+})
+
+describe('agent chats', () => {
+  it('starts an agent chat with its first message', () => {
+    const input = sendChatMessageInputSchema.parse({
+      trigger: 'submit',
+      text: 'My order is late',
+      newChat: { agentId: id },
+    })
+    expect(input.trigger === 'submit' && input.newChat?.agentId).toBe(id)
+    expect(
+      sendChatMessageInputSchema.safeParse({
+        trigger: 'submit',
+        text: 'Hi',
+        newChat: { agentId: 'support' },
+      }).success,
+    ).toBe(false)
   })
 })
 

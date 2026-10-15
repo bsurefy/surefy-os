@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
+  ChatAgentRefDto,
   ChatAttachmentDto,
   ChatDto,
   ChatFeedbackDto,
@@ -27,7 +28,12 @@ const iso = (date: Date): string => date.toISOString()
 
 export function toChatDto(
   row: ChatRow,
-  extra: { knowledgeBaseIds?: readonly string[]; matchedText?: string | null } = {},
+  extra: {
+    knowledgeBaseIds?: readonly string[]
+    matchedText?: string | null
+    /** The agent of an agent chat, with its name and whether the person may still use it. */
+    agent?: ChatAgentRefDto | null
+  } = {},
 ): ChatDto {
   return {
     id: row.id,
@@ -37,7 +43,7 @@ export function toChatDto(
     isPinned: row.isPinned,
     pinnedAt: row.pinnedAt === null ? null : iso(row.pinnedAt),
     isPrivate: row.isPrivate,
-    agentId: row.agentId,
+    agent: extra.agent ?? null,
     knowledgeScope: row.knowledgeScope,
     knowledgeBaseIds: row.knowledgeScope === 'selected' ? [...(extra.knowledgeBaseIds ?? [])] : [],
     currentModelKey: row.currentModelKey,

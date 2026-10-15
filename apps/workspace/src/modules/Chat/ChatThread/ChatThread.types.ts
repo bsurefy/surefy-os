@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
+  AgentRunApprovalData,
+  AgentRunStatusData,
+  ApprovalAssigneeDto,
   BudgetLimitScope,
   ChatFeedbackDto,
   ChatMessageIdsData,
+  ChatMessageVariant,
   ChatModelData,
   ChatUsage,
   DataLocation,
   KnowledgeSkippedReason,
   ToolState,
+  WebSearchSkippedReason,
 } from '@surefy/contracts'
 
 import type { UIMessage } from 'ai'
@@ -29,6 +34,10 @@ interface DataPartMap {
   model: ChatModelData
   usage: ChatUsage
   title: { title: string }
+  /** Agent chats: the run's status and the approval it waits for (agentRuns/stream.ts). */
+  run: AgentRunStatusData
+  'approval-required': AgentRunApprovalData
+  'web-search-skipped': { reason: WebSearchSkippedReason }
 }
 
 /** The SurefyOS data chunks of the stream (`data-<name>`), typed for `useChat`. */
@@ -51,11 +60,31 @@ export type ThreadNote =
   | { name: 'sources-processing'; count: number }
   | { name: 'knowledge-skipped'; reason: KnowledgeSkippedReason }
   | { name: 'budget-reached'; scope: BudgetLimitScope }
+  /** Web search was asked for but the answer was written without it. */
+  | { name: 'web-search-skipped'; reason: WebSearchSkippedReason }
+  /**
+   * An agent action waiting for approval. The stream carries who decides and when it expires; a
+   * stored answer only has the id, and the card reads the rest from the approval.
+   */
+  | {
+      name: 'approval'
+      approvalId: string
+      title?: string
+      assignees?: ApprovalAssigneeDto[]
+      expiresAt?: string | null
+    }
 
 export type ThreadPart =
   | { kind: 'text'; text: string }
   | { kind: 'reasoning'; text: string; durationMs?: number; isStreaming: boolean }
-  | { kind: 'tool'; toolCallId: string; toolName: string; state: ToolState }
+  | {
+      kind: 'tool'
+      toolCallId: string
+      toolName: string
+      state: ToolState
+      /** The query of a web search step. */
+      query?: string
+    }
   | { kind: 'file'; attachmentId: string; name: string; mediaType: string }
   | { kind: 'switch'; fromModelKey: string; toModelKey: string }
 
@@ -74,6 +103,13 @@ export interface ThreadMessage {
   piiMasked: boolean
   errorCode: string | null
   feedback: ChatFeedbackDto | null
+  /**
+   * Compare: which answer of a comparison this is. A live comparison has no group id yet, and an
+   * answer without a partner (the other was not chosen) is drawn like any other.
+   */
+  variant: (Pick<ChatMessageVariant, 'label'> & { groupId: string | null }) | null
+  /** What the answer cost, once the server stored it (or the stream said so). */
+  usage: ChatUsage | null
   /** Only history has full detail (sources with ids, feedback, usage). */
   isPersisted: boolean
 }

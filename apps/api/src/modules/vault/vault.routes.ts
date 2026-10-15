@@ -5,10 +5,12 @@ import {
   createCredentialRoute,
   createLocalServerRoute,
   createMyCredentialRoute,
+  createSearchProviderRoute,
   credentialImpactRoute,
   deleteLocalServerRoute,
   getCredentialRoute,
   getModelAccessRoute,
+  getSearchProvidersRoute,
   getVaultModelRoute,
   getVaultSettingsRoute,
   listCredentialsRoute,
@@ -59,6 +61,16 @@ export function vaultRoutes(c: VaultController): FastifyPluginAsyncZod {
       `${vault}/credentials`,
       { schema: createCredentialRoute, preHandler: manage },
       c.createCredential,
+    )
+    app.get(
+      `${vault}/search-providers`,
+      { schema: getSearchProvidersRoute, preHandler: read },
+      c.getSearchProviders,
+    )
+    app.post(
+      `${vault}/search-providers`,
+      { schema: createSearchProviderRoute, preHandler: manage },
+      c.createSearchProvider,
     )
     // personal keys are tested too; the service limits what someone without vault:manage may test
     app.post(

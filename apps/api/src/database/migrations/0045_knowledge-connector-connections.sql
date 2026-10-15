@@ -1,0 +1,1 @@
+ALTER TABLE "knowledge_sources" ADD CONSTRAINT "knowledge_sources_organization_id_connection_id_fkey" FOREIGN KEY ("organization_id","connection_id") REFERENCES "public"."connections"("organization_id","id") ON DELETE restrict ON UPDATE no action;

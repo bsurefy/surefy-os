@@ -2,29 +2,44 @@
 import type { ChatAttachmentsService } from './chatAttachments.service.js'
 import type { ChatMessagesService } from './chatMessages.service.js'
 import type {
+  chooseChatMessageRoute,
   clearChatFeedbackRoute,
   completeChatAttachmentRoute,
   createChatFolderRoute,
+  createChatSharesRoute,
+  createPromptRoute,
   deleteChatAttachmentRoute,
   deleteChatFolderRoute,
   deleteChatRoute,
+  deleteChatShareRoute,
+  deletePromptRoute,
   getChatRoute,
   getChatSourceRoute,
+  getPromptRoute,
+  getSharedChatRoute,
+  listChatShareTargetsRoute,
   listChatFoldersRoute,
   listChatMessagesRoute,
+  listChatSharesRoute,
   listChatsRoute,
+  listPromptsRoute,
+  listSharedChatsRoute,
   putChatUploadRoute,
   reorderChatFoldersRoute,
   requestChatAttachmentRoute,
   restoreChatRoute,
+  restorePromptRoute,
   retryChatAttachmentRoute,
   sendChatMessageRoute,
   setChatFeedbackRoute,
   updateChatFolderRoute,
   updateChatRoute,
+  updatePromptRoute,
 } from './chats.schema.js'
 import type { ChatsService } from './chats.service.js'
+import type { ChatSharesService } from './chatShares.service.js'
 import type { ChatStreamService } from './chatStream.service.js'
+import type { PromptsService } from './prompts.service.js'
 import type { ZodReply, ZodRequest } from '@/types/fastify.js'
 import type { FastifySchema } from 'fastify'
 
@@ -36,6 +51,8 @@ export interface ChatsControllerDeps {
   messages: ChatMessagesService
   stream: ChatStreamService
   attachments: ChatAttachmentsService
+  shares: ChatSharesService
+  prompts: PromptsService
 }
 
 export class ChatsController {
@@ -79,7 +96,7 @@ export class ChatsController {
     reply.page(items, nextCursor)
   }
 
-  /** The one handler that streams: a client that goes away aborts the model call. */
+  /** The one handler that streams: a client that goes away aborts the model call (not a run). */
   send = async (request: R<typeof sendChatMessageRoute>, reply: P<typeof sendChatMessageRoute>) => {
     const abort = new AbortController()
     // the response closing before it finished: stop the model call (the request's own `close`
@@ -87,13 +104,24 @@ export class ChatsController {
     reply.raw.on('close', () => {
       if (!reply.raw.writableFinished) abort.abort()
     })
-    const stream = await this.deps.stream.send(
+    const sent = await this.deps.stream.send(
       request.tenant,
       request.params.chatId,
       request.body,
       abort.signal,
     )
-    return reply.uiMessageStream(stream)
+    // an agent chat answers with its run's event stream; closing it never cancels the run
+    if (sent.kind === 'response') return reply.send(sent.response)
+    return reply.uiMessageStream(sent.stream)
+  }
+
+  /** Compare: "Continue with A/B". */
+  choose = async (
+    request: R<typeof chooseChatMessageRoute>,
+    reply: P<typeof chooseChatMessageRoute>,
+  ) => {
+    const { chatId, messageId } = request.params
+    reply.ok(await this.deps.stream.choose(request.tenant, chatId, messageId))
   }
 
   sourcePreview = async (
@@ -223,5 +251,92 @@ export class ChatsController {
   ) => {
     const { items, nextCursor } = await this.deps.chats.reorderFolders(request.tenant, request.body)
     reply.page(items, nextCursor)
+  }
+
+  // ── Shares ──────────────────────────────────────────────────────────────────────────────────
+
+  listShares = async (
+    request: R<typeof listChatSharesRoute>,
+    reply: P<typeof listChatSharesRoute>,
+  ) => {
+    reply.ok(await this.deps.shares.list(request.tenant, request.params.chatId))
+  }
+
+  createShares = async (
+    request: R<typeof createChatSharesRoute>,
+    reply: P<typeof createChatSharesRoute>,
+  ) => {
+    reply.ok(await this.deps.shares.create(request.tenant, request.params.chatId, request.body))
+  }
+
+  deleteShare = async (
+    request: R<typeof deleteChatShareRoute>,
+    reply: P<typeof deleteChatShareRoute>,
+  ) => {
+    await this.deps.shares.remove(request.tenant, request.params.chatId, request.params.shareId)
+    reply.noContent()
+  }
+
+  listShared = async (
+    request: R<typeof listSharedChatsRoute>,
+    reply: P<typeof listSharedChatsRoute>,
+  ) => {
+    const { items, nextCursor } = await this.deps.shares.listShared(request.tenant, request.query)
+    reply.page(items, nextCursor)
+  }
+
+  listShareTargets = async (
+    request: R<typeof listChatShareTargetsRoute>,
+    reply: P<typeof listChatShareTargetsRoute>,
+  ) => {
+    const { items, nextCursor } = await this.deps.shares.targets(request.tenant, request.query)
+    reply.page(items, nextCursor)
+  }
+
+  getShared = async (
+    request: R<typeof getSharedChatRoute>,
+    reply: P<typeof getSharedChatRoute>,
+  ) => {
+    reply.ok(await this.deps.shares.getShared(request.tenant, request.params.chatId))
+  }
+
+  // ── Prompts ─────────────────────────────────────────────────────────────────────────────────
+
+  listPrompts = async (request: R<typeof listPromptsRoute>, reply: P<typeof listPromptsRoute>) => {
+    const { items, nextCursor } = await this.deps.prompts.list(request.tenant, request.query)
+    reply.page(items, nextCursor)
+  }
+
+  createPrompt = async (
+    request: R<typeof createPromptRoute>,
+    reply: P<typeof createPromptRoute>,
+  ) => {
+    reply.created(await this.deps.prompts.create(request.tenant, request.body))
+  }
+
+  getPrompt = async (request: R<typeof getPromptRoute>, reply: P<typeof getPromptRoute>) => {
+    reply.ok(await this.deps.prompts.get(request.tenant, request.params.promptId))
+  }
+
+  updatePrompt = async (
+    request: R<typeof updatePromptRoute>,
+    reply: P<typeof updatePromptRoute>,
+  ) => {
+    reply.ok(await this.deps.prompts.update(request.tenant, request.params.promptId, request.body))
+  }
+
+  deletePrompt = async (
+    request: R<typeof deletePromptRoute>,
+    reply: P<typeof deletePromptRoute>,
+  ) => {
+    await this.deps.prompts.delete(request.tenant, request.params.promptId)
+    reply.noContent()
+  }
+
+  restorePrompt = async (
+    request: R<typeof restorePromptRoute>,
+    reply: P<typeof restorePromptRoute>,
+  ) => {
+    reply.ok(await this.deps.prompts.restore(request.tenant, request.params.promptId))
   }
 }

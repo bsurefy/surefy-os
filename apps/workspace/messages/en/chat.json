@@ -45,7 +45,9 @@
       "noFolder": "No folder",
       "noFolders": "No folders yet",
       "export": "Export",
-      "delete": "Delete"
+      "delete": "Delete",
+      "share": "Share",
+      "agent": "Agent: {name}"
     },
     "toasts": {
       "chatDeleted": "Chat deleted",
@@ -62,7 +64,11 @@
       "empty": {
         "title": "Nothing deleted in the last 30 days",
         "description": "Chats you delete wait here before they are removed."
-      }
+      },
+      "chats": "Chats",
+      "prompts": "Prompts",
+      "restorePrompt": "Restore prompt {title}",
+      "promptRestored": "Prompt restored"
     },
     "name": {
       "newFolder": {
@@ -101,10 +107,25 @@
       "ready": "Your export is ready.",
       "failed": "The export failed.",
       "expired": "The export expired.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "includeSources": "Include sources",
+      "includeSourcesHelp": "Adds the documents and web pages each answer cited."
     },
     "open": "Chats",
-    "sheetDescription": "Your chats, folders and recently deleted chats."
+    "sheetDescription": "Your chats, folders and recently deleted chats.",
+    "agents": {
+      "title": "Agents shared with you",
+      "more": "Show more"
+    },
+    "shared": {
+      "title": "Shared with me",
+      "by": "From {name}"
+    },
+    "deleteShared": {
+      "title": "Delete “{title}”?",
+      "description": "{count, plural, one {# person} other {# people}} will lose access. You can restore it for {days} days.",
+      "confirm": "Delete chat"
+    }
   },
   "thread": {
     "title": "New chat",
@@ -160,7 +181,9 @@
         "member": "Your admin hasn't enabled any models yet. Ask an admin to connect one.",
         "open": "Open Vault"
       },
-      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>."
+      "usingModel": "Answers can cite your knowledge. You're using <b>{model}</b>.",
+      "agentDescription": "Ask a question to get started.",
+      "starters": "Conversation starters"
     },
     "header": {
       "menu": "Chat options",
@@ -172,7 +195,10 @@
         "needsLocal": "Needs a local model · Ask an admin"
       },
       "export": "Export",
-      "delete": "Delete chat"
+      "delete": "Delete chat",
+      "share": "Share",
+      "privateNotShared": "Private chats are never shared",
+      "untitled": "New chat"
     },
     "scope": {
       "trigger": "Knowledge scope",
@@ -235,7 +261,12 @@
       "copyShort": "Copy",
       "regenerateShort": "Regenerate",
       "answeredFrom": "{count, plural, one {Answered from # source} other {Answered from # sources}}",
-      "sourcesFromKnowledge": "Sources from your knowledge"
+      "sourcesFromKnowledge": "Sources from your knowledge",
+      "failedShort": "This answer failed.",
+      "webSearchStep": "Searched the web",
+      "webSearchStepQuery": "Searched the web for “{query}”",
+      "sourcesFromWeb": "Sources from the web",
+      "sourcesMixed": "Sources"
     },
     "user": {
       "label": "Your message",
@@ -251,6 +282,10 @@
       "skipped": {
         "no_ready_sources": "No knowledge source was ready to search.",
         "no_access": "You don't have access to the knowledge in scope."
+      },
+      "webSearchSkipped": {
+        "provider_error": "Web search didn't work · answered without it",
+        "pii_blocked": "Web search was skipped because your message contains personal data · answered without it"
       }
     },
     "failure": {
@@ -326,10 +361,213 @@
         "CHAT_ATTACHMENT_UNSUPPORTED": "isn't a supported type. Use PNG, JPG, WebP, GIF, PDF, DOCX, TXT, MD or CSV.",
         "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
       },
-      "stopShort": "Stop"
+      "stopShort": "Stop",
+      "waitingForRun": "The agent is waiting for an approval. You can write again once it goes on.",
+      "prompts": "Prompt library",
+      "webSearch": {
+        "label": "Search the web",
+        "short": "Web",
+        "on": "Web search is on for the next answers",
+        "off": "Let the model search the web and cite what it finds",
+        "refused": "Web search isn't available right now. Your admin may not have set up a search provider. Your message was answered without it."
+      },
+      "compare": {
+        "label": "Compare models",
+        "short": "Compare",
+        "versus": "vs {model}",
+        "description": "Answer the next message with a second model as well, side by side.",
+        "stop": "Stop comparing",
+        "choose": "Choose answer A or B to continue the chat."
+      },
+      "voice": {
+        "start": "Start dictating",
+        "stop": "Stop dictating",
+        "notice": "Your browser may send audio to its own speech service to turn it into text.",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "close": "Close",
+        "errors": {
+          "denied": "The microphone is blocked. Allow it in your browser's site settings to dictate.",
+          "unavailable": "No microphone was found, or your browser can't recognize this language.",
+          "failed": "Dictation stopped unexpectedly. Try again."
+        }
+      }
+    },
+    "picker": {
+      "label": "Model or agent",
+      "placeholder": "Choose a model",
+      "tabs": {
+        "models": "Models",
+        "agents": "Agents"
+      },
+      "searchAgents": "Search agents",
+      "noAgentMatch": "No agents match",
+      "sharedWithYou": "Shared with you",
+      "noAgents": {
+        "title": "No agents yet",
+        "description": "Agents your team shares with you appear here."
+      },
+      "agentLocked": "This chat talks to {name}"
+    },
+    "agentUnavailable": {
+      "title": "{name} isn't available to you anymore",
+      "titleUnknown": "This agent isn't available to you",
+      "description": "The conversation so far stays here to read.",
+      "action": "Start a chat with a model"
+    },
+    "approval": {
+      "waiting": "Waiting for approval",
+      "waitingFor": "Waiting for approval by {assignees}",
+      "expires": "Expires {when}",
+      "approved": "Approved",
+      "approvedBy": "Approved by {name}",
+      "rejected": "Rejected",
+      "rejectedWith": "Rejected · {reason}",
+      "timedOut": "Timed out",
+      "timedOutWith": "Timed out · {action}",
+      "timeoutActions": {
+        "reject": "the action was rejected",
+        "escalate": "sent to the next approvers",
+        "continue": "the agent went on"
+      },
+      "canceled": "Withdrawn"
+    },
+    "shared": {
+      "badge": "View only",
+      "banner": "Shared by {name} · view only",
+      "bannerUnknown": "Shared with you · view only",
+      "description": "You can read this chat and open its sources. Only its owner can continue it."
+    },
+    "compare": {
+      "label": "Comparison of two answers",
+      "answer": "Answer {label}",
+      "time": "{seconds} s",
+      "tokens": "{input} in / {output} out",
+      "continueWith": "Continue with {label}",
+      "hint": "Choose an answer to keep. The chat continues with its model and the other answer is removed."
     }
   },
   "commands": {
     "newChat": "New chat"
+  },
+  "share": {
+    "title": "Share “{title}”",
+    "description": "People you share with can read this chat and open its sources. They can't write in it.",
+    "picker": {
+      "label": "People and teams",
+      "placeholder": "Add people or teams",
+      "search": "Search people and teams",
+      "empty": "No one matches",
+      "loading": "Searching…",
+      "remove": "Remove {name}",
+      "more": "+{count}"
+    },
+    "note": "View only. Only people in your organization can open it.",
+    "access": {
+      "title": "{count, plural, one {# person has} other {# people have}} access",
+      "none": "Not shared yet"
+    },
+    "teamMembers": "{count, plural, one {# person} other {# people}}",
+    "viewOnly": "Can view",
+    "remove": "Stop sharing with {name}",
+    "unknown": "Someone",
+    "private": {
+      "title": "Private chats are never shared",
+      "description": "Turn off Private chat in the chat's menu to share it."
+    },
+    "disabled": {
+      "title": "Chat sharing is turned off",
+      "description": "An Admin can turn it on in Settings › Data & privacy."
+    },
+    "cancel": "Cancel",
+    "close": "Close",
+    "share": "Share",
+    "toasts": {
+      "shared": "Shared with {count, plural, one {# person or team} other {# people and teams}}"
+    }
+  },
+  "prompts": {
+    "title": "Prompt library",
+    "description": "Reusable prompts with '{'variables'}'. Pick one to put it in the message box.",
+    "search": {
+      "label": "Search prompts",
+      "placeholder": "Search by title or text"
+    },
+    "new": "New prompt",
+    "filter": {
+      "label": "Show",
+      "all": "All",
+      "personal": "Mine",
+      "shared": "Shared"
+    },
+    "list": "Prompts",
+    "use": "Use prompt {title}",
+    "actions": "Actions for {title}",
+    "edit": "Edit",
+    "delete": "Delete",
+    "personal": "Only you",
+    "sharedAll": "Everyone in the organization",
+    "sharedTeams": "Shared with {teams}",
+    "loadMore": "Load more",
+    "undo": "Undo",
+    "toasts": {
+      "deleted": "Prompt deleted · Undo"
+    },
+    "empty": {
+      "title": "No prompts yet",
+      "description": "Save the questions you ask often, with '{'variables'}' for the parts that change."
+    },
+    "noResults": {
+      "title": "No prompts found",
+      "description": "Try other words or another filter."
+    },
+    "deleteShared": {
+      "title": "Delete “{title}”?",
+      "description": "Everyone who can see it loses it. You can restore it for 30 days from Recently deleted.",
+      "impactAll": "It is shared with the whole organization.",
+      "impactTeams": "It is shared with {teams}.",
+      "confirm": "Delete prompt"
+    },
+    "form": {
+      "newTitle": "New prompt",
+      "editTitle": "Edit prompt",
+      "description": "Write a word in braces, like '{'customer'}', to ask for that part each time you use the prompt.",
+      "title": "Title",
+      "body": "Prompt",
+      "bodyPlaceholder": "Write a friendly reply to '{'customer'}' about '{'issue'}'.",
+      "bodyHelp": "Variables are words in braces, like '{'customer'}'.",
+      "variables": "Variables",
+      "visibility": {
+        "label": "Who can use it",
+        "personal": {
+          "name": "Only me",
+          "description": "A personal prompt only you can see."
+        },
+        "shared": {
+          "name": "Shared",
+          "description": "Everyone you choose can use it. Builders and above manage shared prompts."
+        }
+      },
+      "teams": {
+        "label": "Teams",
+        "placeholder": "Everyone in the organization",
+        "search": "Search teams",
+        "empty": "No teams match",
+        "remove": "Remove {label}",
+        "more": "+{count}",
+        "help": "Leave empty to share with the whole organization."
+      },
+      "cancel": "Cancel",
+      "create": "Create prompt",
+      "save": "Save changes",
+      "created": "Prompt created",
+      "saved": "Prompt saved"
+    },
+    "fill": {
+      "title": "Use “{title}”",
+      "description": "Fill in the variables. Empty ones stay as they are.",
+      "cancel": "Cancel",
+      "submit": "Use prompt"
+    }
   }
 }

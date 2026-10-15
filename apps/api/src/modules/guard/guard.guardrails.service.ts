@@ -87,12 +87,11 @@ export class GuardrailsService {
   ): Promise<{ items: GuardRuleRowDto[]; nextCursor: string | null }> {
     const since = new Date(this.now().getTime() - TRIGGERED_WINDOW_DAYS * DAY_MS)
     const all = await this.deps.db.tenant(ctx.orgId, async (tx) => {
-      const [rows, piiRows, agentRows, triggered] = await Promise.all([
-        this.deps.repository.listGuardrails(tx, ctx.orgId),
-        this.deps.repository.listPiiRules(tx, ctx.orgId),
-        this.deps.subjects.ruleRows(tx, ctx.orgId),
-        this.deps.repository.triggeredCounts(tx, ctx.orgId, since),
-      ])
+      // one transaction runs one query at a time
+      const rows = await this.deps.repository.listGuardrails(tx, ctx.orgId)
+      const piiRows = await this.deps.repository.listPiiRules(tx, ctx.orgId)
+      const agentRows = await this.deps.subjects.ruleRows(tx, ctx.orgId)
+      const triggered = await this.deps.repository.triggeredCounts(tx, ctx.orgId, since)
       const visible = rows.filter((row) => this.mayRead(ctx, row))
       const usedBy = await this.deps.subjects.usedBy(
         tx,
@@ -317,15 +316,14 @@ export class GuardrailsService {
   }
 
   private async present(tx: DbExecutor, orgId: string, row: GuardrailRow): Promise<GuardrailDto> {
-    const [refs, twin] = await Promise.all([
-      this.deps.refs.load(tx, orgId, {
-        userIds: [row.lockedByUserId, row.createdByUserId, row.updatedByUserId],
-        teamIds: [row.teamId],
-      }),
+    const refs = await this.deps.refs.load(tx, orgId, {
+      userIds: [row.lockedByUserId, row.createdByUserId, row.updatedByUserId],
+      teamIds: [row.teamId],
+    })
+    const twin =
       row.type === 'blocked_action' && row.isEnabled
-        ? this.deps.repository.findBlockingTwin(tx, orgId, row.definition.match, row.id)
-        : Promise.resolve(undefined),
-    ])
+        ? await this.deps.repository.findBlockingTwin(tx, orgId, row.definition.match, row.id)
+        : undefined
     return toGuardrailDto(row, refs, twin ?? null)
   }
 

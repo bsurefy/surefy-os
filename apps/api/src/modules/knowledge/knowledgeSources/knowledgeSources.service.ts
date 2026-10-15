@@ -23,6 +23,7 @@ import type {
 
 import {
   KnowledgeBaseDeletedError,
+  KnowledgeConnectionInvalidError,
   KnowledgeDocumentNotFoundError,
   KnowledgeDuplicateFileError,
   KnowledgeNoEmbeddingModelError,
@@ -38,6 +39,10 @@ import {
   type KnowledgeSourceRow,
   type KnowledgeSourcesRepository,
 } from './knowledgeSources.repository.js'
+import {
+  connectorConfigOf,
+  nextConnectorSyncAfter,
+} from '../knowledgeConnectors/connectorConfig.js'
 import { nextSyncAfter } from '../knowledgeIngestion/knowledgeCrawler.js'
 
 import type { KnowledgeRepository } from '../knowledge.repository.js'
@@ -61,6 +66,8 @@ export interface KnowledgeSourcesDeps {
   ingestion: KnowledgeIngestionPort
   users: KnowledgeUsers
   audit: AuditRecorder
+  /** A connection's status, null when it is gone (connector sources). */
+  connectionStatus: (tx: DbExecutor, orgId: string, connectionId: string) => Promise<string | null>
   now?: () => Date
 }
 
@@ -417,16 +424,22 @@ export class KnowledgeSourcesService {
 
   // ── Changing ──────────────────────────────────────────────────────────────────────────────────
 
-  /** Rename, change a link's crawl settings (the address stays) or the OCR mode. */
+  /**
+   * Rename, change a link's crawl settings (the address stays), a connector's folders and
+   * schedule, or the OCR mode. Changed folders sync at once.
+   */
   async update(
     ctx: KnowledgeContext,
     baseId: string,
     sourceId: string,
     input: UpdateKnowledgeSourceInput,
   ): Promise<KnowledgeSourceDto> {
-    const row = await this.deps.db.tenant(ctx.orgId, async (tx) => {
+    const { row, resync } = await this.deps.db.tenant(ctx.orgId, async (tx) => {
       await this.deps.access.require(tx, ctx, baseId, 'manage')
       const current = await this.requireActive(tx, ctx.orgId, baseId, sourceId)
+      if (input.connector !== undefined) {
+        return this.updateConnector(tx, ctx, current, input)
+      }
       const currentLink =
         current.config !== null && 'link' in current.config ? current.config.link : null
       if (input.link !== undefined && currentLink === null) {
@@ -451,8 +464,16 @@ export class KnowledgeSourcesService {
           : {}),
       })
       if (updated === undefined) throw new KnowledgeSourceNotFoundError()
-      return updated
+      if (input.link !== undefined) {
+        await this.deps.audit.record(tx, ctx, {
+          action: KNOWLEDGE_AUDIT_ACTIONS.KNOWLEDGE_SOURCE_UPDATED,
+          target: { type: 'knowledge_source', id: sourceId },
+          metadata: { changes: [{ field: 'link', from: currentLink, to: link }] },
+        })
+      }
+      return { row: updated, resync: false }
     })
+    if (resync) await this.deps.ingestion.enqueueSync(ctx.orgId, sourceId)
     return this.dto(ctx.orgId, row)
   }
 
@@ -478,12 +499,11 @@ export class KnowledgeSourcesService {
       if (base.deletedAt !== null) throw new KnowledgeBaseDeletedError()
       const source = await this.requireSource(tx, ctx.orgId, baseId, sourceId)
       if (source.deletedAt === null) throw new KnowledgeSourceNotFoundError()
-      const link = source.config !== null && 'link' in source.config ? source.config.link : null
       const restored = await this.deps.sources.restoreSource(
         tx,
         ctx.orgId,
         sourceId,
-        link === null ? null : nextSyncAfter(link.refresh, (this.deps.now ?? (() => new Date()))()),
+        await this.nextSyncOnRestore(tx, ctx.orgId, source),
       )
       if (restored === undefined) throw new KnowledgeSourceNotFoundError()
       await this.deps.repository.recomputeCounters(tx, ctx.orgId, baseId)
@@ -503,27 +523,28 @@ export class KnowledgeSourcesService {
     sourceId: string,
     input: RetryKnowledgeSourceInput,
   ): Promise<KnowledgeSourceDto> {
-    const { row, documentIds, isLink } = await this.deps.db.tenant(ctx.orgId, async (tx) => {
+    const { row, documentIds, isSynced } = await this.deps.db.tenant(ctx.orgId, async (tx) => {
       await this.deps.access.require(tx, ctx, baseId, 'manage')
       const source = await this.requireActive(tx, ctx.orgId, baseId, sourceId)
       if (!RETRYABLE.has(source.status)) {
         throw new KnowledgeSourceStateInvalidError('Only a failed or paused source can be retried')
       }
-      const ids =
-        source.type === 'link'
-          ? []
-          : await this.deps.ingestion.retryDocumentsInTx(
-              tx,
-              ctx.orgId,
-              baseId,
-              sourceId,
-              input.withOcr,
-            )
+      // links and connectors fetch again: the sync re-reads every document that is not ready
+      const synced = source.type !== 'file'
+      const ids = synced
+        ? []
+        : await this.deps.ingestion.retryDocumentsInTx(
+            tx,
+            ctx.orgId,
+            baseId,
+            sourceId,
+            input.withOcr,
+          )
       const updated = await this.deps.sources.updateSource(tx, ctx.orgId, sourceId, {
         status: 'queued',
         progressPercent: 0,
         errorCode: null,
-        ...(source.type === 'link' && input.withOcr ? { ocrMode: 'force' as const } : {}),
+        ...(synced && input.withOcr ? { ocrMode: 'force' as const } : {}),
       })
       if (updated === undefined) throw new KnowledgeSourceNotFoundError()
       await this.deps.audit.record(tx, ctx, {
@@ -531,14 +552,14 @@ export class KnowledgeSourcesService {
         target: { type: 'knowledge_source', id: sourceId },
         metadata: { labels: { withOcr: input.withOcr } },
       })
-      return { row: updated, documentIds: ids, isLink: source.type === 'link' }
+      return { row: updated, documentIds: ids, isSynced: synced }
     })
-    if (isLink) await this.deps.ingestion.enqueueSync(ctx.orgId, sourceId)
+    if (isSynced) await this.deps.ingestion.enqueueSync(ctx.orgId, sourceId)
     else await this.deps.ingestion.enqueueDocuments(ctx.orgId, documentIds)
     return this.dto(ctx.orgId, row)
   }
 
-  /** "Sync now" for a link (a connector joins in V1): queued, and crawled at once. */
+  /** "Sync now" for a link or a connector: queued, and synced at once (a paused one tries again). */
   async sync(ctx: KnowledgeContext, baseId: string, sourceId: string): Promise<KnowledgeSourceDto> {
     const row = await this.deps.db.tenant(ctx.orgId, async (tx) => {
       await this.deps.access.require(tx, ctx, baseId, 'manage')
@@ -595,6 +616,73 @@ export class KnowledgeSourcesService {
 
   // ── Internals ─────────────────────────────────────────────────────────────────────────────────
 
+  /** New folders or a new schedule (the provider and the connection stay); new folders resync. */
+  private async updateConnector(
+    tx: DbExecutor,
+    ctx: KnowledgeContext,
+    current: KnowledgeSourceRow,
+    input: UpdateKnowledgeSourceInput,
+  ): Promise<{ row: KnowledgeSourceRow; resync: boolean }> {
+    const before = connectorConfigOf(current)
+    if (before === null || input.connector === undefined) {
+      throw new KnowledgeSourceStateInvalidError('Only a connector has folders and a schedule')
+    }
+    if (input.link !== undefined) {
+      throw new KnowledgeSourceStateInvalidError('A connector has no crawl settings')
+    }
+    const after = { ...before, ...input.connector }
+    const foldersChanged =
+      JSON.stringify(after.folders.map((folder) => folder.externalId).sort()) !==
+      JSON.stringify(before.folders.map((folder) => folder.externalId).sort())
+    const resync = foldersChanged && !ACTIVE_STATES.has(current.status)
+    const now = (this.deps.now ?? (() => new Date()))()
+    const updated = await this.deps.sources.updateSource(tx, ctx.orgId, current.id, {
+      ...(input.name === undefined ? {} : { name: input.name }),
+      ...(input.ocrMode === undefined ? {} : { ocrMode: input.ocrMode }),
+      config: { version: 1, connector: after },
+      ...(resync ? { status: 'queued' as const, errorCode: null, progressPercent: 0 } : {}),
+      // a paused source keeps waiting for Reconnect
+      ...(after.syncEvery !== before.syncEvery && current.status !== 'paused'
+        ? { nextSyncAt: nextConnectorSyncAfter(after.syncEvery, current.lastSyncedAt ?? now) }
+        : {}),
+    })
+    if (updated === undefined) throw new KnowledgeSourceNotFoundError()
+    await this.deps.audit.record(tx, ctx, {
+      action: KNOWLEDGE_AUDIT_ACTIONS.KNOWLEDGE_SOURCE_UPDATED,
+      target: { type: 'knowledge_source', id: current.id },
+      metadata: {
+        changes: [
+          ...(foldersChanged
+            ? [{ field: 'folders', from: before.folders, to: after.folders }]
+            : []),
+          ...(after.syncEvery === before.syncEvery
+            ? []
+            : [{ field: 'syncEvery', from: before.syncEvery, to: after.syncEvery }]),
+        ],
+      },
+    })
+    return { row: updated, resync }
+  }
+
+  /**
+   * When a restored link or connector syncs next. A connector needs its connection: one that was
+   * disconnected meanwhile cannot come back (its sources go with it).
+   */
+  private async nextSyncOnRestore(
+    tx: DbExecutor,
+    orgId: string,
+    source: KnowledgeSourceRow,
+  ): Promise<Date | null> {
+    const now = (this.deps.now ?? (() => new Date()))()
+    const link = source.config !== null && 'link' in source.config ? source.config.link : null
+    if (link !== null) return nextSyncAfter(link.refresh, now)
+    const connector = connectorConfigOf(source)
+    if (connector === null || source.connectionId === null) return null
+    const status = await this.deps.connectionStatus(tx, orgId, source.connectionId)
+    if (status === null || status === 'revoked') throw new KnowledgeConnectionInvalidError()
+    return source.status === 'paused' ? null : now
+  }
+
   private async softDelete(
     tx: DbExecutor,
     ctx: KnowledgeContext,
@@ -631,7 +719,8 @@ export class KnowledgeSourcesService {
     return source
   }
 
-  private async dto(orgId: string, row: KnowledgeSourceRow): Promise<KnowledgeSourceDto> {
+  /** The Sources tab row of a source (also what the connectors service answers with). */
+  async dto(orgId: string, row: KnowledgeSourceRow): Promise<KnowledgeSourceDto> {
     const [dto] = await this.dtos(orgId, [row])
     if (dto === undefined) throw new Error('source view returned no row')
     return dto

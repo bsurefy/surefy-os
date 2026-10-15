@@ -37,6 +37,7 @@ import type {
   ApprovalPayload,
   ApprovalRisk,
   ApprovalStatus,
+  InsightsApprovalsDto,
   OrgRole,
 } from '@surefy/contracts'
 
@@ -51,6 +52,10 @@ const a = approvals
 const s = approvalAssignees
 
 const allOf = (...conditions: (SQL | undefined)[]): SQL => and(...conditions) ?? sql`true`
+
+/** Rows of these agents; none for an empty list. */
+const agentIn = (agentIds: readonly string[]): SQL =>
+  agentIds.length === 0 ? sql`false` : inArray(a.agentId, [...agentIds])
 
 /** Escapes `%`, `_` and `\` so a search term matches literally. */
 const likeTerm = (q: string): string => `%${q.replaceAll(/[\\%_]/g, (ch) => '\\' + ch)}%`
@@ -327,6 +332,58 @@ export class ApprovalsRepository {
       )
       .orderBy(...keysetOrder(page.sort, a.id))
       .limit(page.limit + 1)
+  }
+
+  /**
+   * Insights' approval numbers for a range, over the agent and flow kinds: requested in the range,
+   * and decided by a person or expired in it. `agentIds` narrows to those agents.
+   */
+  async insightsStats(
+    tx: DbExecutor,
+    orgId: string,
+    range: { from: Date; to: Date; agentIds?: readonly string[] },
+  ): Promise<InsightsApprovalsDto> {
+    const requested = and(gte(a.createdAt, range.from), lt(a.createdAt, range.to))
+    const decidedInRange = and(gte(a.decidedAt, range.from), lt(a.decidedAt, range.to))
+    const byPerson = sql`${a.resolvedBy} = 'user' and ${a.status} in ('approved', 'rejected') and ${decidedInRange}`
+    const [row] = await tx
+      .select({
+        requested: sql<number>`count(*) filter (where ${requested})`.mapWith(Number),
+        decidedByPeople: sql<number>`count(*) filter (where ${byPerson})`.mapWith(Number),
+        approved:
+          sql<number>`count(*) filter (where ${byPerson} and ${a.status} = 'approved')`.mapWith(
+            Number,
+          ),
+        rejected:
+          sql<number>`count(*) filter (where ${byPerson} and ${a.status} = 'rejected')`.mapWith(
+            Number,
+          ),
+        expired:
+          sql<number>`count(*) filter (where ${a.resolvedBy} = 'timeout' and ${a.status} = 'expired' and ${decidedInRange})`.mapWith(
+            Number,
+          ),
+        medianMinutesToDecide: sql<number | null>`percentile_cont(0.5) within group
+          (order by extract(epoch from ${a.decidedAt} - ${a.createdAt}) / 60) filter (where ${byPerson})`.mapWith(
+          (value: unknown) => (value === null ? null : Number(value)),
+        ),
+      })
+      .from(a)
+      .where(
+        allOf(
+          eq(a.organizationId, orgId),
+          inArray(a.kind, ['ai_action', 'flow_step']),
+          or(requested, decidedInRange),
+          range.agentIds === undefined ? undefined : agentIn(range.agentIds),
+        ),
+      )
+    return {
+      requested: row?.requested ?? 0,
+      decidedByPeople: row?.decidedByPeople ?? 0,
+      approved: row?.approved ?? 0,
+      rejected: row?.rejected ?? 0,
+      expired: row?.expired ?? 0,
+      medianMinutesToDecide: row?.medianMinutesToDecide ?? null,
+    }
   }
 
   /** Pending approvals per agent, for the Agents list; agents with none are absent. */

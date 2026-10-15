@@ -4,11 +4,14 @@ import { defineConfig, devices } from '@playwright/test'
 import {
   apiEnv,
   apiUrl,
+  channelServerUrl,
+  connectorServerUrl,
   mcpServerUrl,
   mlServerUrl,
   modelServerUrl,
   oauthServerUrl,
   OWNER_STATE,
+  searchServerUrl,
   webEnv,
   webUrl,
 } from './e2e/support/env'
@@ -20,13 +23,20 @@ const SERVER_START_MS = 180_000
  * (one worker runs the projects in the order listed): a key can only be revoked and stays listed, so
  * the API keys and Connections specs, which start from an empty organization, must run first.
  */
-const AGENT_SPECS = ['**/agents.spec.ts', '**/approvals.spec.ts', '**/guard.spec.ts']
+const AGENT_SPECS = [
+  '**/agents.spec.ts',
+  '**/approvals.spec.ts',
+  '**/channels.spec.ts',
+  '**/chatV1.spec.ts',
+  '**/guard.spec.ts',
+  '**/insightsRuns.spec.ts',
+]
 
 /**
  * End-to-end specs against the real API and a fresh database (testing.md §1). `pnpm test:e2e`
- * prepares the database first; Playwright then starts the stub model, document parser and OAuth
- * servers, the API and the app, the `setup` project runs first-run setup and signs the Owner in,
- * and the specs reuse that session.
+ * prepares the database first; Playwright then starts the stub model, document parser, OAuth,
+ * MCP, Google Drive, Notion, Slack, WhatsApp and SearXNG servers, the API and the app, the `setup` project runs first-run
+ * setup and signs the Owner in, and the specs reuse that session.
  */
 export default defineConfig({
   testDir: './e2e',
@@ -87,6 +97,27 @@ export default defineConfig({
       name: 'mcp',
       command: 'pnpm exec tsx e2e/support/mcpServer.ts',
       url: `${mcpServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'connectors',
+      command: 'pnpm exec tsx e2e/support/connectorServer.ts',
+      url: `${connectorServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'channels',
+      command: 'pnpm exec tsx e2e/support/channelServer.ts',
+      url: `${channelServerUrl}/health/live`,
+      timeout: SERVER_START_MS,
+      reuseExistingServer: false,
+    },
+    {
+      name: 'search',
+      command: 'pnpm exec tsx e2e/support/searchServer.ts',
+      url: `${searchServerUrl}/health/live`,
       timeout: SERVER_START_MS,
       reuseExistingServer: false,
     },

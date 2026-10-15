@@ -7,6 +7,22 @@ import { MonoTile } from '@surefy/ui/components/DataDisplay'
 
 import type { ThreadSource } from '../../ChatThread.types'
 
+/** Where the sources come from: your knowledge, the web, or both. */
+function getHeading(sources: readonly ThreadSource[]) {
+  const kinds = new Set(sources.map((source) => source.kind))
+  if (kinds.size > 1) return 'sourcesMixed'
+  return kinds.has('web') ? 'sourcesFromWeb' : 'sourcesFromKnowledge'
+}
+
+/** The site of a web source, for the card's second line. */
+function getHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
 /** The sources under an answer, as numbered cards: each opens the preview. */
 export default function SourcesList({
   sources,
@@ -14,9 +30,10 @@ export default function SourcesList({
 }: Readonly<{ sources: readonly ThreadSource[]; onOpenSource: (index: number) => void }>) {
   const t = useTranslations('chat.thread.answer')
   if (sources.length === 0) return null
+  const heading = getHeading(sources)
   return (
     <section aria-label={t('sources')} className="flex flex-col gap-1.5">
-      <h3 className="text-overline text-muted-foreground">{t('sourcesFromKnowledge')}</h3>
+      <h3 className="text-overline text-muted-foreground">{t(heading)}</h3>
       <ol className="grid gap-2 sm:grid-cols-2">
         {sources.map((source) => (
           <li key={source.index} className="min-w-0">
@@ -36,6 +53,11 @@ export default function SourcesList({
               </MonoTile>
               <span className="flex min-w-0 flex-col">
                 <span className="text-label truncate font-medium">{source.title}</span>
+                {source.kind === 'web' && source.url && (
+                  <span className="text-caption text-muted-foreground truncate">
+                    {getHost(source.url)}
+                  </span>
+                )}
                 {source.page !== undefined && (
                   <span className="text-caption text-muted-foreground">
                     {t('page', { page: source.page })}

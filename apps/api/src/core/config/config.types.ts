@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import type { ConnectionOauthAppKey } from './connectionsEnv.js'
+import type { ConnectionOauthAppKey, ConnectionProviderOrigins } from './connectionsEnv.js'
 import type { LOG_LEVELS, NODE_ENVS } from './env.js'
 
 export type ProcessName = 'api' | 'worker' | 'cli'
@@ -76,6 +76,8 @@ export interface Config {
   connections: {
     oauthApps: Partial<Record<ConnectionOauthAppKey, OauthProviderConfig>>
     localHosts: readonly string[]
+    /** Other origins for Google Drive and Notion: stub servers in development and tests. */
+    providerOrigins?: ConnectionProviderOrigins
     /** The Slack app's signing secret; without it the Slack channels receive no events. */
     slackSigningSecret?: string
   }

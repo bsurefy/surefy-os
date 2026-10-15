@@ -23,4 +23,5 @@ export type {
   ToolPermission,
 } from './guard.types.js'
 export { EMPTY_SUBJECTS, TOOL_PERMISSIONS } from './guard.types.js'
+export { createSearchPii } from './guard.searchPii.js'
 export { createGuardSubjects } from './guard.subjects.js'

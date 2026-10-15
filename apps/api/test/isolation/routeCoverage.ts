@@ -209,6 +209,7 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
   'GET /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/sources/:index': {
     class: 'orgScoped',
   },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/choose': { class: 'orgScoped' },
   'PUT /api/v1/orgs/:orgId/chats/:chatId/messages/:messageId/feedback': {
     class: 'orgScoped',
     payload: () => ({ rating: 'not_helpful' }),
@@ -237,6 +238,27 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     payload: () => ({ name: 'Renamed by B' }),
   },
   'DELETE /api/v1/orgs/:orgId/chat-folders/:folderId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chats/:chatId/shares': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/chats/:chatId/shares': {
+    class: 'orgScoped',
+    payload: (f) => ({ subjects: [{ subjectType: 'user', userId: f.orgB.ownerId }] }),
+  },
+  'DELETE /api/v1/orgs/:orgId/chats/:chatId/shares/:shareId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/shared-chats': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/chat-share-targets': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/shared-chats/:chatId': { class: 'orgScoped' },
+  'GET /api/v1/orgs/:orgId/prompts': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/prompts': {
+    class: 'orgScoped',
+    payload: () => ({ title: 'B prompt', body: 'Hello {name}' }),
+  },
+  'GET /api/v1/orgs/:orgId/prompts/:promptId': { class: 'orgScoped' },
+  'PATCH /api/v1/orgs/:orgId/prompts/:promptId': {
+    class: 'orgScoped',
+    payload: () => ({ title: 'Taken over' }),
+  },
+  'DELETE /api/v1/orgs/:orgId/prompts/:promptId': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/prompts/:promptId/restore': { class: 'orgScoped' },
   'PUT /api/v1/chat-uploads/:attachmentId': {
     class: 'public',
     reason: 'Signed upload URL of an attachment; the HMAC signature is the credential',
@@ -252,6 +274,27 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
     class: 'orgScoped',
     query: { ...INSIGHTS_RANGE, interval: 'day' },
   },
+  'GET /api/v1/orgs/:orgId/insights/runs-overview': {
+    class: 'orgScoped',
+    query: INSIGHTS_RANGE,
+  },
+  'GET /api/v1/orgs/:orgId/insights/runs-timeseries': {
+    class: 'orgScoped',
+    query: { ...INSIGHTS_RANGE, interval: 'day' },
+  },
+  'GET /api/v1/orgs/:orgId/insights/budget-meter': { class: 'orgScoped' },
+
+  // usage (budgets)
+  'GET /api/v1/orgs/:orgId/budgets': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/budgets': {
+    class: 'orgScoped',
+    payload: (f) => ({ scope: 'team', teamId: f.params.teamId, amountMicros: 1_000_000 }),
+  },
+  'PATCH /api/v1/orgs/:orgId/budgets/:budgetId': {
+    class: 'orgScoped',
+    payload: () => ({ amountMicros: 1 }),
+  },
+  'DELETE /api/v1/orgs/:orgId/budgets/:budgetId': { class: 'orgScoped' },
 
   'GET /api/v1/orgs/:orgId/audit/entries': { class: 'orgScoped' },
   'GET /api/v1/orgs/:orgId/audit/entries/:entryId': { class: 'orgScoped' },
@@ -545,6 +588,15 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
       secret: testKey('intruder-key-1234'),
     }),
   },
+  'GET /api/v1/orgs/:orgId/vault/search-providers': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/search-providers': {
+    class: 'orgScoped',
+    payload: () => ({
+      providerKey: 'brave',
+      name: 'Intruder search',
+      secret: testKey('intruder-search-1234'),
+    }),
+  },
   'POST /api/v1/orgs/:orgId/vault/connection-tests': {
     class: 'orgScoped',
     payload: () => ({
@@ -668,6 +720,17 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
       includePaths: [],
       excludePaths: [],
       refresh: 'off',
+    }),
+  },
+  'GET /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/connector-items': {
+    class: 'orgScoped',
+    query: { connectionId: '00000000-0000-7000-8000-000000000000' },
+  },
+  'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/connectors': {
+    class: 'orgScoped',
+    payload: () => ({
+      connectionId: '00000000-0000-7000-8000-000000000000',
+      folders: [{ externalId: 'intruder', name: 'Intruder' }],
     }),
   },
   'POST /api/v1/orgs/:orgId/knowledge-bases/:baseId/sources/bulk': {

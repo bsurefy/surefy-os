@@ -1,10 +1,30 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { AgentTool, AgentToolFailureCode, AgentToolPermission } from '@surefy/contracts'
 
+import type {
+  SearchResult,
+  WebSearchOutcome,
+  WebSearchRequest,
+} from '@/integrations/search/index.js'
 import type { ConnectionPrincipal, ConnectionUse } from '@/modules/connections/index.js'
 
-/** The tool kinds this module runs; `web_search` arrives with B6-14, bridge actions and flows in V2. */
-export type ExecutableTool = Extract<AgentTool, { kind: 'api' | 'mcp' }>
+/** The tool kinds this module runs; bridge actions and flows arrive in V2. */
+export type ExecutableTool = Extract<AgentTool, { kind: 'api' | 'mcp' | 'web_search' }>
+
+/** Web search as the tool uses it: the access policy's answer, and the search itself. */
+export interface AgentToolsWebSearch {
+  /** `AccessPolicy.tools.webSearch` of the person (the organization's, for runs without one). */
+  allowed(orgId: string, userId: string | null): Promise<boolean>
+  search(request: WebSearchRequest): Promise<WebSearchOutcome>
+}
+
+/** What a successful web search leaves in `ToolSuccess.data`: the `web_search` step shows it. */
+export interface WebSearchToolData {
+  provider: string
+  /** The query as it left, after the personal-data filter. */
+  query: string
+  results: SearchResult[]
+}
 
 /** Connections as tools use them: opened for one call. */
 export interface AgentToolsConnections {
@@ -15,6 +35,8 @@ export interface AgentToolsConnections {
 export interface AgentToolsContext {
   orgId: string
   principal: ConnectionPrincipal
+  /** The run a call belongs to, for the tools that filter and meter (web search); `seq` is the step. */
+  run?: { runId: string; agentId: string; starterId: string | null; seq?: number }
 }
 
 /** One function the model may call: a whole API tool, or one action of an MCP server. */

@@ -19,6 +19,8 @@ export interface UsageMeterDeps {
   db: Database
   repository: UsageRepository
   logger: Logger
+  /** After a row was inserted and committed: moves the live budget counters. */
+  onRecorded?: (orgId: string, event: UsageEvent) => Promise<void>
 }
 
 const BILLED_VIA: Record<ModelCallCredentialScope, UsageBilledVia> = {
@@ -85,11 +87,24 @@ export function eventOfCall(record: ModelCallRecord): UsageEvent {
 export class UsageMeter implements UsageRecorder {
   constructor(private readonly deps: UsageMeterDeps) {}
 
-  /** The model gateway's recorder: its own transaction, after the call. */
+  /**
+   * The model gateway's recorder: its own transaction, after the call. Once a new row is
+   * committed, its cost moves the live budget counters; a retried meter moves nothing.
+   */
   async record(record: ModelCallRecord): Promise<void> {
-    await this.deps.db.tenant(record.ctx.orgId, (tx) =>
-      this.recordInTx(tx, record.ctx.orgId, eventOfCall(record)),
-    )
+    const orgId = record.ctx.orgId
+    const event = eventOfCall(record)
+    const inserted = await this.deps.db.tenant(orgId, (tx) => this.recordInTx(tx, orgId, event))
+    if (!inserted || this.deps.onRecorded === undefined) return
+    try {
+      await this.deps.onRecorded(orgId, event)
+    } catch (error) {
+      // the hourly reconciliation repairs the counters and alerts
+      this.deps.logger.warn(
+        { err: error, orgId, dedupeKey: event.dedupeKey },
+        'budgets not updated',
+      )
+    }
   }
 
   /** Inside the caller's tenant transaction (a chat message, a run step); true when inserted. */

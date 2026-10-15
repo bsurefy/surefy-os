@@ -28,7 +28,7 @@ export interface AgentToolsServiceDeps {
 }
 
 const isExecutable = (tool: AgentTool): tool is ExecutableTool =>
-  tool.kind === 'api' || tool.kind === 'mcp'
+  tool.kind === 'api' || tool.kind === 'mcp' || tool.kind === 'web_search'
 
 const defaultSleep = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -56,7 +56,7 @@ export class AgentToolsService {
   }
 
   /**
-   * The functions the model is offered for these tools: enabled `api` and `mcp` tools (one
+   * The functions the model is offered for these tools: enabled `api`, `mcp` and `web_search` tools (one
    * function per enabled MCP action), in the order of the definition, with unique names. Other
    * kinds belong to other adapters and are skipped here.
    */

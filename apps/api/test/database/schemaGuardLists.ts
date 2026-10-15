@@ -27,7 +27,9 @@ export const SCHEMA_GUARD_LISTS: SchemaGuardLists = {
     // keyed by organization (settings) or by organization and day (statistics): no row id
     'guard_settings',
     'guard_stats_daily',
+    'run_stats_daily',
     'chat_knowledge_bases',
+    'prompt_shares',
     // the largest table: nothing references chunks, so it has no (organization_id, id) key
     'knowledge_chunks',
   ],

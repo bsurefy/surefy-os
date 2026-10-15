@@ -7,7 +7,7 @@ import { OutboundError } from '../connectionsHttp.js'
 import { TokenRequestError } from './provider.types.js'
 
 import type { CheckOutcome, OauthTokens } from './provider.types.js'
-import type { HttpResult, OutboundHttp } from '../connectionsHttp.js'
+import type { HttpRequest, HttpResult, OutboundHttp } from '../connectionsHttp.js'
 
 // Shared by the adapters: form bodies, JSON answers, token answers and the mapping of an HTTP
 // status to the reason a check failed.
@@ -23,6 +23,23 @@ export const basicAuth = (user: string, password: string): string => {
 }
 
 export const bearer = (token: string): string => `Bearer ${token}`
+
+/**
+ * How an adapter reaches its app: the app's own addresses through `provider`, or, when
+ * `CONNECTIONS_PROVIDER_ORIGINS` moved them to a stub server, the same paths on that origin
+ * through `external`, which reaches the install's local hosts.
+ */
+export function providerEndpoints(origin: string | undefined) {
+  return {
+    url: (address: string): string => {
+      if (origin === undefined) return address
+      const url = new URL(address)
+      return `${origin}${url.pathname}${url.search}`
+    },
+    call: (http: OutboundHttp, url: string, request: HttpRequest): Promise<HttpResult> =>
+      origin === undefined ? http.provider(url, request) : http.external(url, request),
+  }
+}
 
 /** The JSON object of an answer, or an empty object for anything else. */
 export function jsonObject(result: Pick<HttpResult, 'text'>): Record<string, unknown> {

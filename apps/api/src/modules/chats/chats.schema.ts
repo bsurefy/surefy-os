@@ -12,24 +12,40 @@ import {
   chatMessageDtoSchema,
   chatMessageParamsSchema,
   chatParamsSchema,
+  chatShareParamsSchema,
+  chatSharesDtoSchema,
+  chatShareTargetDtoSchema,
   chatSourceParamsSchema,
   chatSourcePreviewDtoSchema,
   createChatFolderInputSchema,
+  createChatSharesInputSchema,
+  createPromptInputSchema,
   listChatMessagesQuerySchema,
+  listChatShareTargetsQuerySchema,
   listChatsQuerySchema,
+  listPromptsQuerySchema,
+  listSharedChatsQuerySchema,
   okResponse,
   orgParamsSchema,
   pageResponse,
+  promptDtoSchema,
+  promptParamsSchema,
   reorderChatFoldersInputSchema,
   requestChatAttachmentUploadInputSchema,
   sendChatMessageInputSchema,
   setChatFeedbackInputSchema,
+  sharedChatDetailDtoSchema,
+  sharedChatDtoSchema,
+  sharedChatParamsSchema,
   updateChatFolderInputSchema,
   updateChatInputSchema,
+  updatePromptInputSchema,
 } from '@surefy/contracts'
 
 const CHATS = ['chats']
 const FOLDERS = ['chat-folders']
+const SHARES = ['chat-shares']
+const PROMPTS = ['prompts']
 
 // ── Chats ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -85,6 +101,14 @@ export const sendChatMessageRoute = {
   summary: 'Sends a message, regenerates, edits or continues, and streams the answer',
   params: chatParamsSchema,
   body: sendChatMessageInputSchema,
+}
+
+/** Compare (V1): "Continue with A/B"; the other answer becomes superseded. */
+export const chooseChatMessageRoute = {
+  tags: CHATS,
+  summary: 'Continues the chat with one answer of a comparison',
+  params: chatMessageParamsSchema,
+  response: { 200: okResponse(chatMessageDtoSchema) },
 }
 
 export const getChatSourceRoute = {
@@ -189,4 +213,96 @@ export const reorderChatFoldersRoute = {
   params: orgParamsSchema,
   body: reorderChatFoldersInputSchema,
   response: { 200: pageResponse(chatFolderDtoSchema) },
+}
+
+// ── Shares (V1) ───────────────────────────────────────────────────────────────────────────────
+
+export const listChatSharesRoute = {
+  tags: SHARES,
+  summary: 'The people and teams a chat is shared with (the owner)',
+  params: chatParamsSchema,
+  response: { 200: okResponse(chatSharesDtoSchema) },
+}
+
+export const createChatSharesRoute = {
+  tags: SHARES,
+  summary: 'Shares a chat view only with people and teams of the organization',
+  params: chatParamsSchema,
+  body: createChatSharesInputSchema,
+  response: { 200: okResponse(chatSharesDtoSchema) },
+}
+
+export const deleteChatShareRoute = {
+  tags: SHARES,
+  summary: 'Stops sharing a chat with a person or team',
+  params: chatShareParamsSchema,
+}
+
+export const listSharedChatsRoute = {
+  tags: SHARES,
+  summary: 'Shared with me: chats others shared with the person or their teams',
+  params: orgParamsSchema,
+  querystring: listSharedChatsQuerySchema,
+  response: { 200: pageResponse(sharedChatDtoSchema) },
+}
+
+export const listChatShareTargetsRoute = {
+  tags: SHARES,
+  summary: 'The people and teams a chat can be shared with',
+  params: orgParamsSchema,
+  querystring: listChatShareTargetsQuerySchema,
+  response: { 200: pageResponse(chatShareTargetDtoSchema) },
+}
+
+export const getSharedChatRoute = {
+  tags: SHARES,
+  summary: 'The view-only header of a chat shared with the person',
+  params: sharedChatParamsSchema,
+  response: { 200: okResponse(sharedChatDetailDtoSchema) },
+}
+
+// ── Prompts (V1) ──────────────────────────────────────────────────────────────────────────────
+
+export const listPromptsRoute = {
+  tags: PROMPTS,
+  summary: "The person's prompts and the shared prompts they can see, or their Recently deleted",
+  params: orgParamsSchema,
+  querystring: listPromptsQuerySchema,
+  response: { 200: pageResponse(promptDtoSchema) },
+}
+
+export const createPromptRoute = {
+  tags: PROMPTS,
+  summary: 'Creates a personal or shared prompt',
+  params: orgParamsSchema,
+  body: createPromptInputSchema,
+  response: { 201: okResponse(promptDtoSchema) },
+}
+
+export const getPromptRoute = {
+  tags: PROMPTS,
+  summary: 'One prompt the person can see',
+  params: promptParamsSchema,
+  response: { 200: okResponse(promptDtoSchema) },
+}
+
+export const updatePromptRoute = {
+  tags: PROMPTS,
+  summary: 'Changes a prompt, its visibility or its teams',
+  params: promptParamsSchema,
+  body: updatePromptInputSchema,
+  response: { 200: okResponse(promptDtoSchema) },
+}
+
+export const deletePromptRoute = {
+  tags: PROMPTS,
+  summary: 'Moves the prompt to Recently deleted (restorable for 30 days)',
+  params: promptParamsSchema,
+}
+
+export const restorePromptRoute = {
+  tags: PROMPTS,
+  summary: 'Restores a prompt from Recently deleted',
+  params: promptParamsSchema,
+  response: { 200: okResponse(promptDtoSchema) },
 }

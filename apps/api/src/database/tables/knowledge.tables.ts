@@ -39,6 +39,7 @@ import type {
 } from '@surefy/contracts'
 
 import { users } from './auth.tables.js'
+import { connections } from './connections.tables.js'
 import { organizationMembers, organizations } from './organizations.tables.js'
 import { teams } from './teams.tables.js'
 import { enumCheck } from '../checks.js'
@@ -49,8 +50,7 @@ import { tenantPolicy } from '../policies.js'
 // Knowledge (database/knowledge.md, §1–5): bases with their embedding model, who may search or
 // manage them, their sources, the documents each source yields and the embedded passages. The
 // partial HNSW indexes of `knowledge_chunks` and FORCE RLS are in the knowledge security migration.
-// Agent subjects (`knowledge_base_access.agent_id`) and connector sources (`connection_id` with its
-// foreign key) join the tables with the agents and connections modules (V1).
+// Agent subjects (`knowledge_base_access.agent_id`) join the tables with the agents module (V1).
 
 export const knowledgeBases = pgTable(
   'knowledge_bases',
@@ -166,7 +166,7 @@ export const knowledgeSources = pgTable(
     knowledgeBaseId: uuid().notNull(),
     type: text().$type<KnowledgeSourceType>().notNull(),
     name: text().notNull(),
-    /** Connector sources (V1); the foreign key to `connections` joins with that table. */
+    /** Connector sources (V1): the connection they sync through. */
     connectionId: uuid(),
     config: jsonb().$type<KnowledgeSourceConfig>(),
     fileName: text(),
@@ -190,6 +190,12 @@ export const knowledgeSources = pgTable(
       columns: [t.organizationId, t.knowledgeBaseId],
       foreignColumns: [knowledgeBases.organizationId, knowledgeBases.id],
     }).onDelete('cascade'),
+    // a disconnected connection stays until its sources are purged
+    foreignKey({
+      name: 'knowledge_sources_organization_id_connection_id_fkey',
+      columns: [t.organizationId, t.connectionId],
+      foreignColumns: [connections.organizationId, connections.id],
+    }).onDelete('restrict'),
     index('knowledge_sources_organization_id_knowledge_base_id_created_at_idx').on(
       t.organizationId,
       t.knowledgeBaseId,

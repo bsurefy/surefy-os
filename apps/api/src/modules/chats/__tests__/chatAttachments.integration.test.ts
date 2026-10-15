@@ -26,6 +26,7 @@ import {
   send,
   startChat,
   thread,
+  v1Deps,
 } from './chatsTestKit.js'
 
 const PNG = Buffer.concat([
@@ -311,6 +312,7 @@ describe('attachments', () => {
         pii: container.modules.guard.piiFilter,
         models: container.modules.vault.grants.modelsRepository,
         parser: { extract },
+        ...v1Deps(setup),
       }).attachments
     await processor(() => Promise.resolve({ text: 'Quarterly numbers', pageCount: 4 })).process(
       setup.a.id,

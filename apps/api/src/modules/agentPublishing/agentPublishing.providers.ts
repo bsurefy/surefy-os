@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { createHmac, timingSafeEqual } from 'node:crypto'
 
+import { providerEndpoints } from '@/modules/connections/index.js'
 import { SLACK_SIGNATURE_MAX_AGE_SECONDS } from '@surefy/contracts'
 import type { AgentChannelConfig } from '@surefy/contracts'
 
@@ -170,9 +171,12 @@ const SLACK_REJECTED = new Set([
 export async function sendSlackReply(
   http: OutboundHttp,
   input: { token: string; channel: string; thread: string; text: string },
+  /** The stub server that stands in for Slack (`CONNECTIONS_PROVIDER_ORIGINS`), when there is one. */
+  origin?: string,
 ): Promise<void> {
+  const { url, call } = providerEndpoints(origin)
   for (const part of splitText(input.text, SLACK_MESSAGE_MAX_LENGTH)) {
-    const result = await http.provider(SLACK_POST_MESSAGE_URL, {
+    const result = await call(http, url(SLACK_POST_MESSAGE_URL), {
       method: 'POST',
       headers: {
         authorization: `Bearer ${input.token}`,
@@ -244,10 +248,14 @@ export function readWhatsappMessages(payload: Record<string, unknown>): Whatsapp
 export async function sendWhatsappMessage(
   http: OutboundHttp,
   input: { token: string; phoneNumberId: string; to: string; text: string },
+  /** The stub server that stands in for WhatsApp (`CONNECTIONS_PROVIDER_ORIGINS`), when there is one. */
+  origin?: string,
 ): Promise<void> {
+  const { url, call } = providerEndpoints(origin)
   for (const part of splitText(input.text, WHATSAPP_MESSAGE_MAX_LENGTH)) {
-    const result = await http.provider(
-      `${GRAPH_URL}/${encodeURIComponent(input.phoneNumberId)}/messages`,
+    const result = await call(
+      http,
+      url(`${GRAPH_URL}/${encodeURIComponent(input.phoneNumberId)}/messages`),
       {
         method: 'POST',
         headers: {

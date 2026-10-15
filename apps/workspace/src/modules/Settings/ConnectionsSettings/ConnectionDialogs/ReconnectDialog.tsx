@@ -25,14 +25,17 @@ export default function ReconnectDialog({
   orgId,
   connection,
   providerName,
+  returnTo,
   onClose,
 }: Readonly<{
   orgId: string
   connection: ConnectionDto
   providerName: string
+  /** Where the browser returns to after an OAuth sign-in; Settings › Connections when omitted. */
+  returnTo?: string
   onClose: () => void
 }>) {
-  const c = useReconnectController({ orgId, connection, onClose })
+  const c = useReconnectController({ orgId, connection, returnTo, onClose })
   const { t } = c
 
   return (

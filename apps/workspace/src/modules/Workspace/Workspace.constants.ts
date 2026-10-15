@@ -78,7 +78,8 @@ export const WORKSPACE_NAV: readonly NavEntry[] = [
     href: (orgSlug) => ROUTES.workspace.insights(orgSlug),
     released: true,
     module: 'insights',
-    anyPermission: [PERMISSIONS.INSIGHTS_READ],
+    // Builders see the numbers of their own agents and flows
+    anyPermission: [PERMISSIONS.INSIGHTS_READ, PERMISSIONS.INSIGHTS_READ_OWN],
     goKey: 'i',
   },
   {

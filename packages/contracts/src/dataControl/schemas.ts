@@ -119,6 +119,8 @@ export const exportParamsSchema = z.object({
   columns: z.array(z.string().min(1).max(100)).max(100).optional(),
   chatId: z.uuid().optional(),
   includeAttachments: z.boolean().optional(),
+  /** Chat exports: each answer's cited sources (knowledge and web) after it; absent means included. */
+  includeSources: z.boolean().optional(),
 })
 export type ExportParams = z.infer<typeof exportParamsSchema>
 

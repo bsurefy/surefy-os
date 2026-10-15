@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 
 import type { ExportDto } from '@surefy/contracts'
 import { Banner, Spinner } from '@surefy/ui/components/Feedback'
-import { SegmentedControl } from '@surefy/ui/components/Forms'
+import { SegmentedControl, SwitchField } from '@surefy/ui/components/Forms'
 import { Button } from '@surefy/ui/primitives/button'
 import {
   Dialog,
@@ -50,7 +50,7 @@ function ExportProgress({
   )
 }
 
-/** Export a chat as PDF, Markdown or JSON; the file is prepared in the background. */
+/** Export a chat as PDF, Markdown or JSON, with or without sources; the file is prepared in the background. */
 export default function ChatExportDialog({
   orgId,
   chatId,
@@ -75,15 +75,23 @@ export default function ChatExportDialog({
           {current ? (
             <ExportProgress current={current} onRetry={c.onRetry} isRetrying={c.isRetrying} />
           ) : (
-            <SegmentedControl
-              label={t('format')}
-              options={CHAT_EXPORT_FORMATS.map((value) => ({
-                value,
-                label: t(`formats.${value}`),
-              }))}
-              value={c.format}
-              onValueChange={c.onFormatChange}
-            />
+            <>
+              <SegmentedControl
+                label={t('format')}
+                options={CHAT_EXPORT_FORMATS.map((value) => ({
+                  value,
+                  label: t(`formats.${value}`),
+                }))}
+                value={c.format}
+                onValueChange={c.onFormatChange}
+              />
+              <SwitchField
+                label={t('includeSources')}
+                description={t('includeSourcesHelp')}
+                checked={c.includeSources}
+                onCheckedChange={c.onIncludeSourcesChange}
+              />
+            </>
           )}
         </DialogBody>
         <DialogFooter>

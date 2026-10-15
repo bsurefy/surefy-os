@@ -173,6 +173,28 @@ export interface AgentRunsApprovals {
   ): Promise<readonly ApprovalResolution[]>
 }
 
+/**
+ * The answers of `chat` runs (chats module), written in the run's own transactions so the chat
+ * message exists even when nobody is connected (backend/agent-runs.md, §8).
+ */
+export interface AgentRunsChatAnswers {
+  /** The run waits for approvals: the answer shows their cards while it streams. */
+  waiting(
+    tx: DbExecutor,
+    orgId: string,
+    runId: string,
+    approvalIds: readonly string[],
+  ): Promise<void>
+  /** The run ended: the answer is written from its steps. */
+  finished(tx: DbExecutor, run: RunRow, steps: readonly StepRow[]): Promise<void>
+}
+
+/** No chat module: runs started from Chat leave no answer behind (tests of the engine alone). */
+export const NO_CHAT_ANSWERS: AgentRunsChatAnswers = {
+  waiting: () => Promise.resolve(),
+  finished: () => Promise.resolve(),
+}
+
 export type AgentRunsTopic = 'agent_run.finished'
 
 /** Writes an outbox event in the caller's transaction (outbox module). */
@@ -216,3 +238,10 @@ export interface StartedRun {
 
 export const isActiveStatus = (status: AgentRunStatus): boolean =>
   status === 'queued' || status === 'running' || status === 'waiting_approval'
+
+/** Runs that ended without an answer; a retry starts a new run with the same input. */
+const FINISHED = ['failed', 'timed_out', 'canceled'] as const
+
+/** Retry is for a run that ended without an answer, and for any finished test run. */
+export const isRetryable = (run: Pick<RunRow, 'status' | 'isTest'>): boolean =>
+  (FINISHED as readonly string[]).includes(run.status) || (run.isTest && run.status === 'succeeded')

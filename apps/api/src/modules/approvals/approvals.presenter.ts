@@ -112,17 +112,19 @@ export class ApprovalPresenter {
       for (const id of compact([row.requestedByUserId, row.decidedByUserId])) userIds.add(id)
     }
     const teamIds = unique(compact(assignees.map((row) => row.teamId)))
-    const [users, teams, names, ruleNames] = await Promise.all([
-      this.deps.users.findUserRefs([...userIds]),
-      teamIds.length === 0
-        ? Promise.resolve([] as TeamRefDto[])
-        : this.deps.teams.findRefsInTx(tx, orgId, teamIds),
-      this.deps.subjects.names(tx, orgId, {
-        agentIds: unique(compact(approvalRows.map((row) => row.agentId))),
-        flowIds: unique(compact(approvalRows.map((row) => row.flowId))),
-      }),
-      this.deps.guard.ruleNames(tx, orgId, unique(compact(approvalRows.map((row) => row.ruleRef)))),
-    ])
+    // one transaction runs one query at a time
+    const users = await this.deps.users.findUserRefs([...userIds])
+    const teams: TeamRefDto[] =
+      teamIds.length === 0 ? [] : await this.deps.teams.findRefsInTx(tx, orgId, teamIds)
+    const names = await this.deps.subjects.names(tx, orgId, {
+      agentIds: unique(compact(approvalRows.map((row) => row.agentId))),
+      flowIds: unique(compact(approvalRows.map((row) => row.flowId))),
+    })
+    const ruleNames = await this.deps.guard.ruleNames(
+      tx,
+      orgId,
+      unique(compact(approvalRows.map((row) => row.ruleRef))),
+    )
     const assigneesOf = new Map<string, AssigneeRow[]>()
     for (const row of assignees) {
       const list = assigneesOf.get(row.approvalId) ?? []

@@ -6,10 +6,12 @@ import type {
   createCredentialRoute,
   createLocalServerRoute,
   createMyCredentialRoute,
+  createSearchProviderRoute,
   credentialImpactRoute,
   deleteLocalServerRoute,
   getCredentialRoute,
   getModelAccessRoute,
+  getSearchProvidersRoute,
   getVaultModelRoute,
   getVaultSettingsRoute,
   listCredentialsRoute,
@@ -32,6 +34,7 @@ import type {
   updateVaultSettingsRoute,
 } from './vault.schema.js'
 import type { VaultService } from './vault.service.js'
+import type { VaultSearchService } from './vaultSearch.service.js'
 import type { ZodReply, ZodRequest } from '@/types/fastify.js'
 import type { FastifySchema } from 'fastify'
 
@@ -42,6 +45,7 @@ export class VaultController {
   constructor(
     private readonly vault: VaultService,
     private readonly models: ModelsService,
+    private readonly search: VaultSearchService,
   ) {}
 
   // ── Providers and keys ────────────────────────────────────────────────────────────────────────
@@ -66,6 +70,20 @@ export class VaultController {
     reply: P<typeof createCredentialRoute>,
   ) => {
     reply.created(await this.vault.createCredential(request.tenant, request.body))
+  }
+
+  getSearchProviders = async (
+    request: R<typeof getSearchProvidersRoute>,
+    reply: P<typeof getSearchProvidersRoute>,
+  ) => {
+    reply.ok(await this.search.settings(request.tenant))
+  }
+
+  createSearchProvider = async (
+    request: R<typeof createSearchProviderRoute>,
+    reply: P<typeof createSearchProviderRoute>,
+  ) => {
+    reply.created(await this.search.create(request.tenant, request.body))
   }
 
   testConnection = async (

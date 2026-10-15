@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { describe, expect, it } from 'vitest'
 
+import type { ChatMessageDto } from '@surefy/contracts'
+
 import {
   buildRows,
   fromDto,
+  fromUi,
   getCitationIndex,
   getErrorCode,
   getFailureKind,
+  groupComparisons,
   linkCitations,
   orderHistory,
   validateAttachment,
@@ -124,5 +128,147 @@ describe('orderHistory and buildRows', () => {
     expect(row.status).toBe('stopped')
     expect(row.notes).toEqual([{ name: 'stopped' }])
     expect(row.sources).toEqual([expect.objectContaining({ index: 1, title: 'Policy' })])
+  })
+})
+
+describe('approval notes', () => {
+  const approvalId = '0190a5c4-0000-7000-8000-0000000000aa'
+
+  it('reads the stored approval card of an agent answer', () => {
+    const row = fromDto(
+      chatMessageFactory({
+        role: 'assistant',
+        status: 'streaming',
+        parts: {
+          version: 1,
+          parts: [
+            { type: 'text', text: 'A refund needs approval first.' },
+            { type: 'data', name: 'approval', data: { approvalId } },
+          ],
+        },
+      }),
+    )
+    expect(row.notes).toEqual([{ name: 'approval', approvalId }])
+  })
+
+  it('takes who decides and the expiry from the live stream', () => {
+    const assignees = [
+      {
+        subjectType: 'team' as const,
+        user: null,
+        team: { id: approvalId, name: 'Finance' },
+        role: null,
+        source: 'rule' as const,
+      },
+    ]
+    const message: ThreadUiMessage = {
+      id: 'a1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'data-approval-required',
+          data: { seq: 2, approvalId, title: 'Refund order #1001', assignees, expiresAt: null },
+        },
+      ],
+    }
+    expect(fromUi(message, true).notes).toEqual([
+      { name: 'approval', approvalId, title: 'Refund order #1001', assignees, expiresAt: null },
+    ])
+  })
+})
+
+const GROUP = '00000000-0000-4000-8000-0000000000a1'
+
+const answer = (id: string, variant: ChatMessageDto['variant'], modelKey = 'openai/gpt-4.1') =>
+  chatMessageFactory({
+    id,
+    role: 'assistant',
+    modelKey,
+    variant,
+    parts: { version: 1, parts: [{ type: 'text', text: id }] },
+  })
+
+describe('groupComparisons', () => {
+  it('pairs answer A with the answer B of its group', () => {
+    const rows = [
+      fromDto(chatMessageFactory({ id: '00000000-0000-4000-8000-000000000001' })),
+      fromDto(answer('00000000-0000-4000-8000-00000000000a', { groupId: GROUP, label: 'a' })),
+      fromDto(answer('00000000-0000-4000-8000-00000000000b', { groupId: GROUP, label: 'b' })),
+    ]
+    const items = groupComparisons(rows)
+    expect(items.map((item) => item.kind)).toEqual(['message', 'comparison'])
+    expect(items[1]).toMatchObject({ a: { id: rows[1]?.id }, b: { id: rows[2]?.id } })
+  })
+
+  it('lists an answer whose partner is gone like any other message', () => {
+    const rows = [
+      fromDto(answer('00000000-0000-4000-8000-00000000000a', { groupId: GROUP, label: 'a' })),
+      fromDto(answer('00000000-0000-4000-8000-00000000000c', null)),
+    ]
+    expect(groupComparisons(rows).map((item) => item.kind)).toEqual(['message', 'message'])
+  })
+
+  it('does not pair answers of different comparisons', () => {
+    const other = '00000000-0000-4000-8000-0000000000a2'
+    const rows = [
+      fromDto(answer('00000000-0000-4000-8000-00000000000a', { groupId: GROUP, label: 'a' })),
+      fromDto(answer('00000000-0000-4000-8000-00000000000b', { groupId: other, label: 'b' })),
+    ]
+    expect(groupComparisons(rows).map((item) => item.kind)).toEqual(['message', 'message'])
+  })
+
+  it('pairs the live answers of a comparison that has no group yet', () => {
+    const live = (id: string, text: string): ThreadUiMessage => ({
+      id,
+      role: 'assistant',
+      parts: [{ type: 'text', text }],
+    })
+    const rows = buildRows([live('a1', 'from A')], [], true, null, {
+      message: live('b1', 'from B'),
+      isStreaming: true,
+      errorCode: null,
+    })
+    expect(rows.map((row) => row.variant?.label)).toEqual(['a', 'b'])
+    expect(groupComparisons(rows).map((item) => item.kind)).toEqual(['comparison'])
+  })
+
+  it('marks answer B failed when its request failed', () => {
+    const rows = buildRows(
+      [{ id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'from A' }] }],
+      [],
+      false,
+      null,
+      {
+        message: { id: 'b1', role: 'assistant', parts: [] },
+        isStreaming: false,
+        errorCode: 'MODEL_PROVIDER_UNAVAILABLE',
+      },
+    )
+    expect(rows[1]).toMatchObject({ status: 'failed', errorCode: 'MODEL_PROVIDER_UNAVAILABLE' })
+  })
+})
+
+describe('fromDto: web search', () => {
+  it('keeps the query of a web search step and the note of a skipped search', () => {
+    const searched = fromDto(
+      chatMessageFactory({
+        role: 'assistant',
+        parts: {
+          version: 1,
+          parts: [
+            {
+              type: 'tool',
+              toolCallId: 'call-1',
+              toolName: 'webSearch',
+              state: 'done',
+              input: { query: 'refund rules' },
+            },
+            { type: 'data', name: 'web-search-skipped', data: { reason: 'pii_blocked' } },
+          ],
+        },
+      }),
+    )
+    expect(searched.parts[0]).toMatchObject({ kind: 'tool', query: 'refund rules' })
+    expect(searched.notes).toEqual([{ name: 'web-search-skipped', reason: 'pii_blocked' }])
   })
 })

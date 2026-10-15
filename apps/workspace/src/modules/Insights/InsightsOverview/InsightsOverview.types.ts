@@ -9,6 +9,7 @@ export interface InsightsOverviewFilters {
   team: string | null
   person: string | null
   model: string | null
+  agent: string | null
   by: BreakdownDimension
 }
 

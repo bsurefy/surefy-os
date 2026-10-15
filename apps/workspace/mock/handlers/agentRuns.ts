@@ -34,7 +34,7 @@ import { READ_ONLY_AGENT_ID, SUPPORT_AGENT_ID } from './agentIds'
 import { addApproval, findApproval, resetApprovalsMock } from './approvals'
 import { sleep, sseResponse } from './runStream'
 import { MAYA, OMAR } from './shell.fixtures'
-import { ANA } from './teams'
+import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
 
 import type { StreamChunk } from './runStream'
 
@@ -434,6 +434,12 @@ const ERROR_OF_STATUS: Partial<Record<AgentRunStatus, string>> = {
 const seedAgentIds = () => [SUPPORT_AGENT_ID, READ_ONLY_AGENT_ID]
 
 const SEED_PEOPLE = [MAYA, OMAR, ANA, null]
+/** The primary team of the people who start runs, for the team filter. */
+const TEAM_OF: Record<string, string> = {
+  [MAYA.id]: SUPPORT_TEAM_ID,
+  [OMAR.id]: SALES_TEAM_ID,
+  [ANA.id]: SUPPORT_TEAM_ID,
+}
 
 /** One seeded run with its whole trace; a waiting run stops at its approval, a failed one at its failure. */
 function seedRun(
@@ -829,6 +835,43 @@ async function waitForApproval(approvalId: string, stop: () => boolean) {
 
 // ── Handlers ─────────────────────────────────────────────────────────────────────────────────────
 
+type RunQuery = ReturnType<typeof listAgentRunsQuerySchema.parse>
+
+/** The organization's run list: every filter of `GET /runs`, then the sort. */
+function listRuns(query: RunQuery): AgentRunDetailDto[] {
+  const needle = query.q?.toLowerCase()
+  const at = (run: AgentRunDetailDto) => run.startedAt ?? run.createdAt
+  const matches = [...allRuns().values()]
+    .map(({ run }) => run)
+    .filter((run) => (query.isTest ? run.isTest : !run.isTest))
+    .filter((run) => !query.agentId || run.agent?.id === query.agentId)
+    .filter((run) => !query.status || query.status.includes(run.status))
+    .filter((run) => !query.trigger || query.trigger.includes(run.trigger))
+    .filter((run) => !query.startedByUserId || run.startedBy?.id === query.startedByUserId)
+    .filter((run) => !query.teamId || (run.startedBy && TEAM_OF[run.startedBy.id]) === query.teamId)
+    .filter((run) => !query.modelKey || run.model?.modelKey === query.modelKey)
+    .filter((run) => !query.neededHuman || run.neededHuman)
+    .filter((run) => !query.from || at(run) >= query.from)
+    .filter((run) => !query.to || at(run) < query.to)
+    .filter(
+      (run) =>
+        !needle ||
+        run.id.includes(needle) ||
+        (run.agent?.name.toLowerCase().includes(needle) ?? false) ||
+        (run.startedBy?.name.toLowerCase().includes(needle) ?? false),
+    )
+  const sort = query.sort ?? '-startedAt'
+  const field = sort.replace(/^-/, '') as 'startedAt' | 'durationMs' | 'costMicros'
+  const direction = sort.startsWith('-') ? -1 : 1
+  const value = (run: AgentRunDetailDto) => (field === 'startedAt' ? at(run) : (run[field] ?? -1))
+  return matches.toSorted((a, b) => {
+    const left = value(a)
+    const right = value(b)
+    if (left === right) return 0
+    return (left < right ? -1 : 1) * direction
+  })
+}
+
 const path = '/orgs/:orgId'
 const runNotFound = () =>
   mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_RUN_NOT_FOUND, 'Run not found')
@@ -836,7 +879,7 @@ const agentNotFound = () =>
   mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_NOT_FOUND, 'Agent not found')
 
 /**
- * Agent runs (the editor's Test and Runs tabs; Insights › Runs reads the same endpoints). A test
+ * Agent runs (the editor's Test and Runs tabs; Insights › Runs and run detail). A test
  * run follows what the last message says: "refund" asks for an approval and waits for it, "broken"
  * or "arrive" fails a tool call (Retry step then reuses the earlier steps), anything else answers.
  * Scenarios: `error` fails a read or a start.
@@ -844,6 +887,26 @@ const agentNotFound = () =>
 export const agentRunsDomain = defineMockDomain(
   'agentRuns',
   [
+    defineMockHandler({
+      method: 'get',
+      path: `${path}/runs`,
+      response: pageResponse(agentRunDtoSchema),
+      scenarios: {
+        default: ({ request }) => {
+          const query = listAgentRunsQuerySchema.parse(
+            Object.fromEntries(new URL(request.url).searchParams),
+          )
+          const wanted = listRuns(query)
+          const start = Number(query.cursor ?? 0)
+          const next = start + query.limit < wanted.length ? String(start + query.limit) : null
+          return mockPage(
+            wanted.slice(start, start + query.limit).map((run) => agentRunDtoSchema.parse(run)),
+            next,
+          )
+        },
+        empty: () => mockPage([], null),
+      },
+    }),
     defineMockHandler({
       method: 'get',
       path: `${path}/agents/:agentId/runs`,

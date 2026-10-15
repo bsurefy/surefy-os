@@ -5,6 +5,7 @@ export {
   useCancelKnowledgeEmbeddingModelMutation,
   useCompleteKnowledgeFileUploadMutation,
   useCreateKnowledgeBaseMutation,
+  useCreateKnowledgeConnectorMutation,
   useCreateKnowledgeLinkMutation,
   useDeleteKnowledgeBaseMutation,
   useDeleteKnowledgeSourceMutation,
@@ -30,6 +31,7 @@ export {
 export type {
   DeletedKnowledgeFilters,
   KnowledgeBaseListFilters,
+  KnowledgeConnectorItemFilters,
   KnowledgeDocumentListFilters,
   KnowledgePageFilters,
   KnowledgeSourceListFilters,

@@ -263,6 +263,19 @@ describe('leaving and retention', () => {
     )
     expect(entry?.targetId).toBe(mine.id)
     expect(JSON.stringify(entry?.metadata)).toContain('member_removed')
+    // announced, so what synced through it (connector sources) goes too
+    const events = await setup.db.system('test', (tx) =>
+      tx
+        .select()
+        .from(outboxEvents)
+        .where(
+          and(
+            eq(outboxEvents.organizationId, setup.a.id),
+            eq(outboxEvents.topic, 'connection.revoked'),
+          ),
+        ),
+    )
+    expect(events.map((event) => event.payload)).toEqual([{ version: 1, id: mine.id }])
   })
 
   it('deletes disconnected connections after 13 months', async () => {

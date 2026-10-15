@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { CONNECTIONS_ERROR_CODES } from '@surefy/contracts'
 
-import { asString, bearer, checkCall, checkRequest, jsonObject } from './providerHttp.js'
+import {
+  asString,
+  bearer,
+  checkCall,
+  checkRequest,
+  jsonObject,
+  providerEndpoints,
+} from './providerHttp.js'
 
 import type { ProviderAdapter } from './provider.types.js'
 
@@ -11,43 +18,48 @@ import type { ProviderAdapter } from './provider.types.js'
 const GRAPH_URL = 'https://graph.facebook.com/v21.0'
 const PHONE_NUMBER_ID = /^\d{5,30}$/
 
-export const whatsapp: ProviderAdapter = {
-  key: 'whatsapp',
-  check: (http, { secret }) => {
-    const phoneNumberId = secret.extra?.phoneNumberId ?? ''
-    if (!PHONE_NUMBER_ID.test(phoneNumberId)) {
-      return Promise.resolve({
-        ok: false,
-        reasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
-        latencyMs: null,
-      })
-    }
-    return checkCall(
-      () =>
-        http.provider(
-          `${GRAPH_URL}/${phoneNumberId}?fields=display_phone_number,verified_name`,
-          checkRequest({ authorization: bearer(secret.token ?? '') }),
-        ),
-      (result) => {
-        if (result.status >= 400) {
-          return {
-            ok: false,
-            reasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
-            latencyMs: result.latencyMs,
+// Its addresses move to a stub server's origin in end-to-end runs.
+export function createWhatsappAdapter(origin?: string): ProviderAdapter {
+  const { url, call } = providerEndpoints(origin)
+  return {
+    key: 'whatsapp',
+    check: (http, { secret }) => {
+      const phoneNumberId = secret.extra?.phoneNumberId ?? ''
+      if (!PHONE_NUMBER_ID.test(phoneNumberId)) {
+        return Promise.resolve({
+          ok: false,
+          reasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
+          latencyMs: null,
+        })
+      }
+      return checkCall(
+        () =>
+          call(
+            http,
+            url(`${GRAPH_URL}/${phoneNumberId}?fields=display_phone_number,verified_name`),
+            checkRequest({ authorization: bearer(secret.token ?? '') }),
+          ),
+        (result) => {
+          if (result.status >= 400) {
+            return {
+              ok: false,
+              reasonCode: CONNECTIONS_ERROR_CODES.CONNECTION_PROVIDER_REJECTED,
+              latencyMs: result.latencyMs,
+            }
           }
-        }
-        const body = jsonObject(result)
-        const number = asString(body.display_phone_number)
-        const name = asString(body.verified_name)
-        return {
-          ok: true,
-          latencyMs: result.latencyMs,
-          account: {
-            id: phoneNumberId,
-            label: name !== null && number !== null ? `${name} (${number})` : (number ?? name),
-          },
-        }
-      },
-    )
-  },
+          const body = jsonObject(result)
+          const number = asString(body.display_phone_number)
+          const name = asString(body.verified_name)
+          return {
+            ok: true,
+            latencyMs: result.latencyMs,
+            account: {
+              id: phoneNumberId,
+              label: name !== null && number !== null ? `${name} (${number})` : (number ?? name),
+            },
+          }
+        },
+      )
+    },
+  }
 }

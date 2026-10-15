@@ -90,7 +90,11 @@ test.describe('Insights', () => {
     await expect(kpis).toContainText(/Messages\s*[1-9]/)
 
     await page.getByRole('combobox', { name: 'Model' }).click()
-    await page.getByRole('option', { name: new RegExp(STUB_MODEL_ID) }).click()
+    // the budgets spec used the stub's cloud copy, listed under the same name: the Owner used both
+    await page
+      .getByRole('option', { name: new RegExp(STUB_MODEL_ID) })
+      .first()
+      .click()
     await expect(page).toHaveURL(/model=/)
     await expect(kpis).toContainText(/Active people\s*1/)
   })

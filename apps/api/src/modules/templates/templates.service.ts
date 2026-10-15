@@ -44,10 +44,11 @@ export class TemplatesService {
 
   async list(ctx: TemplatesContext): Promise<AgentTemplateListDto> {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
-      const [installed, allowed] = await Promise.all([
-        this.deps.bridges.installed(tx, ctx.orgId, [...new Set(TEMPLATES.flatMap(bridgeKeysOf))]),
-        this.deps.models.allowedFor(tx, ctx),
+      // one transaction runs one query at a time
+      const installed = await this.deps.bridges.installed(tx, ctx.orgId, [
+        ...new Set(TEMPLATES.flatMap(bridgeKeysOf)),
       ])
+      const allowed = await this.deps.models.allowedFor(tx, ctx)
       return {
         items: TEMPLATES.map((spec): AgentTemplateDto => {
           const definition = this.contentOf(spec, installed)

@@ -169,3 +169,99 @@ describe('checks', () => {
     expect(http.calls).toEqual([])
   })
 })
+
+describe('other origins (stub servers)', () => {
+  const STUB = 'http://127.0.0.1:4026'
+  const moved = createProviderAdapters({ 'google-drive': STUB, notion: STUB })
+  const app = { clientId: 'id', clientSecret: 'secret' }
+
+  it('sends the browser and every call to the same paths on the stub, as a local host', async () => {
+    const http = createFakeHttp()
+    http.on(`${STUB}/token`, { body: { access_token: 'a', refresh_token: 'r' } })
+    http.on(`${STUB}/v1/oauth/token`, { body: { access_token: 'n' } })
+    http.on(`${STUB}/drive/v3/about`, { body: { user: { emailAddress: 'maya@acme.test' } } })
+    const drive = moved.get('google-drive')
+    const notion = moved.get('notion')
+
+    const authorize = drive?.authorizationCode?.authorizationUrl({
+      app,
+      redirectUri: 'http://localhost:3000/settings/connections/callback',
+      state: 's',
+      codeChallenge: 'c',
+      scopes: [],
+    })
+    expect(authorize).toMatch(new RegExp(`^${STUB}/o/oauth2/v2/auth\\?`))
+    expect(
+      notion?.authorizationCode?.authorizationUrl({
+        app,
+        redirectUri: 'r',
+        state: 's',
+        codeChallenge: 'c',
+        scopes: [],
+      }),
+    ).toMatch(new RegExp(`^${STUB}/v1/oauth/authorize\\?`))
+
+    await drive?.authorizationCode?.exchangeCode(http, {
+      app,
+      redirectUri: 'r',
+      code: 'code',
+      codeVerifier: 'v',
+    })
+    await notion?.authorizationCode?.exchangeCode(http, {
+      app,
+      redirectUri: 'r',
+      code: 'code',
+      codeVerifier: 'v',
+    })
+    await drive?.check(http, {
+      authType: 'oauth2',
+      secret: { version: 1, accessToken: 'a' },
+      baseUrl: null,
+    })
+    expect(http.calls.map(({ kind, url }) => [kind, url])).toEqual([
+      ['external', `${STUB}/token`],
+      ['external', `${STUB}/v1/oauth/token`],
+      ['external', `${STUB}/drive/v3/about?fields=user(emailAddress,permissionId)`],
+    ])
+  })
+
+  it('moves Slack and WhatsApp to the stub the same way', async () => {
+    const both = createProviderAdapters({ slack: STUB, whatsapp: STUB })
+    const http = createFakeHttp()
+    http.on(`${STUB}/api/oauth.v2.access`, { body: { ok: true, access_token: 'xoxb-1' } })
+    http.on(`${STUB}/api/auth.test`, { body: { ok: true, team_id: 'T1', user_id: 'U1' } })
+    http.on(`${STUB}/v21.0/123456`, { body: { display_phone_number: '+49 1' } })
+    const slackAdapter = both.get('slack')
+
+    expect(
+      slackAdapter?.authorizationCode?.authorizationUrl({
+        app,
+        redirectUri: 'r',
+        state: 's',
+        codeChallenge: 'c',
+        scopes: ['chat:write'],
+      }),
+    ).toMatch(new RegExp(`^${STUB}/oauth/v2/authorize\\?`))
+    await slackAdapter?.authorizationCode?.exchangeCode(http, {
+      app,
+      redirectUri: 'r',
+      code: 'code',
+      codeVerifier: 'v',
+    })
+    await slackAdapter?.check(http, {
+      authType: 'oauth2',
+      secret: { version: 1, accessToken: 'xoxb-1' },
+      baseUrl: null,
+    })
+    await both.get('whatsapp')?.check(http, {
+      authType: 'api_key',
+      secret: { version: 1, token: 't', extra: { phoneNumberId: '123456' } },
+      baseUrl: null,
+    })
+    expect(http.calls.map(({ kind, url }) => [kind, url])).toEqual([
+      ['external', `${STUB}/api/oauth.v2.access`],
+      ['external', `${STUB}/api/auth.test`],
+      ['external', `${STUB}/v21.0/123456?fields=display_phone_number,verified_name`],
+    ])
+  })
+})

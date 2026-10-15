@@ -16,6 +16,7 @@ import { requireUser } from './chatContext.js'
 import {
   ChatFolderNameTakenError,
   ChatFolderNotFoundError,
+  ChatMessageStateInvalidError,
   ChatNotFoundError,
 } from './chats.errors.js'
 import { toChatDto, toFolderDto } from './chats.mapper.js'
@@ -24,14 +25,17 @@ import { assertModelUsable, resolveSettings } from './chatSettings.js'
 
 import type { ChatRow } from './chats.mapper.js'
 import type { ChatsRepository } from './chats.repository.js'
-import type { ChatModels } from './chats.types.js'
+import type { ChatAgentRuns, ChatModels } from './chats.types.js'
+import type { ChatSharesRepository } from './chatShares.repository.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { TenantContext } from '@/types/context.js'
 
 export interface ChatsServiceDeps {
   db: Database
   repository: ChatsRepository
+  shares: ChatSharesRepository
   models: ChatModels
+  agents: ChatAgentRuns
 }
 
 /**
@@ -63,11 +67,17 @@ export class ChatsService {
           .filter((row) => row.chat.knowledgeScope === 'selected')
           .map((row) => row.chat.id),
       )
+      const agents = await this.deps.agents.refs(
+        tx,
+        ctx,
+        page.items.flatMap((row) => (row.chat.agentId === null ? [] : [row.chat.agentId])),
+      )
       return {
         items: page.items.map((row) =>
           toChatDto(row.chat, {
             knowledgeBaseIds: selected.get(row.chat.id) ?? [],
             matchedText: row.matchedText,
+            agent: row.chat.agentId === null ? null : (agents.get(row.chat.agentId) ?? null),
           }),
         ),
         nextCursor: page.nextCursor,
@@ -80,7 +90,7 @@ export class ChatsService {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
       const row = await this.deps.repository.findOwned(tx, ctx.orgId, userId, chatId)
       if (row === undefined) throw new ChatNotFoundError()
-      return this.toDto(tx, ctx.orgId, row)
+      return this.toDto(tx, ctx, row)
     })
   }
 
@@ -90,6 +100,10 @@ export class ChatsService {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
       const current = await repository.lockOwned(tx, ctx.orgId, userId, chatId)
       if (current === undefined) throw new ChatNotFoundError()
+      // an agent chat follows the agent's own model, knowledge and privacy
+      if (current.agentId !== null && input.isPrivate === true) {
+        throw new ChatMessageStateInvalidError('An agent chat cannot be private')
+      }
       const settings = await resolveSettings(this.deps, tx, ctx, userId, input, current)
       const patch = settings.patch
       if (input.title !== undefined) {
@@ -111,8 +125,12 @@ export class ChatsService {
       if (settings.knowledgeBaseIds !== undefined) {
         await repository.replaceKnowledgeBases(tx, ctx.orgId, chatId, settings.knowledgeBaseIds)
       }
-      if (settings.turnedPrivate) await repository.markFeedbackNotEligible(tx, ctx.orgId, chatId)
-      return this.toDto(tx, ctx.orgId, updated)
+      if (settings.turnedPrivate) {
+        await repository.markFeedbackNotEligible(tx, ctx.orgId, chatId)
+        // private chats are never shared: the confirmation named the people who lose access
+        await this.deps.shares.deleteAll(tx, ctx.orgId, chatId)
+      }
+      return this.toDto(tx, ctx, updated)
     })
   }
 
@@ -144,16 +162,20 @@ export class ChatsService {
         deletedByUserId: null,
       })
       if (restored === undefined) throw new ChatNotFoundError()
-      return this.toDto(tx, ctx.orgId, restored)
+      return this.toDto(tx, ctx, restored)
     })
   }
 
-  private async toDto(tx: DbExecutor, orgId: string, row: ChatRow): Promise<ChatDto> {
+  private async toDto(tx: DbExecutor, ctx: TenantContext, row: ChatRow): Promise<ChatDto> {
     const selected =
       row.knowledgeScope === 'selected'
-        ? ((await this.deps.repository.knowledgeBaseIds(tx, orgId, [row.id])).get(row.id) ?? [])
+        ? ((await this.deps.repository.knowledgeBaseIds(tx, ctx.orgId, [row.id])).get(row.id) ?? [])
         : []
-    return toChatDto(row, { knowledgeBaseIds: selected })
+    const agent =
+      row.agentId === null
+        ? null
+        : ((await this.deps.agents.refs(tx, ctx, [row.agentId])).get(row.agentId) ?? null)
+    return toChatDto(row, { knowledgeBaseIds: selected, agent })
   }
 
   // ── Folders ─────────────────────────────────────────────────────────────────────────────────

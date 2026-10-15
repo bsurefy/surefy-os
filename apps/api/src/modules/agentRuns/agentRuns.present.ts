@@ -13,7 +13,7 @@ import type {
 } from '@surefy/contracts'
 
 import { inputOf } from './agentRuns.state.js'
-import { isActiveStatus } from './agentRuns.types.js'
+import { isActiveStatus, isRetryable } from './agentRuns.types.js'
 
 import type { RunRow, StepRow } from './agentRuns.types.js'
 
@@ -122,7 +122,7 @@ export function runDetailDto(
     dataLocations: facts.dataLocations,
     pendingApprovalIds: [...pendingApprovalIds],
     canCancel: open && view.canEdit && allowed.cancel,
-    canRetry: !open && view.canEdit && allowed.retry,
+    canRetry: isRetryable(run) && view.canEdit && allowed.retry,
   }
 }
 

@@ -23,7 +23,15 @@ import {
   startChat,
   tenantOf,
   thread,
+  v1Deps,
 } from './chatsTestKit.js'
+
+import type { ChatSendResult } from '../chatStream.service.js'
+
+const streamOf = (sent: ChatSendResult) => {
+  if (sent.kind !== 'stream') throw new Error('expected a model stream')
+  return sent.stream
+}
 
 const submit = (text: string) => ({ trigger: 'submit' as const, text, attachmentIds: [] })
 
@@ -293,6 +301,7 @@ describe('POST /chats/:chatId/messages', () => {
       pii: container.modules.guard.piiFilter,
       models: container.modules.vault.grants.modelsRepository,
       parser: { extract: () => Promise.resolve({ text: '', pageCount: null }) },
+      ...v1Deps(setup),
     })
     const chatId = randomUUID()
     const stream = await chatsModule.stream.send(
@@ -301,7 +310,7 @@ describe('POST /chats/:chatId/messages', () => {
       submit('Never mind'),
       abort.signal,
     )
-    const reader = stream.getReader()
+    const reader = streamOf(stream).getReader()
     for (;;) {
       if ((await reader.read()).done) break
     }
@@ -349,6 +358,7 @@ describe('answers with sources', () => {
       pii: container.modules.guard.piiFilter,
       models: container.modules.vault.grants.modelsRepository,
       parser: { extract: () => Promise.resolve({ text: '', pageCount: null }) },
+      ...v1Deps(setup),
       retrieval: {
         retrieve: (input) => {
           requests.push({ query: input.query, scope: input.scope })
@@ -383,7 +393,7 @@ describe('answers with sources', () => {
       submit('Can I get a refund?'),
       new AbortController().signal,
     )
-    const reader = stream.getReader()
+    const reader = streamOf(stream).getReader()
     for (;;) {
       if ((await reader.read()).done) break
     }
@@ -437,7 +447,7 @@ describe('answers with sources', () => {
       submit('Again?'),
       new AbortController().signal,
     )
-    const again2 = again.getReader()
+    const again2 = streamOf(again).getReader()
     for (;;) {
       if ((await again2.read()).done) break
     }

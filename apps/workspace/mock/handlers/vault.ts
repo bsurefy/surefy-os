@@ -8,6 +8,7 @@ import {
   createCredentialInputSchema,
   createLocalServerInputSchema,
   createPersonalCredentialInputSchema,
+  createSearchProviderInputSchema,
   credentialDtoSchema,
   credentialImpactDtoSchema,
   ERROR_CODES,
@@ -16,6 +17,7 @@ import {
   pageResponse,
   PAGE_SIZE,
   providerCardDtoSchema,
+  searchProviderSettingsDtoSchema,
   updateCredentialInputSchema,
 } from '@surefy/contracts'
 import type {
@@ -24,6 +26,7 @@ import type {
   CredentialDto,
   DetectedModelDto,
   ProviderCardDto,
+  SearchProviderSettingsDto,
 } from '@surefy/contracts'
 import { defineFactory, fixtureUuid } from '@surefy/web-core/testing'
 import {
@@ -49,6 +52,7 @@ const EXPIRING_IN_DAYS = 5
 export const OPENAI_KEY_ID = fixtureUuid(CREDENTIAL_KIND, 1)
 export const ANTHROPIC_KEY_ID = fixtureUuid(CREDENTIAL_KIND, 2)
 export const OLLAMA_SERVER_ID = fixtureUuid(CREDENTIAL_KIND, 3)
+export const BRAVE_KEY_ID = fixtureUuid(CREDENTIAL_KIND, 6)
 
 const SUPPORT_TEAM = { id: SUPPORT_TEAM_ID, name: 'Support' }
 const SALES_TEAM = { id: SALES_TEAM_ID, name: 'Sales' }
@@ -118,6 +122,13 @@ function seedCredentials(): CredentialDto[] {
       owner: MAYA,
       secretLast4: 'm4Yz',
     }),
+    credentialFactory({
+      name: 'Brave production',
+      kind: 'search_provider',
+      providerKey: 'brave',
+      secretLast4: 'Br4v',
+      lastUsedAt: '2026-10-04T08:00:00.000Z',
+    }),
   ]
 }
 
@@ -155,6 +166,12 @@ const LOCAL_MODELS: DetectedModelDto[] = [
     inCatalog: false,
   },
 ]
+
+/** A search provider lists no models. */
+const modelsOf = (credential: CredentialDto): DetectedModelDto[] => {
+  if (credential.kind === 'search_provider') return []
+  return credential.kind === 'local_server' ? LOCAL_MODELS : AI_MODELS
+}
 
 function testResult(overrides: Partial<ConnectionTestDto> = {}): ConnectionTestDto {
   return {
@@ -249,6 +266,13 @@ function providerCards(items: CredentialDto[]): ProviderCardDto[] {
 }
 
 function nextTestResult(input: z.infer<typeof connectionTestInputSchema>): ConnectionTestDto {
+  if (input.kind === 'search_provider') {
+    return testResult({
+      models: [],
+      latencyMs: 310,
+      checkedUrl: input.baseUrl ?? null,
+    })
+  }
   const duplicate = credentials.find(
     (credential) => credential.kind === input.kind && credential.providerKey === input.providerKey,
   )
@@ -259,6 +283,50 @@ function nextTestResult(input: z.infer<typeof connectionTestInputSchema>): Conne
         duplicateOf:
           echoesKnownSecret && duplicate ? { id: duplicate.id, name: duplicate.name } : null,
       })
+}
+
+type SearchInput = z.infer<typeof createSearchProviderInputSchema>
+
+/** Stores a search provider at organization scope; the first one becomes primary. */
+function storeSearchProvider(input: SearchInput): CredentialDto {
+  const hasPrimary = credentials.some(
+    (credential) =>
+      credential.kind === 'search_provider' &&
+      credential.isPrimary &&
+      credential.status !== 'revoked',
+  )
+  const created = credentialFactory({
+    name: input.name,
+    kind: 'search_provider',
+    providerKey: input.providerKey,
+    isPrimary: !hasPrimary,
+    baseUrl: input.providerKey === 'searxng' ? input.baseUrl : null,
+    secretLast4: input.providerKey === 'searxng' ? null : input.secret.slice(-4),
+    expiresAt: input.providerKey === 'searxng' ? null : (input.expiresAt ?? null),
+    lastUsedAt: null,
+    createdAt: '2026-10-05T09:00:00.000Z',
+    updatedAt: '2026-10-05T09:00:00.000Z',
+  })
+  credentials = [...credentials, created]
+  return created
+}
+
+/** The stored search providers, primary first, and the one a search uses now. */
+function searchSettings(items: CredentialDto[]): SearchProviderSettingsDto {
+  const providers = items
+    .filter((item) => item.kind === 'search_provider' && item.status !== 'revoked')
+    .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
+  const primary = providers.find((item) => item.isPrimary && item.status !== 'expired')
+  return {
+    providers,
+    active: primary
+      ? {
+          providerKey: primary.providerKey as 'brave' | 'tavily' | 'searxng',
+          source: 'vault',
+          credentialId: primary.id,
+        }
+      : null,
+  }
 }
 
 const IMPACT = {
@@ -435,6 +503,54 @@ export const vaultDomain = defineMockDomain(
       },
     }),
     defineMockHandler({
+      method: 'get',
+      path: `${path}/search-providers`,
+      response: okResponse(searchProviderSettingsDtoSchema),
+      scenarios: {
+        default: () => mockOk(searchSettings(credentials)),
+        none: () => mockOk({ providers: [], active: null }),
+        'install-searxng': () =>
+          mockOk({
+            providers: [],
+            active: { providerKey: 'searxng', source: 'install', credentialId: null },
+          }),
+        degraded: () =>
+          mockOk({
+            providers: [
+              credentialFactory({
+                name: 'Brave production',
+                kind: 'search_provider',
+                providerKey: 'brave',
+                status: 'error',
+                statusReasonCode: ERROR_CODES.VAULT_KEY_INVALID,
+              }),
+              credentialFactory({
+                name: 'Tavily backup',
+                kind: 'search_provider',
+                providerKey: 'tavily',
+                isPrimary: false,
+                expiresAt: new Date(Date.now() + EXPIRING_IN_DAYS * DAY_MS - HOUR_MS).toISOString(),
+              }),
+            ],
+            active: { providerKey: 'brave', source: 'vault', credentialId: BRAVE_KEY_ID },
+          }),
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${path}/search-providers`,
+      response: okResponse(credentialDtoSchema),
+      scenarios: {
+        default: async ({ request }) =>
+          mockOk(storeSearchProvider(createSearchProviderInputSchema.parse(await request.json())), {
+            status: 201,
+          }),
+        'key-invalid': () => failureStatus(ERROR_CODES.VAULT_KEY_INVALID),
+        'test-timeout': () => failureStatus(ERROR_CODES.VAULT_TEST_TIMEOUT),
+        'server-offline': () => failureStatus(ERROR_CODES.LOCAL_SERVER_UNREACHABLE),
+      },
+    }),
+    defineMockHandler({
       method: 'post',
       path: `${path}/connection-tests`,
       response: okResponse(connectionTestDtoSchema),
@@ -511,9 +627,7 @@ export const vaultDomain = defineMockDomain(
             lastSuccessAt: '2026-10-05T09:00:00.000Z',
             statusCheckedAt: '2026-10-05T09:00:00.000Z',
           })
-          return mockOk(
-            testResult({ models: found.kind === 'local_server' ? LOCAL_MODELS : AI_MODELS }),
-          )
+          return mockOk(testResult({ models: modelsOf(found) }))
         },
         'key-invalid': ({ params }) => {
           const found = findCredential(params.credentialId)
@@ -539,11 +653,16 @@ export const vaultDomain = defineMockDomain(
           const found = findCredential(params.credentialId)
           if (!found) return notFound()
           if (found.status === 'revoked') return revoked()
+          // one search provider serves the whole organization; keys are primary per provider and scope
+          const sameSlot = (credential: CredentialDto) =>
+            found.kind === 'search_provider'
+              ? credential.kind === 'search_provider'
+              : credential.providerKey === found.providerKey &&
+                credential.scope === found.scope &&
+                credential.team?.id === found.team?.id &&
+                credential.kind === 'ai_provider'
           credentials = credentials.map((credential) =>
-            credential.providerKey === found.providerKey &&
-            credential.scope === found.scope &&
-            credential.team?.id === found.team?.id &&
-            credential.kind === 'ai_provider'
+            sameSlot(credential)
               ? { ...credential, isPrimary: credential.id === found.id }
               : credential,
           )

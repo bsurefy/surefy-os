@@ -8,6 +8,7 @@ import {
   chatAttachmentDtoSchema,
   chatAttachmentUploadDtoSchema,
   chatFeedbackDtoSchema,
+  CHAT_WEB_SEARCH_TOOL_NAME,
   chatMessageDtoSchema,
   chatSourcePreviewDtoSchema,
   ERROR_CODES,
@@ -30,8 +31,12 @@ import type {
 import { defineFactory, fixtureUuid } from '@surefy/web-core/testing'
 import { defineMockHandler, mockError, mockOk, mockPage } from '@surefy/web-core/testing/mock'
 
+import { REFUND_SMALL_ID } from './approvals.fixtures'
+import { agentRefOf, resetAgentChatsMock, streamAgentAnswer } from './chat.agents'
+
 const MESSAGE_KIND = 72
 const ATTACHMENT_KIND = 73
+const COMPARE_GROUP_KIND = 98
 const KNOWLEDGE_BASE_KIND = 80
 const DOCUMENT_KIND = 82
 const HTTP_NOT_FOUND = 404
@@ -87,6 +92,8 @@ export interface ChatStore {
   /** Inserts a chat the first message created. */
   create: (chat: ChatDto) => void
   update: (chat: ChatDto) => void
+  /** A chat someone shared with the signed-in person: its messages and sources can be read. */
+  findShared: (chatId: string) => { chat: ChatDto; text: string } | undefined
 }
 
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
@@ -151,7 +158,12 @@ const CHATS = {
   refunds: fixtureUuid(70, 2),
   onboarding: fixtureUuid(70, 3),
   sql: fixtureUuid(70, 5),
+  agentRefund: fixtureUuid(70, 10),
+  agentGone: fixtureUuid(70, 11),
 } as const
+
+/** The run behind the seeded agent answer that waits for the refund approval. */
+const SEEDED_AGENT_RUN_ID = fixtureUuid(78, 1)
 
 /** The seeded history: a cited answer, a reasoning-and-tool answer, a stopped one and a model switch. */
 function seedMessages(): Map<string, ChatMessageDto[]> {
@@ -233,6 +245,41 @@ function seedMessages(): Map<string, ChatMessageDto[]> {
       ],
     ],
     [
+      CHATS.agentRefund,
+      [
+        userText(11, CHATS.agentRefund, 'Order #1001 arrived broken. Can I get a refund?'),
+        assistant(
+          12,
+          CHATS.agentRefund,
+          [
+            {
+              type: 'tool',
+              toolCallId: 'call-1',
+              toolName: 'lookup_order',
+              state: 'done',
+              input: { order: '#1001' },
+              output: { status: 'delivered', damaged: true },
+            },
+            {
+              type: 'text',
+              text: 'I found order #1001: it arrived damaged. A refund of $42 needs approval first, so I asked for it.',
+            },
+            { type: 'data', name: 'approval', data: { approvalId: REFUND_SMALL_ID } },
+          ],
+          { status: 'streaming', agentRunId: SEEDED_AGENT_RUN_ID, usage: null },
+        ),
+      ],
+    ],
+    [
+      CHATS.agentGone,
+      [
+        userText(13, CHATS.agentGone, 'Check the March invoices against the orders.'),
+        assistant(14, CHATS.agentGone, [
+          { type: 'text', text: 'All 42 March invoices match their orders.' },
+        ]),
+      ],
+    ],
+    [
       CHATS.onboarding,
       [
         userText(9, CHATS.onboarding, 'A first-week checklist for new engineers.'),
@@ -258,6 +305,33 @@ let generation = 0
 let messages = seedMessages()
 let attachments = new Map<string, ChatAttachmentDto>()
 let ordinal = 100
+/** Compare: the variant group of each user message that was answered twice. */
+let compareGroups = new Map<string, string>()
+
+const groupIdOf = (userMessageId: string) => {
+  const existing = compareGroups.get(userMessageId)
+  if (existing) return existing
+  const created = fixtureUuid(COMPARE_GROUP_KIND, compareGroups.size + 1)
+  compareGroups.set(userMessageId, created)
+  return created
+}
+
+/** The variant of an answer to `userMessageId`; null until that message is compared. */
+function variantOf(userMessageId: string, label: 'a' | 'b'): ChatMessageDto['variant'] {
+  const groupId = compareGroups.get(userMessageId)
+  return groupId ? { groupId, label } : null
+}
+
+/** A comparison with both answers still in the chat waits for "Continue with A/B". */
+const hasUnresolvedCompare = (list: readonly ChatMessageDto[]) =>
+  list.some(
+    (message) =>
+      message.variant?.label === 'b' &&
+      list.some(
+        (other) =>
+          other.variant?.label === 'a' && other.variant.groupId === message.variant?.groupId,
+      ),
+  )
 
 const nextId = () => fixtureUuid(MESSAGE_KIND, ++ordinal)
 
@@ -266,15 +340,17 @@ export function resetChatMessagesMock(): void {
   generation += 1
   messages = seedMessages()
   attachments = new Map()
+  compareGroups = new Map()
   ordinal = 100
   streamDelayMs = 25
+  resetAgentChatsMock()
 }
 
 /** Messages of a chat; a seeded chat without a scripted history gets one question and one answer. */
 function messagesOf(store: ChatStore, chatId: string): ChatMessageDto[] {
   const existing = messages.get(chatId)
   if (existing) return existing
-  const found = store.find(chatId)
+  const found = store.find(chatId) ?? store.findShared(chatId)
   if (!found || found.chat.messageCount === 0) return []
   const history = [
     userText(nextOrdinal(), chatId, found.text),
@@ -343,6 +419,8 @@ function sseResponse(
 
 interface AnswerPlan {
   reasoning?: string
+  /** Data parts stored with the answer, for example why web search was skipped. */
+  notes?: ChatMessagePart[]
   tool?: {
     name: string
     input: Record<string, string | number>
@@ -357,9 +435,24 @@ const KNOWLEDGE_ANSWER_SOURCES: SourcePart[] = [
   knowledgeSource(2, 'Annual plans FAQ', 'Unused months are credited after 14 days.'),
 ]
 
+const webSource = (index: number, title: string, url: string, snippet: string): SourcePart => ({
+  type: 'source',
+  index,
+  kind: 'web',
+  title,
+  url,
+  snippet,
+})
+
 /** What the mock answers: grounded in knowledge unless the scope is `none`; "why"/"search"/"code" add parts. */
-function planAnswer(text: string, chat: ChatDto): AnswerPlan {
+function planAnswer(
+  text: string,
+  chat: ChatDto,
+  options: { webSearch?: boolean; scenario?: string } = {},
+): AnswerPlan {
   const lower = text.toLowerCase()
+  const isSearching = options.webSearch === true && options.scenario !== 'web-search-skipped'
+  if (isSearching) return planWebAnswer(text, chat)
   const hasKnowledge = chat.knowledgeScope !== 'none'
   const body = [
     `You asked: “${text.slice(0, 80)}”.`,
@@ -371,6 +464,17 @@ function planAnswer(text: string, chat: ChatDto): AnswerPlan {
       : 'Tell me if you want more detail.',
   ].join('\n\n')
   return {
+    ...(options.webSearch === true && options.scenario === 'web-search-skipped'
+      ? {
+          notes: [
+            {
+              type: 'data' as const,
+              name: 'web-search-skipped' as const,
+              data: { reason: 'provider_error' as const },
+            },
+          ],
+        }
+      : {}),
     ...(lower.includes('why') || lower.includes('think')
       ? { reasoning: 'I compare the question with the policy wording before answering.' }
       : {}),
@@ -385,6 +489,38 @@ function planAnswer(text: string, chat: ChatDto): AnswerPlan {
       : {}),
     text: body,
     sources: hasKnowledge ? KNOWLEDGE_ANSWER_SOURCES : [],
+  }
+}
+
+/** An answer that searched the web: the `webSearch` tool step and web sources after the knowledge ones. */
+function planWebAnswer(text: string, chat: ChatDto): AnswerPlan {
+  const first = chat.knowledgeScope === 'none' ? 1 : KNOWLEDGE_ANSWER_SOURCES.length + 1
+  const sources = [
+    ...(chat.knowledgeScope === 'none' ? [] : KNOWLEDGE_ANSWER_SOURCES),
+    webSource(
+      first,
+      'Annual subscription refunds explained',
+      'https://example.com/refunds',
+      'Most vendors refund annual plans within 14 days.',
+    ),
+    webSource(
+      first + 1,
+      'Consumer rights for subscriptions',
+      'https://example.org/consumer-rights',
+      'Cooling-off periods differ by country.',
+    ),
+  ]
+  return {
+    tool: {
+      name: CHAT_WEB_SEARCH_TOOL_NAME,
+      input: { query: text.slice(0, 60) },
+      output: { results: 2 },
+    },
+    text: [
+      `You asked: “${text.slice(0, 80)}”.`,
+      `Searching the web, most vendors refund annual plans within 14 days [${String(first)}], and cooling-off periods differ by country [${String(first + 1)}].`,
+    ].join('\n\n'),
+    sources,
   }
 }
 
@@ -417,6 +553,53 @@ interface StreamContext {
   prefix: string
   /** The model the chat used before this answer, when it changed: the answer starts with a divider. */
   switchedFrom: string | null
+  /** Compare: this answer is B of a comparison. */
+  variant?: ChatMessageDto['variant']
+}
+
+/** Streams the reasoning and the tool step of a plan, and returns the parts to store. */
+function writePlanSteps(plan: AnswerPlan, write: (chunk: Chunk) => void): ChatMessagePart[] {
+  const parts: ChatMessagePart[] = []
+  if (plan.reasoning) {
+    write({ type: 'reasoning-start', id: 'r1' })
+    write({ type: 'reasoning-delta', id: 'r1', delta: plan.reasoning })
+    write({ type: 'reasoning-end', id: 'r1' })
+    parts.push({ type: 'reasoning', text: plan.reasoning, durationMs: 1200 })
+  }
+  if (plan.tool) {
+    write({
+      type: 'tool-input-available',
+      toolCallId: 'call-1',
+      toolName: plan.tool.name,
+      input: plan.tool.input,
+      dynamic: true,
+    })
+    write({ type: 'tool-output-available', toolCallId: 'call-1', output: plan.tool.output })
+    parts.push({
+      type: 'tool',
+      toolCallId: 'call-1',
+      toolName: plan.tool.name,
+      state: 'done',
+      input: plan.tool.input,
+      output: plan.tool.output,
+    })
+  }
+  return parts
+}
+
+/** The cited sources and the data parts (notes) of a plan, as stream chunks. */
+function writePlanSources(plan: AnswerPlan, write: (chunk: Chunk) => void): void {
+  for (const source of plan.sources) {
+    write({
+      type: 'source-url',
+      sourceId: `${source.kind === 'web' ? 'web' : 'source'}-${source.index}`,
+      url: source.url ?? `https://knowledge.local/${source.documentId ?? source.index}`,
+      title: source.title,
+    })
+  }
+  for (const note of plan.notes ?? []) {
+    if (note.type === 'data') write({ type: `data-${note.name}`, data: note.data })
+  }
 }
 
 async function streamAnswer(
@@ -446,31 +629,7 @@ async function streamAnswer(
   })
   await sleep(streamDelayMs * 4)
 
-  const parts: ChatMessagePart[] = []
-  if (plan.reasoning) {
-    write({ type: 'reasoning-start', id: 'r1' })
-    write({ type: 'reasoning-delta', id: 'r1', delta: plan.reasoning })
-    write({ type: 'reasoning-end', id: 'r1' })
-    parts.push({ type: 'reasoning', text: plan.reasoning, durationMs: 1200 })
-  }
-  if (plan.tool) {
-    write({
-      type: 'tool-input-available',
-      toolCallId: 'call-1',
-      toolName: plan.tool.name,
-      input: plan.tool.input,
-      dynamic: true,
-    })
-    write({ type: 'tool-output-available', toolCallId: 'call-1', output: plan.tool.output })
-    parts.push({
-      type: 'tool',
-      toolCallId: 'call-1',
-      toolName: plan.tool.name,
-      state: 'done',
-      input: plan.tool.input,
-      output: plan.tool.output,
-    })
-  }
+  const parts = writePlanSteps(plan, write)
 
   const words = plan.text.split(/(?<=\s)/)
   const interruptAt = scenario === 'interrupted' ? Math.ceil(words.length / 2) : words.length
@@ -494,7 +653,7 @@ async function streamAnswer(
       })
     }
     parts.push({ type: 'text', text })
-    if (status === 'complete') parts.push(...plan.sources)
+    if (status === 'complete') parts.push(...plan.sources, ...(plan.notes ?? []))
     parts.push(...extra)
     list.push(
       assistant(nextOrdinal(), chat.id, parts, {
@@ -503,6 +662,8 @@ async function streamAnswer(
         modelKey,
         dataLocation: dataLocationOf(modelKey),
         errorCode: status === 'interrupted' ? ERROR_CODES.MODEL_PROVIDER_UNAVAILABLE : null,
+        variant:
+          context.variant ?? (context.userMessageId ? variantOf(context.userMessageId, 'a') : null),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         usage: usage(Math.max(1, Math.round(streamed.length / 4))),
@@ -528,16 +689,7 @@ async function streamAnswer(
     return false
   }
 
-  if (!isAborted() && plan.sources.length > 0) {
-    for (const source of plan.sources) {
-      write({
-        type: 'source-url',
-        sourceId: `source-${source.index}`,
-        url: `https://knowledge.local/${source.documentId ?? source.index}`,
-        title: source.title,
-      })
-    }
-  }
+  if (!isAborted()) writePlanSources(plan, write)
   write({ type: 'finish-step' })
   const outputTokens = Math.max(1, Math.round(streamed.length / 4))
   write({
@@ -556,6 +708,10 @@ const path = '/orgs/:orgId/chats/:chatId'
 const messagesPath = `${path}/messages`
 const noContent = () => new Response(null, { status: 204 })
 const chatNotFound = () => mockError(HTTP_NOT_FOUND, ERROR_CODES.CHAT_NOT_FOUND, 'Chat not found')
+const agentNotFound = () =>
+  mockError(HTTP_NOT_FOUND, ERROR_CODES.AGENT_NOT_FOUND, 'Agent not found')
+const hasAgentId = (input: z.infer<typeof sendChatMessageInputSchema>) =>
+  input.trigger === 'submit' && input.newChat?.agentId !== undefined
 const messageNotFound = () =>
   mockError(HTTP_NOT_FOUND, ERROR_CODES.CHAT_MESSAGE_NOT_FOUND, 'Message not found')
 
@@ -570,6 +726,7 @@ function newChatFrom(chatId: string, text: string, modelKey: string, input: unkn
     isPrivate?: boolean
     knowledgeScope?: ChatDto['knowledgeScope']
     knowledgeBaseIds?: string[]
+    agentId?: string
   }
   const now = new Date().toISOString()
   return {
@@ -580,7 +737,7 @@ function newChatFrom(chatId: string, text: string, modelKey: string, input: unkn
     isPinned: false,
     pinnedAt: null,
     isPrivate: settings.isPrivate ?? false,
-    agentId: null,
+    agent: settings.agentId ? agentRefOf(settings.agentId) : null,
     knowledgeScope: settings.knowledgeScope ?? 'all',
     knowledgeBaseIds: settings.knowledgeBaseIds ?? [],
     currentModelKey: modelKey,
@@ -724,13 +881,141 @@ function failureBeforeStream(scenario: string): Response | null {
   return null
 }
 
+/** The model asked for, else the chat's current one. */
+const modelKeyFor = (input: SendInput, chat: ChatDto | undefined) =>
+  ('modelKey' in input ? input.modelKey : undefined) ?? chat?.currentModelKey ?? MOCK_MODEL.modelKey
+
+/** An agent chat needs an agent the person may still use. */
+const isAgentUnavailable = (chat: ChatDto, input: SendInput, isNewChat: boolean) =>
+  chat.agent?.isAvailable === false || (isNewChat && hasAgentId(input) && !chat.agent)
+
+/** A new message waits until one answer of an open comparison is chosen. */
+function rejectWhileCompareIsOpen(
+  input: SendInput,
+  list: readonly ChatMessageDto[],
+): Response | null {
+  const isNewMessage = input.trigger === 'submit' || input.trigger === 'edit'
+  return isNewMessage && hasUnresolvedCompare(list)
+    ? mockError(HTTP_CONFLICT, ERROR_CODES.CHAT_COMPARE_UNRESOLVED, 'Choose answer A or B first')
+    : null
+}
+
+interface AgentAnswerArgs {
+  chat: ChatDto
+  list: ChatMessageDto[]
+  store: ChatStore
+  request: Request
+  userMessageId: string | null
+  prompt: string
+  isNewChat: boolean
+}
+
+/** An agent chat answers with the event stream of the agent's run (`chat.agents.ts`). */
+function agentAnswer({
+  chat,
+  list,
+  store,
+  request,
+  userMessageId,
+  prompt,
+  isNewChat,
+}: AgentAnswerArgs) {
+  const assistantId = nextId()
+  return sseResponse(request.signal, (write, isAborted) =>
+    streamAgentAnswer(
+      {
+        chat,
+        assistantId,
+        userMessageId,
+        prompt,
+        isNewChat,
+        delayMs: streamDelayMs,
+        persist: (parts, status, agentRunId, streamed) => {
+          const now = new Date().toISOString()
+          list.push(
+            assistant(nextOrdinal(), chat.id, parts, {
+              id: assistantId,
+              status,
+              agentRunId,
+              usage:
+                status === 'complete' ? usage(Math.max(1, Math.round(streamed.length / 4))) : null,
+              createdAt: now,
+              updatedAt: now,
+            }),
+          )
+          const latest = store.find(chat.id)?.chat ?? chat
+          store.update({ ...latest, messageCount: list.length, lastMessageAt: now, updatedAt: now })
+        },
+      },
+      write,
+      isAborted,
+    ),
+  )
+}
+
+interface CompareArgs {
+  input: Extract<SendInput, { trigger: 'compare' }>
+  chat: ChatDto
+  list: ChatMessageDto[]
+  modelKey: string
+  scenario: string
+  request: Request
+  store: ChatStore
+}
+
+const compareNotAvailable = (message: string) =>
+  mockError(HTTP_UNPROCESSABLE, ERROR_CODES.CHAT_COMPARE_NOT_AVAILABLE, message)
+
+/** Answer B of a comparison: the same question answered by another model, stored as variant `b`. */
+function compareAnswer({ input, chat, list, modelKey, scenario, request, store }: CompareArgs) {
+  const asked = list.find((message) => message.id === input.messageId && message.role === 'user')
+  if (!asked) return messageNotFound()
+  if (chat.agent) return compareNotAvailable('Agent chats have no compare')
+  if (modelKey === chat.currentModelKey) return compareNotAvailable('Pick another model for B')
+  if (chat.isPrivate && !modelKey.startsWith('local/')) {
+    return compareNotAvailable('A private chat compares local models only')
+  }
+  const groupId = groupIdOf(asked.id)
+  // answer A may already be stored: it joins the group now
+  const answerAt = list.indexOf(asked) + 1
+  const answerA = list[answerAt]
+  if (answerA?.role === 'assistant' && answerA.variant === null) {
+    list[answerAt] = { ...answerA, variant: { groupId, label: 'a' } }
+  }
+  const failure = failureBeforeStream(scenario)
+  if (failure) return failure
+  const plan = planAnswer(textOf(asked), chat, { webSearch: input.webSearch, scenario })
+  return sseResponse(request.signal, (write, isAborted) =>
+    streamAnswer(
+      {
+        chat,
+        assistantId: nextId(),
+        userMessageId: null,
+        modelKey,
+        plan,
+        scenario,
+        isNewChat: false,
+        prefix: '',
+        switchedFrom: null,
+        variant: { groupId, label: 'b' },
+      },
+      write,
+      isAborted,
+      store,
+      list,
+    ),
+  )
+}
+
 /**
  * The thread's routes (C-03 messages, feedback, sources and attachments) until the integration task
  * (I4-02) switches to the real API. `POST …/messages` answers a real SSE stream in the AI SDK UI
  * message stream format. Scenarios: `model-offline`, `budget-reached`, `rate-limited` fail before
  * the first byte; `interrupted` fails half way; `source-removed` and
  * `source-no-access` change the source preview; `attachment-too-large`, `attachment-unsupported`
- * and `attachment-upload-fails` fail the attachment steps.
+ * and `attachment-upload-fails` fail the attachment steps. An agent chat answers with its run's
+ * event stream (`chat.agents.ts`); its agent must still be available. Chats shared with the person
+ * can read their messages and sources.
  */
 export function createChatMessageHandlers(store: ChatStore) {
   const requireChat = (chatId: unknown) => {
@@ -745,11 +1030,12 @@ export function createChatMessageHandlers(store: ChatStore) {
       response: pageResponse(chatMessageDtoSchema),
       scenarios: {
         default: ({ params, request }) => {
-          if (!requireChat(params.chatId)) return chatNotFound()
+          const chatId = String(params.chatId)
+          if (!requireChat(chatId) && !store.findShared(chatId)) return chatNotFound()
           const url = new URL(request.url)
           const limit = Number(url.searchParams.get('limit') ?? PAGE_SIZE.default)
           const start = Number(url.searchParams.get('cursor') ?? 0)
-          const ordered = [...messagesOf(store, String(params.chatId))].sort((a, b) =>
+          const ordered = [...messagesOf(store, chatId)].sort((a, b) =>
             a.createdAt.localeCompare(b.createdAt),
           )
           const items =
@@ -771,10 +1057,7 @@ export function createChatMessageHandlers(store: ChatStore) {
           const isNewChat = !existing && input.trigger === 'submit'
           if (!existing && !isNewChat) return chatNotFound()
 
-          const modelKey =
-            ('modelKey' in input ? input.modelKey : undefined) ??
-            existing?.chat.currentModelKey ??
-            MOCK_MODEL.modelKey
+          const modelKey = modelKeyFor(input, existing?.chat)
           const chat =
             existing?.chat ??
             newChatFrom(
@@ -783,9 +1066,16 @@ export function createChatMessageHandlers(store: ChatStore) {
               modelKey,
               input.trigger === 'submit' ? input.newChat : undefined,
             )
+          if (isAgentUnavailable(chat, input, isNewChat)) return agentNotFound()
           if (isNewChat) store.create(chat)
           const list = isNewChat ? [] : messagesOf(store, chatId)
           if (isNewChat) messages.set(chatId, list)
+
+          if (input.trigger === 'compare') {
+            return compareAnswer({ input, chat, list, modelKey, scenario, request, store })
+          }
+          const unresolved = rejectWhileCompareIsOpen(input, list)
+          if (unresolved) return unresolved
 
           const prepared = applyInput(input, {
             chatId,
@@ -805,7 +1095,22 @@ export function createChatMessageHandlers(store: ChatStore) {
             return failure
           }
 
-          const plan = planAnswer(prepared.prompt, chat)
+          if (chat.agent) {
+            return agentAnswer({
+              chat,
+              list,
+              store,
+              request,
+              userMessageId: prepared.userMessageId,
+              prompt: prepared.prompt,
+              isNewChat,
+            })
+          }
+
+          const plan = planAnswer(prepared.prompt, chat, {
+            webSearch: 'webSearch' in input ? input.webSearch : undefined,
+            scenario,
+          })
           return sseResponse(request.signal, (write, isAborted) =>
             streamAnswer(
               {
@@ -828,6 +1133,42 @@ export function createChatMessageHandlers(store: ChatStore) {
               list,
             ),
           )
+        },
+      },
+    }),
+    defineMockHandler({
+      method: 'post',
+      path: `${messagesPath}/:messageId/choose`,
+      response: okResponse(chatMessageDtoSchema),
+      scenarios: {
+        default: ({ params }) => {
+          const chatId = String(params.chatId)
+          const list = messages.get(chatId)
+          const chosen = list?.find((message) => message.id === params.messageId)
+          if (!list || !chosen) return messageNotFound()
+          const other = chosen.variant
+            ? list.find(
+                (message) =>
+                  message.id !== chosen.id && message.variant?.groupId === chosen.variant?.groupId,
+              )
+            : undefined
+          if (!other) {
+            return mockError(
+              HTTP_CONFLICT,
+              ERROR_CODES.CHAT_MESSAGE_STATE_INVALID,
+              'This answer is not part of an open comparison',
+            )
+          }
+          // the other answer is superseded: the list never returns it again
+          messages.set(
+            chatId,
+            list.filter((message) => message.id !== other.id),
+          )
+          const found = store.find(chatId)
+          if (found && chosen.modelKey) {
+            store.update({ ...found.chat, currentModelKey: chosen.modelKey })
+          }
+          return mockOk(chosen)
         },
       },
     }),

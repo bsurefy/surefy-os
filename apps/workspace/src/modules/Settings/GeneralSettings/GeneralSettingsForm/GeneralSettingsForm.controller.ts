@@ -9,6 +9,7 @@ import { useWatch } from 'react-hook-form'
 
 import { organizationQueries, useUpdateOrganizationMutation } from '@/api/organizations'
 import { ROUTES, SETTINGS_SECTION } from '@/constants/routes'
+import { useDebouncedValue } from '@/hooks'
 import { toRoute } from '@/modules/Workspace'
 import { ERROR_CODES, SUPPORTED_LOCALES } from '@surefy/contracts'
 import type { OrganizationDto } from '@surefy/contracts'
@@ -17,7 +18,6 @@ import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 import { useForm } from '@surefy/web-core/forms'
 
 import { SLUG_CHECK_DELAY_MS, SLUG_REDIRECT_DAYS } from '../GeneralSettings.constants'
-import { useDebouncedValue } from '../GeneralSettings.hooks'
 import { generalSettingsSchema } from '../GeneralSettings.schema'
 import { getTimeZones, isCheckableSlug, toGeneralSettingsValues } from '../GeneralSettings.utils'
 

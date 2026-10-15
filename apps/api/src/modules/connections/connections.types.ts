@@ -43,7 +43,10 @@ export interface ConnectionsNotifier {
 
 /** Writes an outbox event in the caller's transaction (outbox module). */
 export interface ConnectionsOutbox {
-  write(tx: DbExecutor, event: OutboxEventInput<'connection.expired'>): Promise<boolean>
+  write(
+    tx: DbExecutor,
+    event: OutboxEventInput<'connection.expired' | 'connection.reconnected' | 'connection.revoked'>,
+  ): Promise<boolean>
 }
 
 /**

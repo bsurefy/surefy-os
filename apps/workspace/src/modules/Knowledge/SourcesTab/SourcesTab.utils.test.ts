@@ -5,9 +5,14 @@ import { parsePathRules } from './AddLinkDialog/AddLinkDialog.controller'
 import {
   canRetryWithOcr,
   getFileContentType,
+  getSourceKindCode,
+  groupExpiredByConnection,
+  isSignInExpired,
+  summarizeFolders,
   toSourceSort,
   toStatusParam,
 } from './SourcesTab.utils'
+import { sourceFactory } from '../../../../mock/handlers/knowledge'
 
 describe('getFileContentType', () => {
   it('uses the browser type when it is accepted', () => {
@@ -62,5 +67,60 @@ describe('parsePathRules', () => {
   it('keeps one trimmed rule per line and drops blanks', () => {
     expect(parsePathRules(' /docs \n\n/blog\n  ')).toEqual(['/docs', '/blog'])
     expect(parsePathRules('')).toEqual([])
+  })
+})
+
+const DRIVE_CONNECTION = '00000000-0070-4000-8000-000000000001'
+const NOTION_CONNECTION = '00000000-0070-4000-8000-000000000003'
+
+const connector = (provider: 'google_drive' | 'notion', overrides = {}) =>
+  sourceFactory({
+    type: 'connector',
+    connector: { provider, folders: [{ externalId: 'f1', name: 'Public' }], syncEvery: 'daily' },
+    connectionId: provider === 'notion' ? NOTION_CONNECTION : DRIVE_CONNECTION,
+    ...overrides,
+  })
+
+const expired = { status: 'paused', errorCode: 'KNOWLEDGE_CONNECTION_EXPIRED' } as const
+
+describe('connector sources', () => {
+  it('tiles a connector with its app', () => {
+    expect(getSourceKindCode(connector('google_drive'))).toBe('GD')
+    expect(getSourceKindCode(connector('notion'))).toBe('N')
+  })
+
+  it('tells an expired sign-in from other pauses and failures', () => {
+    expect(isSignInExpired(connector('notion', expired))).toBe(true)
+    expect(isSignInExpired(connector('notion', { status: 'paused', errorCode: null }))).toBe(false)
+    expect(
+      isSignInExpired(connector('notion', { status: 'failed', errorCode: expired.errorCode })),
+    ).toBe(false)
+  })
+
+  it('groups paused sources by the connection whose sign-in expired', () => {
+    const groups = groupExpiredByConnection([
+      connector('notion', expired),
+      connector('google_drive'),
+      connector('notion', expired),
+      connector('google_drive', expired),
+    ])
+    expect(groups.map(({ connectionId, sources }) => [connectionId, sources.length])).toEqual([
+      [NOTION_CONNECTION, 2],
+      [DRIVE_CONNECTION, 1],
+    ])
+  })
+
+  it('names the first folder and counts the rest', () => {
+    expect(summarizeFolders([{ externalId: 'a', name: 'Public' }])).toEqual({
+      first: 'Public',
+      more: 0,
+    })
+    expect(
+      summarizeFolders([
+        { externalId: 'a', name: 'Public' },
+        { externalId: 'b', name: 'Internal' },
+        { externalId: 'c', name: 'Finance' },
+      ]),
+    ).toEqual({ first: 'Public', more: 2 })
   })
 })

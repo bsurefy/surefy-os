@@ -6,6 +6,10 @@ import { useTranslations } from 'next-intl'
 import { ConfirmDialog } from '@surefy/ui/components/Overlay'
 
 import ChatExportDialog from '../../ChatList/ChatExportDialog'
+import DeleteChatDialog from '../../ChatList/DeleteChatDialog'
+import PromptLibrary from '../../PromptLibrary'
+import ShareDialog from '../../ShareDialog'
+import AgentUnavailable from '../AgentUnavailable'
 import Composer from '../Composer'
 import EmptyThread from '../EmptyThread'
 import FeedbackDialog from '../FeedbackDialog'
@@ -18,7 +22,8 @@ import type { ThreadViewProps } from './ThreadView.controller'
 
 /**
  * One conversation, or a new one (chat.md §1): the header, the scrolling messages or the empty
- * state, the composer at the bottom, and the dialogs and sheets the thread opens.
+ * state, the composer at the bottom, and the dialogs and sheets the thread opens. An agent chat
+ * whose agent is gone keeps its history and says so in place of the composer.
  */
 export default function ThreadView(props: Readonly<ThreadViewProps>) {
   const c = useThreadViewController(props)
@@ -38,6 +43,16 @@ export default function ThreadView(props: Readonly<ThreadViewProps>) {
             onSuggestion={(key) => {
               c.composer.onSuggestion(t(`empty.cards.${key}.prompt`))
             }}
+            agent={
+              c.agent?.name && !c.agent.isGone
+                ? {
+                    name: c.agent.name,
+                    description: c.agent.description,
+                    conversationStarters: c.agent.conversationStarters,
+                  }
+                : undefined
+            }
+            onStarter={c.composer.onSuggestion}
           />
         ) : (
           <MessageList c={c} />
@@ -45,7 +60,11 @@ export default function ThreadView(props: Readonly<ThreadViewProps>) {
       </div>
       <div className="bg-background shrink-0 px-4 pt-2 pb-4 md:px-6">
         <div className="mx-auto w-full max-w-[760px]">
-          <Composer c={c} />
+          {c.agent?.isGone ? (
+            <AgentUnavailable orgSlug={c.orgSlug} agentName={c.agent.name} />
+          ) : (
+            <Composer c={c} />
+          )}
         </div>
       </div>
       <ConfirmDialog
@@ -80,6 +99,23 @@ export default function ThreadView(props: Readonly<ThreadViewProps>) {
       {c.exportDialog.isOpen && (
         <ChatExportDialog orgId={c.orgId} chatId={c.chatId} onClose={c.exportDialog.onClose} />
       )}
+      {c.shareDialog.isOpen && c.chat && (
+        <ShareDialog
+          orgId={c.orgId}
+          chatId={c.chatId}
+          title={c.chat.title || t('header.untitled')}
+          isPrivate={c.chat.isPrivate}
+          onClose={c.shareDialog.onClose}
+        />
+      )}
+      {c.promptLibrary.isOpen && (
+        <PromptLibrary
+          orgId={c.orgId}
+          onClose={c.promptLibrary.onClose}
+          onUse={c.composer.onInsertPrompt}
+        />
+      )}
+      <DeleteChatDialog actions={c.chatActions} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
-import { PAGE_SIZE } from '@surefy/contracts'
+import { KNOWLEDGE_CONNECTOR_ITEMS_PAGE_SIZE, PAGE_SIZE } from '@surefy/contracts'
 import type { KnowledgeBaseDto, KnowledgeSourceDto } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { HttpClient } from '@surefy/web-core/http'
@@ -33,6 +33,13 @@ export interface KnowledgeSourceListFilters extends KnowledgePageFilters {
   status?: string
   /** `createdAt`, `name`, `sizeBytes`, with a leading `-` for descending. */
   sort?: string
+}
+
+/** `GET …/sources/connector-items`: no `parentId` is the top level; `cursor` is the provider's page token. */
+export interface KnowledgeConnectorItemFilters extends KnowledgePageFilters {
+  connectionId: string
+  parentId?: string
+  q?: string
 }
 
 export interface KnowledgeDocumentListFilters extends KnowledgePageFilters {
@@ -75,6 +82,8 @@ export const knowledgeKeys = {
     [...knowledgeKeys.detail(orgId, baseId), 'source', sourceId] as const,
   sources: (orgId: string, baseId: string, filters: KnowledgeSourceListFilters) =>
     [...knowledgeKeys.detail(orgId, baseId), 'sources', filters] as const,
+  connectorItems: (orgId: string, baseId: string, filters: KnowledgeConnectorItemFilters) =>
+    [...knowledgeKeys.detail(orgId, baseId), 'connector-items', filters] as const,
   documents: (
     orgId: string,
     baseId: string,
@@ -187,6 +196,29 @@ export const knowledgeQueries = {
         hasSourceInProgress(query.state.data?.pages.flatMap((page) => page.items) ?? [])
           ? ACTIVE_POLL_MS
           : false,
+    }),
+  connectorItems: (
+    orgId: string,
+    baseId: string,
+    filters: KnowledgeConnectorItemFilters,
+    http: HttpClient = apiClient,
+  ) =>
+    infiniteQueryOptions({
+      queryKey: knowledgeKeys.connectorItems(orgId, baseId, filters),
+      queryFn: ({ pageParam, signal }) =>
+        knowledgeSourcesApi.connectorItems(
+          http,
+          orgId,
+          baseId,
+          {
+            ...filters,
+            limit: filters.limit ?? KNOWLEDGE_CONNECTOR_ITEMS_PAGE_SIZE.default,
+            cursor: pageParam,
+          },
+          signal,
+        ),
+      ...firstPage,
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
     }),
   source: (orgId: string, baseId: string, sourceId: string, http: HttpClient = apiClient) =>
     queryOptions({

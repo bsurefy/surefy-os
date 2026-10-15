@@ -4,11 +4,13 @@
 import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import { CHAT_WEB_SEARCH_TOOL_NAME } from '@surefy/contracts'
 import { BrandMark, DataLocationBadge, Markdown } from '@surefy/ui/components/DataDisplay'
 import { Spinner } from '@surefy/ui/components/Feedback'
 import { Button } from '@surefy/ui/primitives/button'
 
 import AnswerText from '../AnswerText'
+import ApprovalCard from '../ApprovalCard'
 import FailureCard from '../FailureCard'
 import SourcesList from '../SourcesList'
 
@@ -23,6 +25,8 @@ export interface AssistantMessageProps {
   isLocal: boolean
   isLast: boolean
   isBusy: boolean
+  /** A chat shared with the person: the answer can be read and copied, nothing else. */
+  isReadOnly?: boolean
   failure: Omit<FailureCardProps, 'code' | 'isRetryable' | 'onRetry' | 'modelName'>
   onOpenSource: (index: number) => void
   onCopy: () => void
@@ -42,6 +46,14 @@ function reasoningLabel(
   return t('reasoningFor', { seconds: Math.max(1, Math.round(part.durationMs / 1000)) })
 }
 
+type ToolPart = Extract<ThreadMessage['parts'][number], { kind: 'tool' }>
+
+/** A web search step reads "Searched the web for …"; any other step shows its tool name. */
+function toolLabel(tool: ToolPart, t: AnswerTranslator): string {
+  if (tool.toolName !== CHAT_WEB_SEARCH_TOOL_NAME) return tool.toolName
+  return tool.query ? t('webSearchStepQuery', { query: tool.query }) : t('webSearchStep')
+}
+
 function Notes({ notes }: Readonly<{ notes: readonly ThreadNote[] }>) {
   const t = useTranslations('chat.thread.notes')
   return (
@@ -54,10 +66,18 @@ function Notes({ notes }: Readonly<{ notes: readonly ThreadNote[] }>) {
             </p>
           )
         }
+        if (note.name === 'approval') return <ApprovalCard key={note.approvalId} note={note} />
         if (note.name === 'knowledge-skipped') {
           return (
             <p key={note.name} className="text-caption text-muted-foreground">
               {t(`skipped.${note.reason}`)}
+            </p>
+          )
+        }
+        if (note.name === 'web-search-skipped') {
+          return (
+            <p key={note.name} className="text-caption text-muted-foreground">
+              {t(`webSearchSkipped.${note.reason}`)}
             </p>
           )
         }
@@ -78,6 +98,7 @@ export default function AssistantMessage({
   isLocal,
   isLast,
   isBusy,
+  isReadOnly = false,
   failure,
   onOpenSource,
   onCopy,
@@ -145,7 +166,7 @@ export default function AssistantMessage({
           <ul className="mt-1 flex flex-col gap-0.5">
             {tools.map((tool) => (
               <li key={tool.toolCallId}>
-                {tool.toolName} · {t(`toolState.${tool.state}`)}
+                {toolLabel(tool, t)} · {t(`toolState.${tool.state}`)}
               </li>
             ))}
           </ul>
@@ -164,7 +185,7 @@ export default function AssistantMessage({
       {(isStopped || row.notes.some((note) => note.name === 'stopped')) && (
         <p className="text-caption text-muted-foreground flex items-center gap-2">
           {t('stopped')}
-          {isLast && !isBusy && (
+          {isLast && !isBusy && !isReadOnly && (
             <Button variant="link" size="sm" onClick={onContinue}>
               {t('continue')}
             </Button>
@@ -174,14 +195,17 @@ export default function AssistantMessage({
       {isInterrupted && (
         <p className="text-caption text-destructive flex items-center gap-2" role="alert">
           {t('interrupted')}
-          {isLast && !isBusy && (
+          {isLast && !isBusy && !isReadOnly && (
             <Button variant="link" size="sm" onClick={onRegenerate}>
               {t('retry')}
             </Button>
           )}
         </p>
       )}
-      {(isFailed || budgetNote) && (
+      {isReadOnly && isFailed && (
+        <p className="text-caption text-muted-foreground">{t('failedShort')}</p>
+      )}
+      {!isReadOnly && (isFailed || budgetNote) && (
         <FailureCard
           {...failure}
           code={isFailed ? row.errorCode : 'BUDGET_EXCEEDED'}
@@ -202,39 +226,47 @@ export default function AssistantMessage({
             <Copy aria-hidden />
             {t('copyShort')}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t('regenerate')}
-            className="text-muted-foreground"
-            disabled={isBusy}
-            onClick={onRegenerate}
-          >
-            <RefreshCw aria-hidden />
-            {t('regenerateShort')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('helpful')}
-            aria-pressed={row.feedback?.rating === 'helpful'}
-            onClick={() => {
-              onRate('helpful')
-            }}
-          >
-            {row.feedback?.rating === 'helpful' ? <Check aria-hidden /> : <ThumbsUp aria-hidden />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={t('notHelpful')}
-            aria-pressed={row.feedback?.rating === 'not_helpful'}
-            onClick={() => {
-              onRate('not_helpful')
-            }}
-          >
-            <ThumbsDown aria-hidden />
-          </Button>
+          {!isReadOnly && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={t('regenerate')}
+                className="text-muted-foreground"
+                disabled={isBusy}
+                onClick={onRegenerate}
+              >
+                <RefreshCw aria-hidden />
+                {t('regenerateShort')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('helpful')}
+                aria-pressed={row.feedback?.rating === 'helpful'}
+                onClick={() => {
+                  onRate('helpful')
+                }}
+              >
+                {row.feedback?.rating === 'helpful' ? (
+                  <Check aria-hidden />
+                ) : (
+                  <ThumbsUp aria-hidden />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t('notHelpful')}
+                aria-pressed={row.feedback?.rating === 'not_helpful'}
+                onClick={() => {
+                  onRate('not_helpful')
+                }}
+              >
+                <ThumbsDown aria-hidden />
+              </Button>
+            </>
+          )}
           {row.sources.length > 0 && (
             <span className="text-caption text-muted-foreground ml-1">
               {t('answeredFrom', { count: row.sources.length })}

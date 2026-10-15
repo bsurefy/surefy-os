@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
+  AgentRunMessage,
+  ChatAgentRefDto,
   ChatKnowledgeScope,
   ChatSourcePreviewDto,
   KnowledgeSkippedReason,
   SourcePart,
+  UserRefDto,
 } from '@surefy/contracts'
 
 import type { DbExecutor } from '@/core/database/index.js'
+import type { WebSearchOutcome } from '@/integrations/search/index.js'
+import type { AuditRecorder } from '@/modules/audit/index.js'
 import type {
   PiiFilterInput,
   PiiFilterResult,
@@ -14,6 +19,7 @@ import type {
   PiiRequestResult,
 } from '@/modules/guard/index.js'
 import type { ModelGatewayService } from '@/modules/modelGateway/index.js'
+import type { NotificationsService } from '@/modules/notifications/index.js'
 import type { TenantContext } from '@/types/context.js'
 
 /** The model fields a chat needs: whether a person may pick it, and whether it reads images. */
@@ -99,6 +105,26 @@ export interface ChatRetrieval {
   checkSource(lookup: ChatSourceLookup): Promise<ChatSourceCheck>
 }
 
+/** Web search for an answer (V1): the search integration after the access policy and Vault. */
+export interface ChatWebSearch {
+  /** A search provider is set up for the organization. */
+  isConfigured(orgId: string): Promise<boolean>
+  search(request: {
+    ctx: TenantContext
+    query: string
+    /** The assistant message the search is for; keys its metering. */
+    messageId: string
+    signal?: AbortSignal
+  }): Promise<WebSearchOutcome>
+}
+
+/** No search provider: a chat that asks for web search is refused. */
+export const noChatWebSearch: ChatWebSearch = {
+  isConfigured: () => Promise.resolve(false),
+  search: () =>
+    Promise.resolve({ ok: false, reason: 'not_configured', provider: null, code: null }),
+}
+
 export const noChatRetrieval: ChatRetrieval = {
   retrieve: () => Promise.resolve({ passages: [], skipped: null, processingCount: 0 }),
   checkSource: () =>
@@ -117,4 +143,49 @@ export interface ChatDocumentParser {
     bytes: Buffer
     signal?: AbortSignal
   }): Promise<{ text: string; pageCount: number | null }>
+}
+
+/** People's display data (auth module). */
+export interface ChatUserRefs {
+  findUserRefs(userIds: readonly string[]): Promise<ReadonlyMap<string, UserRefDto>>
+}
+
+/** The organization's settings chats read (organizations module). */
+export interface ChatOrganizations {
+  /** `settings.privacy.chatSharingEnabled`: while false, no share is honored. */
+  sharingEnabledInTx(tx: DbExecutor, orgId: string): Promise<boolean>
+}
+
+/** In-app notifications (notifications module): `chat.shared`. */
+export type ChatNotifications = Pick<NotificationsService, 'notify'>
+
+/** The audit log (audit module): sharing a chat and every change to a shared prompt. */
+export type ChatAudit = AuditRecorder
+
+/** A published agent the person may see: shared with them, theirs, or one they manage. */
+export interface ChatAgent {
+  id: string
+  name: string
+  /** Only `active` agents answer; a paused or archived one "isn't available anymore". */
+  status: 'draft' | 'active' | 'paused' | 'archived'
+  /** The live version's model; the `data-model` chunk names it. */
+  modelKey: string | null
+}
+
+/** Agents and their runs (agents and agentRuns modules): what an agent chat needs. */
+export interface ChatAgentRuns {
+  findUsable(tx: DbExecutor, ctx: TenantContext, agentId: string): Promise<ChatAgent | undefined>
+  /** Queues a `chat` run of the agent's live version for this chat. */
+  start(
+    ctx: TenantContext,
+    input: { agentId: string; chatId: string; messages: AgentRunMessage[] },
+  ): Promise<{ id: string }>
+  /** The run's event stream as an SSE response. */
+  stream(ctx: TenantContext, runId: string): Promise<Response>
+  /** The agents of agent chats, by id, with whether the person may still talk to them. */
+  refs(
+    tx: DbExecutor,
+    ctx: TenantContext,
+    agentIds: readonly string[],
+  ): Promise<ReadonlyMap<string, ChatAgentRefDto>>
 }

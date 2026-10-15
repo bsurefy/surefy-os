@@ -20,6 +20,7 @@ export type { RunStreamer } from './agentRuns.streamer.js'
 export { resumePoint } from './agentRuns.streamer.js'
 export type {
   AgentRunsAgents,
+  AgentRunsChatAnswers,
   AgentRunsContext,
   AgentRunsModels,
   AgentRunsUsers,

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { BookOpen, FileText, Lightbulb, Mail } from 'lucide-react'
+import { BookOpen, Bot, FileText, Lightbulb, Mail, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
@@ -31,11 +31,55 @@ export interface EmptyThreadProps {
   modelName: string | null
   canManageVault: boolean
   onSuggestion: (key: SuggestionKey) => void
+  /** A new agent chat: the agent's name, what it does and its conversation starters. */
+  agent?: { name: string; description: string | null; conversationStarters: readonly string[] }
+  onStarter?: (prompt: string) => void
+}
+
+/** A new chat with an agent: its name and description, and its conversation starters as cards. */
+function AgentIntro({
+  agent,
+  onStarter,
+}: Readonly<{
+  agent: NonNullable<EmptyThreadProps['agent']>
+  onStarter: (prompt: string) => void
+}>) {
+  const t = useTranslations('chat.thread.empty')
+  return (
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-7 pt-6 md:pt-16">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <IconTile icon={Bot} size="lg" />
+        <h1 className="text-page-title">{agent.name}</h1>
+        <p className="text-body text-foreground-secondary">
+          {agent.description ?? t('agentDescription')}
+        </p>
+      </div>
+      {agent.conversationStarters.length > 0 && (
+        <ul aria-label={t('starters')} className="grid gap-2.5 sm:grid-cols-2">
+          {agent.conversationStarters.map((starter) => (
+            <li key={starter}>
+              <button
+                type="button"
+                className="border-border bg-surface hover:border-input duration-fast flex h-full w-full items-start gap-3 rounded-xl border px-4 py-3.5 text-left transition-[border-color,box-shadow] hover:shadow-sm"
+                onClick={() => {
+                  onStarter(starter)
+                }}
+              >
+                <IconTile icon={MessageSquare} size="sm" />
+                <span className="text-label min-w-0 font-semibold">{starter}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
 }
 
 /**
  * A new chat: the mark, a greeting naming the model, four starters and the setup checklist. With
  * no model connected it says what to do instead: Admins open Vault, everyone else asks an Admin.
+ * A new agent chat introduces the agent and offers its conversation starters instead.
  */
 export default function EmptyThread({
   orgSlug,
@@ -43,8 +87,11 @@ export default function EmptyThread({
   modelName,
   canManageVault,
   onSuggestion,
+  agent,
+  onStarter,
 }: Readonly<EmptyThreadProps>) {
   const t = useTranslations('chat.thread.empty')
+  if (agent && onStarter) return <AgentIntro agent={agent} onStarter={onStarter} />
 
   return (
     <div className="mx-auto flex w-full max-w-[720px] flex-col gap-7 pt-6 md:pt-16">

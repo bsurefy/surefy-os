@@ -23,3 +23,6 @@ export const CHAT_EXPORT_KIND = {
 
 /** The chat list, or Recently deleted in its place. */
 export type ChatListView = 'chats' | 'deleted'
+
+/** "Agents shared with you" lists this many before "Show more". */
+export const AGENTS_SHOWN = 5

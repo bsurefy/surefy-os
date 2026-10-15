@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { randomUUID } from 'node:crypto'
 
+import { createAgentRunsAgents } from '@/modules/agentRuns/index.js'
+import { createAuthUsers } from '@/modules/auth/index.js'
 import {
   chatAttachmentUploadDtoSchema,
   chatDtoSchema,
@@ -13,8 +15,10 @@ import type { ChatDto, ChatMessageDto, SendChatMessageInput } from '@surefy/cont
 
 import { testKey } from '../../../../test/fixtures/fakeAi.js'
 import { expectData, expectPage, request } from '../../../../test/helpers/request.js'
+import { createChatAgentRuns, createChatOrganizations } from '../index.js'
 
 import type { TwoOrgSetup } from '../../../../test/helpers/orgSetup.js'
+import type { ChatsModuleDeps } from '../chats.module.js'
 import type { TenantContext } from '@/types/context.js'
 
 export type Who = 'olivia' | 'adam' | 'uma'
@@ -255,4 +259,22 @@ export async function enableLocalModel(
     vaultModelDtoSchema,
   )
   return model.modelKey
+}
+
+/** The V1 dependencies of a chats module built by a test, from the app's container. */
+export function v1Deps(
+  setup: TwoOrgSetup,
+): Pick<ChatsModuleDeps, 'agents' | 'organizations' | 'users' | 'notifications' | 'audit'> {
+  const { container } = setup
+  const { modules } = container
+  return {
+    agents: createChatAgentRuns({
+      agents: createAgentRunsAgents(modules.agents.repository),
+      runs: modules.agentRuns,
+    }),
+    organizations: createChatOrganizations(modules.organizations.service),
+    users: createAuthUsers({ db: container.db, storage: container.integrations.storage }),
+    notifications: modules.notifications.service,
+    audit: modules.audit.service,
+  }
 }

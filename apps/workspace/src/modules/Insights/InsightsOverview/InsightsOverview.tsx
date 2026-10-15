@@ -2,6 +2,7 @@
 'use client'
 
 import { ChartLine, Download } from 'lucide-react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useFormatter } from 'next-intl'
 
@@ -13,24 +14,22 @@ import { PageHeader } from '@surefy/ui/components/Layout'
 import { Button } from '@surefy/ui/primitives/button'
 
 import InsightsTabs from '../InsightsTabs'
+import BudgetMeterCard from './BudgetMeterCard'
 import CostBreakdown from './CostBreakdown'
 import InsightsExportDialog from './InsightsExportDialog'
 import { ANY, type BreakdownDimension } from './InsightsOverview.constants'
 import { useInsightsOverviewController } from './InsightsOverview.controller'
 import KpiCards from './KpiCards'
 import RangePicker from './RangePicker'
+import RunKpis from './RunKpis'
+import RunsOverTime from './RunsOverTime'
 import TokensOverTime from './TokensOverTime'
 
-const FILTER_OF: Record<BreakdownDimension, 'team' | 'person' | 'model'> = {
-  team: 'team',
-  person: 'person',
-  model: 'model',
-}
-
 /**
- * Insights › Overview (design/workspace/insights.md): usage and cost for a date range, filtered by
- * team, person and model; the MVP KPIs, cost by team, person or model, tokens over time, and the
- * CSV export. Private chats count in the numbers only.
+ * Insights › Overview (design/workspace/insights.md): usage, cost and runs for a date range,
+ * filtered by team, person, agent and model; the usage and run KPIs, the budget meter, cost by
+ * team, person, model or agent, tokens and runs over time, and the CSV export. Private chats count
+ * in the numbers only.
  */
 export default function InsightsOverview() {
   const c = useInsightsOverviewController()
@@ -45,6 +44,7 @@ export default function InsightsOverview() {
     [t('filters.team'), optionLabel(c.teamOptions, filters.team)],
     [t('filters.person'), optionLabel(c.personOptions, filters.person)],
     [t('filters.model'), optionLabel(c.modelOptions, filters.model)],
+    [t('filters.agent'), optionLabel(c.agentOptions, filters.agent)],
   ]
     .filter((entry): entry is [string, string] => entry[1] !== null)
     .map(([name, value]) => `${name}: ${value}`)
@@ -59,7 +59,7 @@ export default function InsightsOverview() {
       : t(`filters.ranges.${filters.range}`)
 
   const filterSelect = (
-    key: 'team' | 'person' | 'model',
+    key: BreakdownDimension,
     options: { value: string; label: string }[],
     className: string,
   ) => (
@@ -116,6 +116,7 @@ export default function InsightsOverview() {
       <DataTableToolbar>
         {filterSelect('team', c.teamOptions, 'w-44')}
         {filterSelect('person', c.personOptions, 'w-44')}
+        {filterSelect('agent', c.agentOptions, 'w-48')}
         {filterSelect('model', c.modelOptions, 'w-52')}
         {c.hasFilters && (
           <Button variant="ghost" onClick={c.onClearFilters}>
@@ -133,6 +134,13 @@ export default function InsightsOverview() {
           onAction={() => {
             router.push(ROUTES.workspace.chat(orgSlug))
           }}
+          secondaryAction={
+            c.newAgentHref && (
+              <Button variant="secondary" asChild>
+                <Link href={c.newAgentHref}>{t('empty.createAgent')}</Link>
+              </Button>
+            )
+          }
         />
       ) : (
         <>
@@ -151,6 +159,21 @@ export default function InsightsOverview() {
             isLoading={c.overview.isLoading}
             error={c.overview.error}
             onRetry={c.overview.refetch}
+          />
+          <BudgetMeterCard
+            data={c.budget.data}
+            isLoading={c.budget.isLoading}
+            error={c.budget.error}
+            onRetry={c.budget.refetch}
+            scope={c.budgetScope}
+            budgetsHref={c.budgetsHref}
+          />
+          <RunKpis
+            data={c.runs.data}
+            isLoading={c.runs.isLoading}
+            error={c.runs.error}
+            onRetry={c.runs.refetch}
+            hasUsageOnlyFilters={c.hasUsageOnlyFilters}
           />
           {overview?.dataThrough && (
             <p className="text-caption text-muted-foreground">
@@ -173,7 +196,7 @@ export default function InsightsOverview() {
                 c.onFiltersChange({ by })
               }}
               onFilterGroup={(by, key) => {
-                c.onFiltersChange({ [FILTER_OF[by]]: key })
+                c.onFiltersChange({ [by]: key })
               }}
             />
             <TokensOverTime
@@ -182,6 +205,14 @@ export default function InsightsOverview() {
               isLoading={c.series.isLoading}
               error={c.series.error}
               onRetry={c.series.refetch}
+            />
+            <RunsOverTime
+              interval={c.runsInterval}
+              data={c.runsSeries.data}
+              isLoading={c.runsSeries.isLoading}
+              error={c.runsSeries.error}
+              onRetry={c.runsSeries.refetch}
+              runsHref={c.runsHref}
             />
           </div>
         </>

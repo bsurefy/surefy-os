@@ -30,6 +30,7 @@ export interface MyCredentialListFilters {
 export const vaultKeys = {
   all: (orgId: string) => ['orgs', orgId, 'vault'] as const,
   providers: (orgId: string) => [...vaultKeys.all(orgId), 'providers'] as const,
+  searchProviders: (orgId: string) => [...vaultKeys.all(orgId), 'search-providers'] as const,
   credentialLists: (orgId: string) => [...vaultKeys.all(orgId), 'credentials'] as const,
   credentialList: (orgId: string, filters: CredentialListFilters) =>
     [...vaultKeys.credentialLists(orgId), filters] as const,
@@ -47,6 +48,11 @@ export const vaultQueries = {
     queryOptions({
       queryKey: vaultKeys.providers(orgId),
       queryFn: ({ signal }) => vaultApi.providers(http, orgId, signal),
+    }),
+  searchProviders: (orgId: string, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: vaultKeys.searchProviders(orgId),
+      queryFn: ({ signal }) => vaultApi.searchProviders(http, orgId, signal),
     }),
   credentials: (orgId: string, filters: CredentialListFilters, http: HttpClient = apiClient) =>
     infiniteQueryOptions({

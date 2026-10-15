@@ -2,7 +2,7 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
 import { PAGE_SIZE } from '@surefy/contracts'
-import type { AgentRunStatus } from '@surefy/contracts'
+import type { AgentRunStatus, AgentRunTrigger } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
 import type { HttpClient } from '@surefy/web-core/http'
 
@@ -21,10 +21,23 @@ export interface AgentRunListFilters {
   cursor?: string
 }
 
+/** The organization's run list (Insights › Runs): one agent's filters plus who, where and how. */
+export interface RunListFilters extends AgentRunListFilters {
+  agentId?: string
+  trigger?: AgentRunTrigger
+  teamId?: string
+  modelKey?: string
+  startedByUserId?: string
+  /** `startedAt`, `durationMs` or `costMicros`, with a leading `-` for descending. */
+  sort?: string
+}
+
 /** Query keys of the `agentRuns` domain (services-api.md §3): agent runs and their steps. */
 export const agentRunKeys = {
   all: (orgId: string) => ['orgs', orgId, 'agent-runs'] as const,
   lists: (orgId: string) => [...agentRunKeys.all(orgId), 'list'] as const,
+  listAll: (orgId: string, filters: RunListFilters) =>
+    [...agentRunKeys.lists(orgId), 'all', filters] as const,
   list: (orgId: string, agentId: string, filters: AgentRunListFilters) =>
     [...agentRunKeys.lists(orgId), agentId, filters] as const,
   details: (orgId: string) => [...agentRunKeys.all(orgId), 'detail'] as const,
@@ -36,6 +49,19 @@ export const agentRunKeys = {
 
 // `http` defaults to the browser client; server components pass getServerHttpClient()
 export const agentRunQueries = {
+  listAll: (orgId: string, filters: RunListFilters, http: HttpClient = apiClient) =>
+    infiniteQueryOptions({
+      queryKey: agentRunKeys.listAll(orgId, filters),
+      queryFn: ({ pageParam, signal }) =>
+        agentRunsApi.listAll(
+          http,
+          orgId,
+          { ...filters, limit: filters.limit ?? PAGE_SIZE.default, cursor: pageParam },
+          signal,
+        ),
+      initialPageParam: undefined as string | undefined,
+      getNextPageParam: (last) => last.nextCursor ?? undefined,
+    }),
   list: (
     orgId: string,
     agentId: string,

@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useFormatter, useNow, useTranslations } from 'next-intl'
 
 import type { KnowledgeSourceDto } from '@surefy/contracts'
 import { StatusPill } from '@surefy/ui/components/DataDisplay'
 import { ProgressBar } from '@surefy/ui/components/Feedback'
 
-/** The status of a source: progress while it uploads or processes, a pill once it settles, and the reason when it failed. */
+/**
+ * The status of a source: progress while it uploads or processes, a pill once it settles, the
+ * reason when it failed, and when a link or connector last synced.
+ */
 export default function SourceStatus({ source }: Readonly<{ source: KnowledgeSourceDto }>) {
   const t = useTranslations('knowledge.detail.sources.status')
   const tReasons = useTranslations('knowledge.detail.sources.reasons')
+  const format = useFormatter()
+  const now = useNow()
 
   if (source.status === 'uploading' || source.status === 'processing') {
     return (
@@ -38,6 +43,11 @@ export default function SourceStatus({ source }: Readonly<{ source: KnowledgeSou
         </span>
       )}
       {reason && <span className="text-caption text-muted-foreground">{reason}</span>}
+      {source.type !== 'file' && source.lastSyncedAt && (
+        <span className="text-caption text-muted-foreground">
+          {t('synced', { time: format.relativeTime(new Date(source.lastSyncedAt), now) })}
+        </span>
+      )}
     </div>
   )
 }

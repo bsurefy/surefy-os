@@ -406,13 +406,12 @@ export class AgentsService {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
       const found = await this.deps.repository.findVisible(tx, ctx.orgId, agentId, viewerOf(ctx))
       if (found === undefined) throw new AgentNotFoundError()
-      const [audiences, channels, runCount, waiting, published] = await Promise.all([
-        this.deps.presenter.audiences(tx, ctx.orgId, [agentId]),
-        this.deps.channels.list(tx, ctx.orgId, [agentId]),
-        this.deps.runs.countRuns(tx, ctx.orgId, agentId),
-        this.deps.approvals.waitingCounts(tx, ctx.orgId, [agentId]),
-        this.deps.repository.hasVersions(tx, ctx.orgId, agentId),
-      ])
+      // one transaction runs one query at a time
+      const audiences = await this.deps.presenter.audiences(tx, ctx.orgId, [agentId])
+      const channels = await this.deps.channels.list(tx, ctx.orgId, [agentId])
+      const runCount = await this.deps.runs.countRuns(tx, ctx.orgId, agentId)
+      const waiting = await this.deps.approvals.waitingCounts(tx, ctx.orgId, [agentId])
+      const published = await this.deps.repository.hasVersions(tx, ctx.orgId, agentId)
       return {
         sharedWith: audiences.get(agentId) ?? {
           everyone: false,
@@ -440,10 +439,8 @@ export class AgentsService {
       if (found === undefined) throw new AgentNotFoundError()
       const agent = found.agent
       if (!canDelete(ctx, agent.ownerUserId)) throw new ForbiddenError(ERROR_CODES.ACCESS_FORBIDDEN)
-      const [published, runCount] = await Promise.all([
-        this.deps.repository.hasVersions(tx, ctx.orgId, agentId),
-        this.deps.runs.countRuns(tx, ctx.orgId, agentId),
-      ])
+      const published = await this.deps.repository.hasVersions(tx, ctx.orgId, agentId)
+      const runCount = await this.deps.runs.countRuns(tx, ctx.orgId, agentId)
       const tombstone = published || runCount > 0
       if (tombstone) {
         if (query.confirmName !== agent.name) throw new AgentDeleteConfirmationError('confirmName')

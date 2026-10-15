@@ -12,12 +12,13 @@ import { Button } from '@surefy/ui/primitives/button'
 import { Skeleton } from '@surefy/ui/primitives/skeleton'
 
 import { useChatThreadController } from './ChatThread.controller'
+import SharedThread from './SharedThread'
 import ThreadView from './ThreadView'
 
 /**
  * A chat: the empty new chat, or one conversation (chat.md). It loads the chat and its latest
- * messages first; a chat that is deleted or not shared with the person is "not available", never
- * revealing whether it exists.
+ * messages first; a chat someone shared with the person opens view only, and one that is deleted
+ * or not shared with them is "not available", never revealing whether it exists.
  */
 export default function ChatThread() {
   const c = useChatThreadController()
@@ -73,6 +74,22 @@ export default function ChatThread() {
     )
   }
 
+  if (c.state === 'shared' && c.shared) {
+    return (
+      <SharedThread
+        key={c.chatId}
+        orgId={c.orgId}
+        orgSlug={c.orgSlug}
+        chatId={c.chatId}
+        shared={c.shared}
+        history={c.history}
+        hasEarlier={c.hasEarlier}
+        isLoadingEarlier={c.isLoadingEarlier}
+        onLoadEarlier={c.onLoadEarlier}
+      />
+    )
+  }
+
   return (
     <ThreadView
       key={c.chatId}
@@ -81,6 +98,8 @@ export default function ChatThread() {
       chatId={c.chatId}
       isNew={c.isNew}
       chat={c.chat}
+      agentId={c.agentId}
+      onAgentChange={c.onAgentChange}
       history={c.history}
       hasEarlier={c.hasEarlier}
       isLoadingEarlier={c.isLoadingEarlier}

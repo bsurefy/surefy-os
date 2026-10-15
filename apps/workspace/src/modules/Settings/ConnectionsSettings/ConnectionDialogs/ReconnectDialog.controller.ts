@@ -38,10 +38,12 @@ const EMPTY_VALUES: SignInValues = {
 export function useReconnectController({
   orgId,
   connection,
+  returnTo,
   onClose,
 }: {
   orgId: string
   connection: ConnectionDto
+  returnTo?: string
   onClose: () => void
 }) {
   const t = useTranslations('settings.connections.reconnect')
@@ -74,7 +76,7 @@ export function useReconnectController({
         ...(connection.team ? { teamId: connection.team.id } : {}),
         baseUrl: connection.baseUrl ?? undefined,
         reconnectConnectionId: connection.id,
-        returnTo: ROUTES.workspace.settings(orgSlug, SETTINGS_SECTION.CONNECTIONS),
+        returnTo: returnTo ?? ROUTES.workspace.settings(orgSlug, SETTINGS_SECTION.CONNECTIONS),
       })
       goToExternalUrl(started.authorizationUrl)
     } catch (caught) {

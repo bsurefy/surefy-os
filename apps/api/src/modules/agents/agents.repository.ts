@@ -183,6 +183,29 @@ export class AgentsRepository {
     return tx.query.agents.findFirst({ where: and(eq(a.organizationId, orgId), eq(a.id, id)) })
   }
 
+  /** The ids of the agents the viewer may edit, for reads narrowed to them (Insights). */
+  async editableIds(tx: DbExecutor, orgId: string, viewer: Viewer): Promise<string[]> {
+    const rows = await tx
+      .select({ id: a.id })
+      .from(a)
+      .where(allOf(eq(a.organizationId, orgId), isNull(a.deletedAt), canEditSql(viewer)))
+    return rows.map((row) => row.id)
+  }
+
+  /** Names by id, tombstones included: past numbers keep the name of a deleted agent. */
+  async namesIncludingDeleted(
+    tx: DbExecutor,
+    orgId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map()
+    const rows = await tx
+      .select({ id: a.id, name: a.name })
+      .from(a)
+      .where(and(eq(a.organizationId, orgId), inArray(a.id, [...ids])))
+    return new Map(rows.map((row) => [row.id, row.name]))
+  }
+
   /** The agent with the live version's part the cards need, from one query. */
   private rows(tx: DbExecutor, viewer: Viewer, sort: KeysetSort) {
     return tx

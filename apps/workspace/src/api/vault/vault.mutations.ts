@@ -6,6 +6,7 @@ import type {
   CreateCredentialInput,
   CreateLocalServerInput,
   CreatePersonalCredentialInput,
+  CreateSearchProviderInput,
   UpdateCredentialInput,
 } from '@surefy/contracts'
 import { apiClient } from '@surefy/web-core/http'
@@ -48,6 +49,20 @@ export function useCreateCredentialMutation(
     meta: { silent },
     mutationFn: (input: CreateCredentialInput) =>
       vaultApi.createCredential(apiClient, orgId, input),
+    onSuccess: refresh,
+  })
+}
+
+/** Save runs the connection test itself; the first search provider becomes the primary one. */
+export function useCreateSearchProviderMutation(
+  orgId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const refresh = useRefreshVault(orgId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: CreateSearchProviderInput) =>
+      vaultApi.createSearchProvider(apiClient, orgId, input),
     onSuccess: refresh,
   })
 }

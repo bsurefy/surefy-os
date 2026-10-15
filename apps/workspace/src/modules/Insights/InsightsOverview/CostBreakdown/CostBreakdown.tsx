@@ -39,7 +39,7 @@ interface CostBreakdownProps {
   onFilterGroup: (by: BreakdownDimension, key: string) => void
 }
 
-/** Cost by team, person or model: the top groups and "Others", as a bar chart or a table. */
+/** Cost by team, person, model or agent: the top groups and "Others", as a bar chart or a table. */
 export default function CostBreakdown({
   by,
   data,
@@ -57,9 +57,13 @@ export default function CostBreakdown({
 
   const labelOf = (row: InsightsBreakdownDto['rows'][number]): string => {
     if (row.label) return row.label
-    if (row.key === null) return by === 'person' ? t('noPerson') : t('noTeam')
+    if (row.key === null) {
+      if (by === 'person') return t('noPerson')
+      return by === 'agent' ? t('noAgent') : t('noTeam')
+    }
     if (by === 'team') return t('deletedTeam')
     if (by === 'person') return t('formerMember')
+    if (by === 'agent') return t('deletedAgent')
     return row.key
   }
   const groups: CostGroup[] = data

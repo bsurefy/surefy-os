@@ -31,10 +31,19 @@ describe('InsightsTabs', () => {
     )
   })
 
-  it('leaves Runs unlinked until it is released', async () => {
+  it('links Runs for the people who may read runs', async () => {
     renderTabs('owner')
     await screen.findByRole('navigation', { name: 'Insights sections' })
-    expect(screen.queryByRole('link', { name: 'Runs' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Runs' })).toHaveAttribute(
+      'href',
+      '/acme/insights/runs',
+    )
+  })
+
+  it('gives Builders the overview of their agents', async () => {
+    renderTabs('builder')
+    await screen.findByRole('navigation', { name: 'Insights sections' })
+    expect(screen.getByRole('link', { name: 'Overview' })).toBeVisible()
   })
 
   it('shows no bar to an approver who may not read the usage numbers', () => {

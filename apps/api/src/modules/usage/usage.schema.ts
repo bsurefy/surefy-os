@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {
+  insightsBudgetMeterDtoSchema,
+  insightsBudgetMeterQuerySchema,
   insightsBreakdownDtoSchema,
   insightsBreakdownQuerySchema,
   insightsOverviewDtoSchema,
   insightsOverviewQuerySchema,
+  insightsRunsOverviewDtoSchema,
+  insightsRunsQuerySchema,
+  insightsRunsTimeseriesDtoSchema,
+  insightsRunsTimeseriesQuerySchema,
   insightsTimeseriesDtoSchema,
   insightsTimeseriesQuerySchema,
   okResponse,
@@ -11,6 +17,14 @@ import {
 } from '@surefy/contracts'
 
 const TAGS = ['insights']
+
+export const getInsightsBudgetMeterRoute = {
+  tags: TAGS,
+  summary: "This month's spend against the organization, a team or a person's budget",
+  params: orgParamsSchema,
+  querystring: insightsBudgetMeterQuerySchema,
+  response: { 200: okResponse(insightsBudgetMeterDtoSchema) },
+}
 
 export const getInsightsOverviewRoute = {
   tags: TAGS,
@@ -22,7 +36,7 @@ export const getInsightsOverviewRoute = {
 
 export const getInsightsBreakdownRoute = {
   tags: TAGS,
-  summary: 'Cost and tokens by team, person or model',
+  summary: 'Cost and tokens by team, person, model or agent',
   params: orgParamsSchema,
   querystring: insightsBreakdownQuerySchema,
   response: { 200: okResponse(insightsBreakdownDtoSchema) },
@@ -34,4 +48,20 @@ export const getInsightsTimeseriesRoute = {
   params: orgParamsSchema,
   querystring: insightsTimeseriesQuerySchema,
   response: { 200: okResponse(insightsTimeseriesDtoSchema) },
+}
+
+export const getInsightsRunsOverviewRoute = {
+  tags: TAGS,
+  summary: 'Runs, success rate, average duration and approvals for a range',
+  params: orgParamsSchema,
+  querystring: insightsRunsQuerySchema,
+  response: { 200: okResponse(insightsRunsOverviewDtoSchema) },
+}
+
+export const getInsightsRunsTimeseriesRoute = {
+  tags: TAGS,
+  summary: 'Finished runs over time by outcome',
+  params: orgParamsSchema,
+  querystring: insightsRunsTimeseriesQuerySchema,
+  response: { 200: okResponse(insightsRunsTimeseriesDtoSchema) },
 }

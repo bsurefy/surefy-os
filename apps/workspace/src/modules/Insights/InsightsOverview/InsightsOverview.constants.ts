@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { INSIGHTS_RANGE_PRESETS } from '@surefy/contracts'
-import type { InsightsBreakdownDimension } from '@surefy/contracts'
+import type { InsightsBreakdownDimension, InsightsRunsInterval } from '@surefy/contracts'
 
 /** Today, 7d, 30d, 90d and Custom (the person picks the days). */
 export const INSIGHTS_RANGES = INSIGHTS_RANGE_PRESETS
@@ -14,11 +14,12 @@ export const RANGE_DAYS: Record<Exclude<InsightsRangeOption, 'custom'>, number> 
   '90d': 90,
 }
 
-/** Cost by team, by person or by model; the by-agent chart arrives with Insights V1. */
+/** Cost by team, by person, by model or by agent; each is also a filter of the page. */
 export const BREAKDOWN_DIMENSIONS = [
   'team',
   'person',
   'model',
+  'agent',
 ] as const satisfies readonly InsightsBreakdownDimension[]
 export type BreakdownDimension = (typeof BREAKDOWN_DIMENSIONS)[number]
 
@@ -30,7 +31,18 @@ export const ANY = 'any'
 
 export const CHART_HEIGHT = 260
 
-/** Filter lists load this many teams, people and models. */
+/** Filter lists load this many teams, people, models and agents. */
 export const FILTER_OPTIONS_LIMIT = 100
 
 export const MICROS_PER_UNIT = 1_000_000
+
+/** Runs over time per day; ranges longer than this many days are shown per week. */
+export const RUNS_DAILY_MAX_DAYS = 120
+export const RUNS_INTERVALS = {
+  short: 'day',
+  long: 'week',
+} as const satisfies Record<string, InsightsRunsInterval>
+
+export const BASIS_POINTS = 10_000
+export const MS_PER_SECOND = 1000
+export const MS_PER_MINUTE = 60_000

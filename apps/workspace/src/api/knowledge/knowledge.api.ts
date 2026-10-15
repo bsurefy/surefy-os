@@ -3,6 +3,7 @@ import type {
   BulkKnowledgeSourcesInput,
   BulkKnowledgeSourcesResultDto,
   CreateKnowledgeBaseInput,
+  CreateKnowledgeConnectorSourceInput,
   CreateKnowledgeLinkInput,
   DeletedKnowledgeItemDto,
   DownloadLinkDto,
@@ -10,6 +11,7 @@ import type {
   KnowledgeAccessImpactDto,
   KnowledgeBaseDto,
   KnowledgeBaseImpactDto,
+  KnowledgeConnectorItemsDto,
   KnowledgeDocumentDetailDto,
   KnowledgeDocumentDto,
   KnowledgeDocumentPageDto,
@@ -32,6 +34,7 @@ import type { HttpClient } from '@surefy/web-core/http'
 import type {
   DeletedKnowledgeFilters,
   KnowledgeBaseListFilters,
+  KnowledgeConnectorItemFilters,
   KnowledgeDocumentListFilters,
   KnowledgePageFilters,
   KnowledgeSourceListFilters,
@@ -134,6 +137,25 @@ export const knowledgeSourcesApi = {
     http.post<KnowledgeSourceDto>(`${base(orgId, baseId)}/sources/${sourceId}/complete`),
   createLink: (http: HttpClient, orgId: string, baseId: string, input: CreateKnowledgeLinkInput) =>
     http.post<KnowledgeSourceDto>(`${base(orgId, baseId)}/sources/links`, input),
+  /** One level of the folders or pages a Google Drive or Notion connection can see. */
+  connectorItems: (
+    http: HttpClient,
+    orgId: string,
+    baseId: string,
+    query: KnowledgeConnectorItemFilters,
+    signal?: AbortSignal,
+  ) =>
+    http.get<KnowledgeConnectorItemsDto>(`${base(orgId, baseId)}/sources/connector-items`, {
+      params: { ...query },
+      signal,
+    }),
+  /** Adds the chosen folders as one connector source; its first sync starts at once. */
+  createConnector: (
+    http: HttpClient,
+    orgId: string,
+    baseId: string,
+    input: CreateKnowledgeConnectorSourceInput,
+  ) => http.post<KnowledgeSourceDto>(`${base(orgId, baseId)}/sources/connectors`, input),
   update: (
     http: HttpClient,
     orgId: string,

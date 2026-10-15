@@ -22,10 +22,8 @@ export interface ApprovalsGuardDeps {
 export function createApprovalsGuard(deps: ApprovalsGuardDeps): ApprovalsGuard {
   return {
     async limits(tx: DbExecutor, orgId: string): Promise<ApprovalLimits> {
-      const [row, currency] = await Promise.all([
-        deps.repository.findSettings(tx, orgId),
-        deps.repository.organizationCurrency(tx, orgId),
-      ])
+      const row = await deps.repository.findSettings(tx, orgId)
+      const currency = await deps.repository.organizationCurrency(tx, orgId)
       const settings = settingsOf(row, currency)
       return {
         quickApproveMaxAmountMicros: settings.quickApproveMaxAmountMicros,

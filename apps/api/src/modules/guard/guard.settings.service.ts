@@ -57,10 +57,8 @@ export class GuardSettingsService {
   /** The saved defaults, or what an organization has until it saves its own. */
   async getDefaults(ctx: GuardContext): Promise<GuardSettingsDto> {
     return this.deps.db.tenant(ctx.orgId, async (tx) => {
-      const [row, currency] = await Promise.all([
-        this.deps.repository.findSettings(tx, ctx.orgId),
-        this.deps.repository.organizationCurrency(tx, ctx.orgId),
-      ])
+      const row = await this.deps.repository.findSettings(tx, ctx.orgId)
+      const currency = await this.deps.repository.organizationCurrency(tx, ctx.orgId)
       const refs = await this.deps.refs.load(tx, ctx.orgId, {
         userIds: [row?.updatedByUserId ?? null],
       })
@@ -79,10 +77,8 @@ export class GuardSettingsService {
   ): Promise<GuardSettingsDto> {
     if (input.reviewThresholdBp >= input.autoThresholdBp) throw new GuardThresholdsInvalidError()
     const result = await this.deps.db.tenant(ctx.orgId, async (tx) => {
-      const [current, currency] = await Promise.all([
-        this.deps.repository.findSettings(tx, ctx.orgId),
-        this.deps.repository.organizationCurrency(tx, ctx.orgId),
-      ])
+      const current = await this.deps.repository.findSettings(tx, ctx.orgId)
+      const currency = await this.deps.repository.organizationCurrency(tx, ctx.orgId)
       const before = settingsOf(current, currency)
       const after = {
         autoThresholdBp: input.autoThresholdBp,
@@ -159,20 +155,19 @@ export class GuardSettingsService {
       const orgId = ctx.orgId
       const settings = await this.deps.repository.findSettings(tx, orgId)
       const rules = settingsOf(settings, 'USD')
-      const [totals, medianSeconds, conflicts, outdated, overdue] = await Promise.all([
-        this.deps.repository.totalsSince(tx, orgId, fromDay),
-        this.deps.repository.medianDecisionSeconds(tx, orgId, sinceStart),
-        this.deps.repository.conflictSummary(tx, orgId),
-        this.deps.subjects.outdatedThresholds(tx, orgId, {
-          autoBp: rules.autoBp,
-          reviewBp: rules.reviewBp,
-        }),
-        this.deps.repository.overdueApprovals(
-          tx,
-          orgId,
-          new Date(now.getTime() - rules.targetDecisionMinutes * 60_000),
-        ),
-      ])
+      // one transaction runs one query at a time
+      const totals = await this.deps.repository.totalsSince(tx, orgId, fromDay)
+      const medianSeconds = await this.deps.repository.medianDecisionSeconds(tx, orgId, sinceStart)
+      const conflicts = await this.deps.repository.conflictSummary(tx, orgId)
+      const outdated = await this.deps.subjects.outdatedThresholds(tx, orgId, {
+        autoBp: rules.autoBp,
+        reviewBp: rules.reviewBp,
+      })
+      const overdue = await this.deps.repository.overdueApprovals(
+        tx,
+        orgId,
+        new Date(now.getTime() - rules.targetDecisionMinutes * 60_000),
+      )
       const attention: GuardOverviewDto['attention'] = []
       if (overdue > 0) {
         attention.push({

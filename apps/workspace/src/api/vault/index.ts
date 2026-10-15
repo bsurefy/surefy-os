@@ -4,6 +4,7 @@ export {
   useCreateCredentialMutation,
   useCreateLocalServerMutation,
   useCreatePersonalCredentialMutation,
+  useCreateSearchProviderMutation,
   useMakePrimaryMutation,
   useRemoveLocalServerMutation,
   useRevokeCredentialMutation,

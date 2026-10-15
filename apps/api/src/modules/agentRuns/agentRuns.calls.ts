@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { AGENT_RUN_AUDIT_ACTIONS, AGENT_RUNS_ERROR_CODES } from '@surefy/contracts'
+import { AGENT_RUN_AUDIT_ACTIONS, AGENT_RUNS_ERROR_CODES, ERROR_CODES } from '@surefy/contracts'
 import type { AgentRunStepData } from '@surefy/contracts'
 
 import {
@@ -8,7 +8,7 @@ import {
   TOO_MANY_CALLS_RESULT,
   UNKNOWN_TOOL_RESULT,
 } from './agentRuns.constants.js'
-import { AgentRunSupersededError } from './agentRuns.errors.js'
+import { AgentRunSupersededError, RunFailure } from './agentRuns.errors.js'
 import { failureCodeOf } from './agentRuns.failure.js'
 import { dataLocationOf, piiScopeOf } from './agentRuns.pii.js'
 import { argumentsOf } from './agentRuns.state.js'
@@ -19,6 +19,7 @@ import type { RunSession } from './agentRuns.session.js'
 import type { CallState, RunState } from './agentRuns.state.js'
 import type {
   AgentRunsApprovals,
+  AgentRunsChatAnswers,
   AgentRunsEvents,
   AgentRunsGateway,
   AgentRunsGuard,
@@ -41,6 +42,7 @@ export interface CallMovesDeps {
   tools: AgentRunsTools
   approvals: AgentRunsApprovals
   audit: AuditRecorder
+  chatAnswers: AgentRunsChatAnswers
   logger: Logger
   now?: () => Date
 }
@@ -255,8 +257,13 @@ export class CallMoves {
     const seq = state.nextSeq
     const startedAt = this.now()
     const args = argumentsOf(call)
+    // the step number keys the metering of a call that is metered (web search)
+    const ctx =
+      session.tools.run === undefined
+        ? session.tools
+        : { ...session.tools, run: { ...session.tools.run, seq } }
     const outcome = await Promise.race([
-      this.deps.tools.execute(session.tools, tool, args),
+      this.deps.tools.execute(ctx, tool, args),
       whenAborted(session.signal),
     ])
     const { content } = outcome
@@ -301,6 +308,10 @@ export class CallMoves {
       toolCallId: call.id,
       output: content,
     })
+    // the personal-data filter blocks a type in the call (a web search query): the run ends
+    if (!outcome.ok && outcome.code === ERROR_CODES.GUARD_PII_BLOCKED) {
+      throw new RunFailure(outcome.code)
+    }
   }
 
   /** A call that is not run: blocked by Guard, rejected by a person, a tool that does not exist, or one too many. */
@@ -405,6 +416,8 @@ export class CallMoves {
     if (!pending) return false
     const marked = await this.deps.repository.markWaiting(tx, session.orgId, session.runId)
     if (!marked) throw new AgentRunSupersededError()
+    // a chat run's answer shows the approval cards; other runs have no chat answer
+    await this.deps.chatAnswers.waiting(tx, session.orgId, session.runId, approvalIds)
     return true
   }
 

@@ -5,11 +5,13 @@ import type {
   CreateCredentialInput,
   CreateLocalServerInput,
   CreatePersonalCredentialInput,
+  CreateSearchProviderInput,
   CredentialDto,
   CredentialImpactAction,
   CredentialImpactDto,
   LocalServerSyncDto,
   ProviderCardDto,
+  SearchProviderSettingsDto,
   UpdateCredentialInput,
 } from '@surefy/contracts'
 import type { HttpClient } from '@surefy/web-core/http'
@@ -30,6 +32,10 @@ export const vaultApi = {
       params: { ...query },
       signal,
     }),
+  searchProviders: (http: HttpClient, orgId: string, signal?: AbortSignal) =>
+    http.get<SearchProviderSettingsDto>(`/orgs/${orgId}/vault/search-providers`, { signal }),
+  createSearchProvider: (http: HttpClient, orgId: string, input: CreateSearchProviderInput) =>
+    http.post<CredentialDto>(`/orgs/${orgId}/vault/search-providers`, input),
   testConnection: (http: HttpClient, orgId: string, input: ConnectionTestInput) =>
     http.post<ConnectionTestDto>(`/orgs/${orgId}/vault/connection-tests`, input),
   createCredential: (http: HttpClient, orgId: string, input: CreateCredentialInput) =>

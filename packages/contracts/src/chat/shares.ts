@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { chatDtoSchema, chatParamsSchema } from './schemas.js'
 import { userRefDtoSchema } from '../auth/schemas.js'
+import { searchQuery } from '../core/filters.js'
 import { pageQuery } from '../core/pagination.js'
 import { orgParamsSchema } from '../core/params.js'
 import { teamRefDtoSchema } from '../teams/schemas.js'
@@ -10,7 +11,7 @@ import { teamRefDtoSchema } from '../teams/schemas.js'
 // Shared chats (database/chat.md §8; Chat › Share, Chat list › Shared with me). Routes, all under
 // /api/v1/orgs/:orgId (`chat:use`):
 // GET/POST /chats/:chatId/shares · DELETE /chats/:chatId/shares/:shareId (the owner only) ·
-// GET /shared-chats · GET /shared-chats/:chatId.
+// GET /shared-chats · GET /shared-chats/:chatId · GET /chat-share-targets.
 // A share is view only and never leaves the organization. People a chat is shared with also read
 // it through GET /chats/:chatId/messages, the source preview and the attachment URLs; every other
 // chat route stays the owner's. Sharing needs `organizations.settings.privacy.chatSharingEnabled`;
@@ -67,6 +68,24 @@ export const chatSharesDtoSchema = z.object({
 })
 export type ChatSharesDto = z.infer<typeof chatSharesDtoSchema>
 
+/**
+ * `GET /chat-share-targets`: the people and teams the share dialog can pick, matched on names
+ * and emails, teams first. Active members other than the caller, and every team of the
+ * organization; the members and teams lists stay with Admins. CHAT_SHARING_DISABLED while the
+ * organization turned sharing off.
+ */
+export const listChatShareTargetsQuerySchema = pageQuery.extend({ q: searchQuery })
+export type ListChatShareTargetsQuery = z.infer<typeof listChatShareTargetsQuerySchema>
+
+export const chatShareTargetDtoSchema = z.discriminatedUnion('subjectType', [
+  z.object({ subjectType: z.literal('user'), user: userRefDtoSchema }),
+  z.object({
+    subjectType: z.literal('team'),
+    team: teamRefDtoSchema.extend({ memberCount: z.number().int().nonnegative() }),
+  }),
+])
+export type ChatShareTargetDto = z.infer<typeof chatShareTargetDtoSchema>
+
 /** `GET /shared-chats`: chats others shared with the person or their teams, newest message first. */
 export const listSharedChatsQuerySchema = pageQuery
 export type ListSharedChatsQuery = z.infer<typeof listSharedChatsQuerySchema>
@@ -89,7 +108,7 @@ export type SharedChatParams = z.infer<typeof sharedChatParamsSchema>
  * owner's own settings (folder, pin, knowledge scope, next model) are not part of it.
  */
 export const sharedChatDetailDtoSchema = chatDtoSchema
-  .pick({ id: true, title: true, agentId: true, lastMessageAt: true, messageCount: true })
+  .pick({ id: true, title: true, agent: true, lastMessageAt: true, messageCount: true })
   .extend({
     owner: userRefDtoSchema.nullable(),
     sharedBy: userRefDtoSchema.nullable(),

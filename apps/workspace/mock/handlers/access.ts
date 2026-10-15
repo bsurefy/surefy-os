@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {
+  accessPolicyDtoSchema,
   effectiveAccessDtoSchema,
   ERROR_CODES,
   memberEffectiveAccessDtoSchema,
   teamEffectiveAccessDtoSchema,
+  updateAccessPolicyInputSchema,
   FEATURES,
   okResponse,
   PERMISSIONS,
   ROLE_PERMISSIONS,
 } from '@surefy/contracts'
-import type { EffectiveAccessDto, OrgRole } from '@surefy/contracts'
+import type { AccessPolicyDto, EffectiveAccessDto, OrgRole } from '@surefy/contracts'
 import { effectiveAccessFactory } from '@surefy/web-core/testing'
 import {
   defineMockDomain,
@@ -20,6 +22,41 @@ import {
 
 import { shellSafe, MAYA, OMAR } from './shell.fixtures'
 import { ANA, SALES_TEAM_ID, SUPPORT_TEAM_ID } from './teams'
+
+const SETTINGS_UPDATED_AT = '2026-10-02T09:00:00.000Z'
+const NO_RESTRICTIONS: AccessPolicyDto['policy'] = { version: 1 }
+
+/** Each team's own restrictions: Support has web search off, Sales sets nothing. */
+function seedTeamPolicies(): Map<string, AccessPolicyDto> {
+  return new Map([
+    [
+      SUPPORT_TEAM_ID,
+      {
+        teamId: SUPPORT_TEAM_ID,
+        policy: { version: 1, tools: { webSearch: false } },
+        updatedByUserId: MAYA.id,
+        updatedAt: SETTINGS_UPDATED_AT,
+      },
+    ],
+  ])
+}
+
+let teamPolicies = seedTeamPolicies()
+
+/** Back to the seeded team policies; tests call it between cases. */
+export function resetAccessMock(): void {
+  teamPolicies = seedTeamPolicies()
+}
+
+const teamPolicyOf = (teamId: string): AccessPolicyDto =>
+  teamPolicies.get(teamId) ?? {
+    teamId,
+    policy: NO_RESTRICTIONS,
+    updatedByUserId: null,
+    updatedAt: null,
+  }
+
+const KNOWN_TEAMS = new Set([SUPPORT_TEAM_ID, SALES_TEAM_ID])
 
 function accessAs(role: OrgRole, overrides: Partial<EffectiveAccessDto> = {}): EffectiveAccessDto {
   return effectiveAccessFactory({ role, permissions: [...ROLE_PERMISSIONS[role]], ...overrides })
@@ -133,6 +170,57 @@ export const accessDomain = defineMockDomain(
             ],
           })
         },
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: '/orgs/:orgId/access/policy',
+      response: okResponse(accessPolicyDtoSchema),
+      scenarios: {
+        default: () =>
+          mockOk({ teamId: null, policy: NO_RESTRICTIONS, updatedByUserId: null, updatedAt: null }),
+        'web-search-off-for-organization': () =>
+          mockOk({
+            teamId: null,
+            policy: { version: 1, tools: { webSearch: false } },
+            updatedByUserId: MAYA.id,
+            updatedAt: SETTINGS_UPDATED_AT,
+          }),
+      },
+    }),
+    defineMockHandler({
+      method: 'get',
+      path: '/orgs/:orgId/teams/:teamId/access-policy',
+      response: okResponse(accessPolicyDtoSchema),
+      scenarios: {
+        default: ({ params }) =>
+          KNOWN_TEAMS.has(String(params.teamId))
+            ? mockOk(teamPolicyOf(String(params.teamId)))
+            : mockError(404, ERROR_CODES.TEAM_NOT_FOUND, 'Team not found'),
+      },
+    }),
+    defineMockHandler({
+      method: 'put',
+      path: '/orgs/:orgId/teams/:teamId/access-policy',
+      response: okResponse(accessPolicyDtoSchema),
+      scenarios: {
+        default: async ({ params, request }) => {
+          const teamId = String(params.teamId)
+          if (!KNOWN_TEAMS.has(teamId)) {
+            return mockError(404, ERROR_CODES.TEAM_NOT_FOUND, 'Team not found')
+          }
+          const policy = updateAccessPolicyInputSchema.parse(await request.json())
+          const saved: AccessPolicyDto = {
+            teamId,
+            policy,
+            updatedByUserId: MAYA.id,
+            updatedAt: '2026-10-05T09:00:00.000Z',
+          }
+          teamPolicies.set(teamId, saved)
+          return mockOk(saved)
+        },
+        'policy-forbidden': () =>
+          mockError(403, ERROR_CODES.ACCESS_FORBIDDEN, "You don't have permission to do that"),
       },
     }),
   ],

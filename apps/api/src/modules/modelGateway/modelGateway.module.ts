@@ -2,7 +2,12 @@
 import { ModelGatewayService } from './modelGateway.service.js'
 import { ModelResolver } from './modelResolver.js'
 
-import type { ModelCallGuard, ModelSource, UsageRecorder } from './modelGateway.types.js'
+import type {
+  ModelCallBudgets,
+  ModelCallGuard,
+  ModelSource,
+  UsageRecorder,
+} from './modelGateway.types.js'
 import type { Crypto } from '@/core/crypto/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
@@ -21,6 +26,8 @@ export interface ModelGatewayModuleDeps {
   hooks: { modelSources(): readonly ModelSource[]; modelCallGuards(): readonly ModelCallGuard[] }
   /** The usage module's metering; until it lands every call is written to the log. */
   usage?: UsageRecorder
+  /** The usage module's budget enforcement. */
+  budgets?: ModelCallBudgets
 }
 
 /** Metering until the usage module exists: one structured log line per call, never content. */
@@ -71,6 +78,7 @@ export function createModelGatewayModule(deps: ModelGatewayModuleDeps) {
       ),
     vaultRepository: deps.vault.repository,
     guards: () => deps.hooks.modelCallGuards(),
+    ...(deps.budgets === undefined ? {} : { budgets: deps.budgets }),
     usage: deps.usage ?? logUsageRecorder(deps.logger),
     logger: deps.logger,
   })

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import type {
   CreateChatFolderInput,
+  CreateChatSharesInput,
   RequestChatAttachmentUploadInput,
   SetChatFeedbackInput,
   UpdateChatFolderInput,
@@ -11,7 +12,13 @@ import type {
 import { apiClient } from '@surefy/web-core/http'
 import type { MutationHookOptions } from '@surefy/web-core/query'
 
-import { chatAttachmentsApi, chatFoldersApi, chatMessagesApi, chatsApi } from './chats.api'
+import {
+  chatAttachmentsApi,
+  chatFoldersApi,
+  chatMessagesApi,
+  chatsApi,
+  chatSharesApi,
+} from './chats.api'
 import { chatKeys } from './chats.queries'
 
 /** Lists, folders (with their chat counts) and open chats all change together. */
@@ -88,6 +95,36 @@ export function useDeleteChatFolderMutation(
   })
 }
 
+/** Shares a chat with people and teams; the dialog's list of shares refreshes. */
+export function useCreateChatSharesMutation(
+  orgId: string,
+  chatId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: CreateChatSharesInput) =>
+      chatSharesApi.create(apiClient, orgId, chatId, input),
+    onSuccess: (shares) => {
+      queryClient.setQueryData(chatKeys.shares(orgId, chatId), shares)
+    },
+  })
+}
+
+export function useDeleteChatShareMutation(
+  orgId: string,
+  chatId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (shareId: string) => chatSharesApi.delete(apiClient, orgId, chatId, shareId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.shares(orgId, chatId) }),
+  })
+}
+
 /** Rates an answer; rating again replaces the rating. The message list refreshes to show it. */
 export function useSetChatFeedbackMutation(
   orgId: string,
@@ -129,4 +166,18 @@ export function useChatAttachmentMutations(orgId: string, chatId: string) {
     remove: (attachmentId: string) =>
       chatAttachmentsApi.remove(apiClient, orgId, chatId, attachmentId),
   }
+}
+
+/** "Continue with A/B" on a comparison; the thread's messages and the chat's model refresh. */
+export function useChooseChatVariantMutation(
+  orgId: string,
+  chatId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (messageId: string) => chatMessagesApi.choose(apiClient, orgId, chatId, messageId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all(orgId) }),
+  })
 }

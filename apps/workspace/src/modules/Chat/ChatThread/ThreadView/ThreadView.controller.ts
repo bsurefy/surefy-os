@@ -2,22 +2,32 @@
 'use no memo'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
-import { useClearChatFeedbackMutation, useSetChatFeedbackMutation } from '@/api/chats'
+import { agentQueries } from '@/api/agents'
+import {
+  useChooseChatVariantMutation,
+  useClearChatFeedbackMutation,
+  useSetChatFeedbackMutation,
+} from '@/api/chats'
 import { modelQueries } from '@/api/models'
+import { ROUTES } from '@/constants/routes'
 import { getProviderName } from '@/modules/Vault'
+import { toRoute } from '@/modules/Workspace'
 import type { ChatDto, ChatMessageDto } from '@surefy/contracts'
-import { PERMISSIONS } from '@surefy/contracts'
+import { ERROR_CODES, PERMISSIONS } from '@surefy/contracts'
 import { toast } from '@surefy/ui/components/Feedback'
 import { useCan } from '@surefy/web-core/access'
 
 import { useChatActions } from '../../ChatList/ChatList.hooks'
+import { AGENT_UNAVAILABLE_ERRORS, USABLE_AGENTS_LIMIT } from '../ChatThread.constants'
 import { useFollowOutput, useIsOnline } from '../ChatThread.hooks'
-import { buildRows, getMessageText } from '../ChatThread.utils'
+import { buildRows, getMessageText, groupComparisons } from '../ChatThread.utils'
 import { isLocalModel, useThreadSettings } from './ThreadView.settings'
 import { useThreadStream } from './ThreadView.stream'
+import { useComposerTools } from './ThreadView.tools'
 import { useAttachments } from '../Composer/Composer.attachments'
 
 import type { ThreadMessage } from '../ChatThread.types'
@@ -31,6 +41,9 @@ export interface ThreadViewProps {
   chatId: string
   isNew: boolean
   chat: ChatDto | null
+  /** The agent a new chat will talk to (`?agent=`); null for a model chat. */
+  agentId: string | null
+  onAgentChange: (agentId: string | null) => void
   history: readonly ChatMessageDto[]
   hasEarlier: boolean
   isLoadingEarlier: boolean
@@ -49,20 +62,35 @@ const lastModelOf = (history: readonly ChatMessageDto[]): string | null =>
 export function useThreadViewController(props: ThreadViewProps) {
   const { orgId, orgSlug, chatId, isNew, chat, history } = props
   const t = useTranslations('chat.thread')
+  const router = useRouter()
   const isOnline = useIsOnline()
   const canManageVault = useCan(PERMISSIONS.VAULT_MANAGE)
+  const canUseAgents = useCan(PERMISSIONS.AGENTS_INVOKE)
   const modelsQuery = useInfiniteQuery(
     modelQueries.usable(orgId, { type: 'chat', limit: MODELS_LIMIT }),
   )
   const models = modelsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  const agentsQuery = useInfiniteQuery({
+    ...agentQueries.usable(orgId, { limit: USABLE_AGENTS_LIMIT }),
+    enabled: canUseAgents,
+  })
+  const usableAgents = agentsQuery.data?.pages.flatMap((page) => page.items) ?? []
+  // an agent chat talks to its agent for good; a new chat picks one from the URL
+  const agentRef = chat?.agent ?? null
+  const agentId = agentRef?.id ?? (isNew ? props.agentId : null)
+  const usableAgent = usableAgents.find((candidate) => candidate.id === agentId)
+  const isAgentChat = agentId !== null
   const chatActions = useChatActions(orgId, orgSlug, chatId)
   const attachments = useAttachments(orgId, chatId)
   const [text, setText] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isRenameOpen, setIsRenameOpen] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
+  const [isPromptsOpen, setIsPromptsOpen] = useState(false)
   const [preview, setPreview] = useState<SourcePreviewTarget | null>(null)
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null)
+  const choose = useChooseChatVariantMutation(orgId, chatId)
   const setFeedback = useSetChatFeedbackMutation(orgId, chatId)
   const clearFeedback = useClearChatFeedbackMutation(orgId, chatId)
 
@@ -73,6 +101,12 @@ export function useThreadViewController(props: ThreadViewProps) {
     models,
     hasMessages: history.length > 0,
   })
+  const tools = useComposerTools({
+    models,
+    modelKey: settings.settings.modelKey,
+    isPrivate: settings.settings.isPrivate,
+    isAgentChat,
+  })
   const stream = useThreadStream({
     orgId,
     orgSlug,
@@ -80,16 +114,42 @@ export function useThreadViewController(props: ThreadViewProps) {
     isNew,
     history,
     refetchHistory: props.refetchHistory,
-    modelKey: settings.settings.modelKey,
-    newChat: {
-      isPrivate: settings.settings.isPrivate,
-      knowledgeScope: settings.settings.knowledgeScope,
-      knowledgeBaseIds: settings.settings.knowledgeBaseIds,
-    },
-    lastAnswerModelKey: lastModelOf(history),
+    // the agent's own model answers an agent chat
+    modelKey: isAgentChat ? null : settings.settings.modelKey,
+    newChat: isAgentChat
+      ? { agentId }
+      : {
+          isPrivate: settings.settings.isPrivate,
+          knowledgeScope: settings.settings.knowledgeScope,
+          knowledgeBaseIds: settings.settings.knowledgeBaseIds,
+        },
+    lastAnswerModelKey: isAgentChat ? null : lastModelOf(history),
+    webSearch: tools.isSearchingWeb,
+    compareModelKey: tools.compareModelKey,
   })
 
-  const baseRows = buildRows(stream.live, history, stream.activity !== 'idle', stream.stoppedId)
+  // paused, archived or no longer shared: the history stays, read only
+  const isAgentGone =
+    agentRef?.isAvailable === false ||
+    (isNew && isAgentChat && agentsQuery.isSuccess && usableAgent === undefined) ||
+    (isAgentChat && AGENT_UNAVAILABLE_ERRORS.includes(stream.errorCode ?? ''))
+  const agent = isAgentChat
+    ? {
+        id: agentId,
+        name: agentRef?.name ?? usableAgent?.name ?? null,
+        description: usableAgent?.description ?? null,
+        conversationStarters: usableAgent?.conversationStarters ?? [],
+        isGone: isAgentGone,
+      }
+    : null
+
+  const baseRows = buildRows(
+    stream.live,
+    history,
+    stream.isLiveBusy,
+    stream.stoppedId,
+    stream.comparison,
+  )
   const rows = baseRows.map((row, position): ThreadMessage => {
     const isLiveAnswer =
       position === baseRows.length - 1 && !row.isPersisted && row.role === 'assistant'
@@ -115,13 +175,23 @@ export function useThreadViewController(props: ThreadViewProps) {
     attachments.hasImages && currentModel !== undefined && !currentModel.supportsVision
   const hasModels = modelsQuery.isPending ? undefined : models.length > 0
   const isIdle = stream.activity === 'idle'
+  const lastRow = rows.at(-1)
+  // an agent answer whose run waits for an approval: the next message waits too
+  const isWaitingForRun =
+    isIdle && lastRow?.role === 'assistant' && lastRow.status === 'streaming' && lastRow.isPersisted
+  const items = groupComparisons(rows)
+  // both answers are there: the next message waits until one of them is chosen
+  const isCompareOpen = items.some((item) => item.kind === 'comparison')
+  const canAnswer = agent ? agent.name !== null && !agent.isGone : hasModels === true
   const canSend =
     isOnline &&
     isIdle &&
-    hasModels === true &&
+    !isWaitingForRun &&
+    canAnswer &&
     trimmed.length > 0 &&
     !attachments.hasUnfinished &&
-    !isVisionBlocked
+    !isVisionBlocked &&
+    !isCompareOpen
 
   const lastUserRow = rows.findLast((row) => row.role === 'user' && row.isPersisted)
 
@@ -133,17 +203,55 @@ export function useThreadViewController(props: ThreadViewProps) {
     isNew,
     chat,
     rows,
+    /** The messages as listed: answers of an open comparison come as a pair. */
+    items,
     isEmpty: rows.length === 0 && stream.activity === 'idle',
     activity: stream.activity,
     errorCode: stream.errorCode,
     models,
     hasModels,
+    agent,
+    isWaitingForRun,
+    picker: {
+      agents: usableAgents,
+      canUseAgents,
+      isModelsPending: modelsQuery.isPending,
+      /** An agent chat that exists cannot change its agent. */
+      isAgentLocked: chat !== null && agentRef !== null,
+      onModelSelect: (modelKey: string) => {
+        if (isNew && isAgentChat) props.onAgentChange(null)
+        settings.onModelChange(modelKey)
+      },
+      onAgentSelect: (id: string) => {
+        if (isNew) props.onAgentChange(id)
+        // a model chat that exists stays as it is: the agent starts a new chat
+        else router.push(toRoute(`${ROUTES.workspace.chat(orgSlug)}?agent=${id}`))
+      },
+    },
     canManageVault,
     settings,
     stream,
     attachments,
     follow,
     isOnline,
+    webSearch: {
+      ...tools.webSearch,
+      /** The server refused: no provider is set up, or the team may not search. */
+      isRefused: stream.errorCode === ERROR_CODES.CHAT_WEB_SEARCH_NOT_ALLOWED,
+    },
+    compare: {
+      ...tools.compare,
+      /** Both answers are in; the next message waits for A or B to be chosen. */
+      isOpen: isCompareOpen,
+      isChoosing: choose.isPending,
+      onChoose: (messageId: string) => {
+        choose.mutate(messageId, {
+          onSuccess: () => {
+            void stream.syncHistory()
+          },
+        })
+      },
+    },
     composer: {
       text,
       onTextChange: setText,
@@ -157,6 +265,10 @@ export function useThreadViewController(props: ThreadViewProps) {
       },
       onSuggestion: (prompt: string) => {
         setText(prompt)
+      },
+      /** A prompt from the library goes below what is already written. */
+      onInsertPrompt: (prompt: string) => {
+        setText((value) => (value.trim() === '' ? prompt : `${value.trimEnd()}\n\n${prompt}`))
       },
       /** ↑ in an empty composer edits the last message of the person. */
       onEditLast: () => {
@@ -222,8 +334,27 @@ export function useThreadViewController(props: ThreadViewProps) {
         toast.success(t('actions.copied'))
       })
     },
+    chatActions,
     onDeleteChat: () => {
       if (chat) chatActions.onDelete(chat)
+    },
+    promptLibrary: {
+      isOpen: isPromptsOpen,
+      onOpen: () => {
+        setIsPromptsOpen(true)
+      },
+      onClose: () => {
+        setIsPromptsOpen(false)
+      },
+    },
+    shareDialog: {
+      isOpen: isShareOpen,
+      onOpen: () => {
+        setIsShareOpen(true)
+      },
+      onClose: () => {
+        setIsShareOpen(false)
+      },
     },
     renameDialog: {
       isOpen: isRenameOpen,

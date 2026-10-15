@@ -47,6 +47,94 @@ export interface ModelSelectorProps {
   className?: string
 }
 
+export interface ModelListProps {
+  models: readonly UsableModelDto[]
+  isPending: boolean
+  value: string | null
+  requiresVision?: boolean
+  onSelect: (modelKey: string) => void
+}
+
+/**
+ * The searchable list inside the model picker, grouped by where the models run; Chat shows it as
+ * its picker's Models tab. With no models it says what to do: Admins open Vault, everyone else
+ * asks an Admin.
+ */
+export function ModelList({
+  models,
+  isPending,
+  value,
+  requiresVision = false,
+  onSelect,
+}: Readonly<ModelListProps>) {
+  const t = useTranslations('vault.selector')
+  const { orgSlug } = useParams<{ orgSlug: string }>()
+  const canManage = useCan(PERMISSIONS.VAULT_MANAGE)
+  const groups = groupModels(models)
+  const itemCaption = (model: UsableModelDto) =>
+    requiresVision && !model.supportsVision ? t('noVision') : t(`cost.${model.costTier}`)
+
+  return (
+    <>
+      {!isPending && models.length === 0 ? (
+        <div className="flex flex-col gap-2 p-4">
+          <p className="text-body font-medium">{t('none.title')}</p>
+          <p className="text-caption text-muted-foreground">
+            {canManage ? t('none.admin') : t('none.member')}
+          </p>
+          {canManage && (
+            <Button variant="link" size="sm" asChild className="w-fit">
+              <Link href={ROUTES.workspace.vault(orgSlug)}>{t('none.open')}</Link>
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Command>
+          <CommandInput placeholder={t('search')} />
+          <CommandList>
+            <CommandEmpty>{t('empty')}</CommandEmpty>
+            {GROUPS.filter((group) => groups[group].length > 0).map((group) => (
+              <CommandGroup key={group} heading={t(`groups.${group}`)}>
+                {groups[group].map((model) => {
+                  const isUnavailable = requiresVision && !model.supportsVision
+                  return (
+                    <CommandItem
+                      key={model.modelKey}
+                      value={`${model.displayName} ${getProviderName(model.providerKey)}`}
+                      disabled={isUnavailable}
+                      onSelect={() => {
+                        onSelect(model.modelKey)
+                      }}
+                    >
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="truncate">{model.displayName}</span>
+                        <span className="text-caption text-muted-foreground">
+                          {itemCaption(model)}
+                        </span>
+                      </div>
+                      <DataLocationBadge
+                        location={model.dataLocation === 'on_server' ? 'local' : 'provider'}
+                        label={
+                          model.dataLocation === 'on_server'
+                            ? t('location.local')
+                            : t('location.provider', {
+                                provider: getProviderName(model.providerKey),
+                              })
+                        }
+                      />
+                      {model.modelKey === value && <Check aria-hidden className="size-4" />}
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      )}
+    </>
+  )
+}
+
 /**
  * The model picker Chat and Agents use: the models the person may use, grouped "On your server",
  * "Your API keys" and (Cloud) "Included with credits", each with where the data goes and its cost.
@@ -63,16 +151,11 @@ export default function ModelSelector({
 }: Readonly<ModelSelectorProps>) {
   const t = useTranslations('vault.selector')
   const orgId = useCurrentOrgId()
-  const { orgSlug } = useParams<{ orgSlug: string }>()
-  const canManage = useCan(PERMISSIONS.VAULT_MANAGE)
   const [isOpen, setIsOpen] = useState(false)
   const query = useInfiniteQuery(modelQueries.usable(orgId, { type, limit: MODELS_LIMIT }))
   const models = query.data?.pages.flatMap((page) => page.items) ?? []
-  const groups = groupModels(models)
   const selected = models.find((model) => model.modelKey === value)
 
-  const itemCaption = (model: UsableModelDto) =>
-    requiresVision && !model.supportsVision ? t('noVision') : t(`cost.${model.costTier}`)
   const originOf = (model: UsableModelDto) =>
     model.dataLocation === 'on_server' ? t('onServer') : getProviderName(model.providerKey)
   const origin = selected ? originOf(selected) : undefined
@@ -128,62 +211,16 @@ export default function ModelSelector({
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">
-        {!query.isPending && models.length === 0 ? (
-          <div className="flex flex-col gap-2 p-4">
-            <p className="text-body font-medium">{t('none.title')}</p>
-            <p className="text-caption text-muted-foreground">
-              {canManage ? t('none.admin') : t('none.member')}
-            </p>
-            {canManage && (
-              <Button variant="link" size="sm" asChild className="w-fit">
-                <Link href={ROUTES.workspace.vault(orgSlug)}>{t('none.open')}</Link>
-              </Button>
-            )}
-          </div>
-        ) : (
-          <Command>
-            <CommandInput placeholder={t('search')} />
-            <CommandList>
-              <CommandEmpty>{t('empty')}</CommandEmpty>
-              {GROUPS.filter((group) => groups[group].length > 0).map((group) => (
-                <CommandGroup key={group} heading={t(`groups.${group}`)}>
-                  {groups[group].map((model) => {
-                    const isUnavailable = requiresVision && !model.supportsVision
-                    return (
-                      <CommandItem
-                        key={model.modelKey}
-                        value={`${model.displayName} ${getProviderName(model.providerKey)}`}
-                        disabled={isUnavailable}
-                        onSelect={() => {
-                          onValueChange(model.modelKey)
-                          setIsOpen(false)
-                        }}
-                      >
-                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <span className="truncate">{model.displayName}</span>
-                          <span className="text-caption text-muted-foreground">
-                            {itemCaption(model)}
-                          </span>
-                        </div>
-                        <DataLocationBadge
-                          location={model.dataLocation === 'on_server' ? 'local' : 'provider'}
-                          label={
-                            model.dataLocation === 'on_server'
-                              ? t('location.local')
-                              : t('location.provider', {
-                                  provider: getProviderName(model.providerKey),
-                                })
-                          }
-                        />
-                        {model.modelKey === value && <Check aria-hidden className="size-4" />}
-                      </CommandItem>
-                    )
-                  })}
-                </CommandGroup>
-              ))}
-            </CommandList>
-          </Command>
-        )}
+        <ModelList
+          models={models}
+          isPending={query.isPending}
+          value={value}
+          requiresVision={requiresVision}
+          onSelect={(modelKey) => {
+            onValueChange(modelKey)
+            setIsOpen(false)
+          }}
+        />
       </PopoverContent>
     </Popover>
   )

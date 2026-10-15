@@ -14,7 +14,7 @@
     "lint:fix": "next typegen && eslint . --fix",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:e2e": "tsx e2e/support/prepareDatabase.ts && playwright test"
+    "test:e2e": "pnpm --filter @surefy/widget build && tsx e2e/support/prepareDatabase.ts && playwright test"
   },
   "dependencies": {
     "@ai-sdk/react": "4.0.130",

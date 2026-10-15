@@ -56,7 +56,7 @@ export const SETTINGS_SECTIONS: readonly SettingsSectionEntry[] = [
   {
     id: 'usage',
     section: SETTINGS_SECTION.USAGE,
-    released: false,
+    released: true,
     anyPermission: [PERMISSIONS.INSIGHTS_READ],
   },
   {

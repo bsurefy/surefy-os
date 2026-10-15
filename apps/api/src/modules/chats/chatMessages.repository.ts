@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { and, asc, desc, eq, gt, inArray, lt, ne, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, inArray, isNull, lt, ne, or, sql, type SQL } from 'drizzle-orm'
 
 import { chatMessageCitations, chatMessageFeedback, chatMessages } from '@/database/tables/index.js'
 import {
@@ -40,6 +40,9 @@ export type ChatMessagePatch = Partial<
     | 'piiMasked'
     | 'routed'
     | 'errorCode'
+    | 'agentRunId'
+    | 'variantGroupId'
+    | 'variantLabel'
   >
 >
 
@@ -153,19 +156,70 @@ export class ChatMessagesRepository {
       )
   }
 
-  /** Whether an answer of this chat is still streaming. */
-  async hasStreaming(tx: DbExecutor, orgId: string, chatId: string): Promise<boolean> {
+  /** Whether an answer of this chat is still streaming; Compare's answer B overlaps answer A. */
+  async hasStreaming(
+    tx: DbExecutor,
+    orgId: string,
+    chatId: string,
+    exceptId?: string,
+  ): Promise<boolean> {
     const [row] = await tx
       .select({ id: m.id })
       .from(m)
-      .where(and(eq(m.organizationId, orgId), eq(m.chatId, chatId), eq(m.status, 'streaming')))
+      .where(
+        and(
+          eq(m.organizationId, orgId),
+          eq(m.chatId, chatId),
+          eq(m.status, 'streaming'),
+          exceptId === undefined ? undefined : ne(m.id, exceptId),
+        ),
+      )
       .limit(1)
     return row !== undefined
   }
 
+  /** The answer an agent run gives, under `FOR UPDATE`: the run's transactions write it. */
+  async lockByRun(
+    tx: DbExecutor,
+    orgId: string,
+    runId: string,
+  ): Promise<ChatMessageRow | undefined> {
+    const [row] = await tx
+      .select()
+      .from(m)
+      .where(and(eq(m.organizationId, orgId), eq(m.agentRunId, runId)))
+      .for('update')
+    return row
+  }
+
+  /** An agent chat's streaming answer that is not linked to its run yet. */
+  async lockUnlinkedAnswer(
+    tx: DbExecutor,
+    orgId: string,
+    chatId: string,
+  ): Promise<ChatMessageRow | undefined> {
+    const [row] = await tx
+      .select()
+      .from(m)
+      .where(
+        and(
+          eq(m.organizationId, orgId),
+          eq(m.chatId, chatId),
+          eq(m.role, 'assistant'),
+          eq(m.status, 'streaming'),
+          isNull(m.agentRunId),
+        ),
+      )
+      .orderBy(desc(m.createdAt), desc(m.id))
+      .limit(1)
+      .for('update')
+    return row
+  }
+
   /**
    * `streaming → interrupted` for answers not updated since `before`; scoped to one chat (the
-   * next read of the chat) or to everything (the maintenance sweep, under system scope).
+   * next read of the chat) or to everything (the maintenance sweep, under system scope). Agent
+   * answers are left to their run, which may wait hours for an approval.
    */
   async interruptStale(
     tx: DbExecutor,
@@ -176,6 +230,7 @@ export class ChatMessagesRepository {
     const conditions: (SQL | undefined)[] = [
       eq(m.status, 'streaming'),
       lt(m.updatedAt, before),
+      isNull(m.agentRunId),
       scope === null ? undefined : eq(m.organizationId, scope.orgId),
       scope === null ? undefined : eq(m.chatId, scope.chatId),
     ]

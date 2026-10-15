@@ -13,6 +13,7 @@ import { createAgentRunsModule } from '../agentRuns.module.js'
 
 import type { TestAppOptions } from '../../../../test/helpers/testApp.js'
 import type {
+  AgentRunsChatAnswers,
   AgentRunsContext,
   AgentRunsEvents,
   AgentRunsGateway,
@@ -261,8 +262,14 @@ const fakeQueues = (sink: RunsSetup['enqueued']): Queues =>
     },
   }) as unknown as Queues
 
-/** The agent run module over the real database, Guard and approvals, with a scripted model, tools and knowledge. */
-export async function setupRuns(options: TestAppOptions = {}): Promise<RunsSetup> {
+/**
+ * The agent run module over the real database, Guard and approvals, with a scripted model, tools
+ * and knowledge. `chatAnswers` plugs in a chats module built by the test.
+ */
+export async function setupRuns(
+  options: TestAppOptions = {},
+  extra: { chatAnswers?: () => AgentRunsChatAnswers } = {},
+): Promise<RunsSetup> {
   const pii = createFakePii()
   const setup = await setupTwoOrgs({ ml: pii, ...options })
   const { container } = setup
@@ -288,6 +295,7 @@ export async function setupRuns(options: TestAppOptions = {}): Promise<RunsSetup
     approvals: container.modules.approvals.service,
     audit: container.modules.audit.service,
     outbox: () => container.modules.outbox.service,
+    ...(extra.chatAnswers === undefined ? {} : { chatAnswers: extra.chatAnswers }),
     events,
     heartbeatMs: 25,
   })

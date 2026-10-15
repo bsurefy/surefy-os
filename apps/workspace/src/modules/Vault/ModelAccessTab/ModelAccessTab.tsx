@@ -15,6 +15,7 @@ import AccessList from './AccessList'
 import AccessMatrix from './AccessMatrix'
 import EmbeddingModelSection from './EmbeddingModelSection'
 import { useModelAccessTabController } from './ModelAccessTab.controller'
+import WebSearchSection from './WebSearchSection'
 
 /** Vault › Model access: the embedding model, and per model who may use it (list or matrix). */
 export default function ModelAccessTab() {
@@ -45,6 +46,7 @@ export default function ModelAccessTab() {
         isSaving={c.embedding.isSaving}
         onChange={c.embedding.onChange}
       />
+      <WebSearchSection />
       <Section title={t('title')} description={t('description')}>
         <div className="flex flex-col gap-4">
           <DataTableToolbar>

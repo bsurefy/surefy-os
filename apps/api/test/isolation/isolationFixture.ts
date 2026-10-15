@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { QUEUES } from '@/constants/queues.js'
 import {
   auditLogs,
+  budgetAlerts,
   chatAttachments,
   chatFolders,
   chatKnowledgeBases,
@@ -11,6 +12,7 @@ import {
   chatMessageFeedback,
   chatMessages,
   chats,
+  chatShares,
   guardStatsDaily,
   knowledgeChunks,
   knowledgeDocuments,
@@ -18,10 +20,14 @@ import {
   organizationPurges,
   organizationSlugHistory,
   outboxEvents,
+  prompts,
+  promptShares,
+  runStatsDaily,
 } from '@/database/tables/index.js'
 import { notificationFactory } from '@/modules/notifications/__tests__/notificationsTestKit.js'
 import {
   apiKeyCreatedDtoSchema,
+  budgetDtoSchema,
   connectionDtoSchema,
   agentDetailDtoSchema,
   credentialDtoSchema,
@@ -42,11 +48,11 @@ import type { TwoOrgSetup } from '../helpers/orgSetup.js'
 import type { SendEmailPayload } from '@/modules/notifications/index.js'
 
 /**
- * One chat of Uma's in A, with a folder, an answer with a citation and a rating, and an
- * attachment: every chat table holds a row of A. Written straight to the tables, so the suite
- * does not need a model.
+ * One chat of Uma's in A, with a folder, an answer with a citation and a rating, an attachment,
+ * a share with the team, and a shared prompt limited to the team: every chat table holds a row
+ * of A. Written straight to the tables, so the suite does not need a model.
  */
-async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string) {
+async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string, teamId: string) {
   return setup.db.tenant(orgId, async (tx) => {
     const [folder] = await tx
       .insert(chatFolders)
@@ -128,11 +134,37 @@ async function seedChat(setup: TwoOrgSetup, orgId: string, userId: string) {
       })
       .returning({ id: chatAttachments.id })
     if (attachment === undefined) throw new Error('chat seed failed')
+    const [share] = await tx
+      .insert(chatShares)
+      .values({
+        organizationId: orgId,
+        chatId: chat.id,
+        subjectType: 'team',
+        teamId,
+        sharedByUserId: userId,
+      })
+      .returning({ id: chatShares.id })
+    const [prompt] = await tx
+      .insert(prompts)
+      .values({
+        organizationId: orgId,
+        ownerUserId: userId,
+        title: PROMPT_TITLE,
+        body: PROMPT_BODY,
+        variables: ['customer'],
+        visibility: 'shared',
+        createdByUserId: userId,
+      })
+      .returning({ id: prompts.id })
+    if (share === undefined || prompt === undefined) throw new Error('chat seed failed')
+    await tx.insert(promptShares).values({ organizationId: orgId, promptId: prompt.id, teamId })
     return {
       chatId: chat.id,
       messageId: answer.id,
       folderId: folder.id,
       attachmentId: attachment.id,
+      shareId: share.id,
+      promptId: prompt.id,
     }
   })
 }
@@ -149,6 +181,7 @@ export interface IsolationFixture {
 
 const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
+const SEARCH_SECRET = 'search-isolation-secret-of-acme-0043'
 const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
 const APPROVAL_TITLE = 'Secret Refund Approval 0342'
 const AGENT_NAME = 'Secret Payroll Agent'
@@ -159,6 +192,8 @@ const GUARDRAIL_NAME = 'Secret Payroll Block 0517'
 const PII_LABEL = 'Secret Employee Number'
 const CHAT_TITLE = 'Secret Chat of Uma'
 const CHAT_TEXT = 'secret question about the merger'
+const PROMPT_TITLE = 'Secret Renewal Prompt'
+const PROMPT_BODY = 'Draft the secret renewal offer for {customer}'
 const KNOWLEDGE_FILE = 'secret-leave-policy.pdf'
 const KNOWLEDGE_PASSAGE = 'The secret leave policy grants nineteen days'
 
@@ -243,6 +278,14 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
         providerKey: 'ollama',
         baseUrl: 'http://ollama.secret-lab.test:11434',
       },
+    }),
+    201,
+    credentialDtoSchema,
+  )
+  const searchProvider = expectData(
+    await request(app, 'POST', `${vaultUrl}/search-providers`, {
+      headers,
+      payload: { providerKey: 'brave', name: 'Secret Brave', secret: SEARCH_SECRET },
     }),
     201,
     credentialDtoSchema,
@@ -398,6 +441,17 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
   await setup.db.tenant(a.id, (tx) =>
     tx.insert(guardStatsDaily).values({ organizationId: a.id, day: '2026-10-01', actionsAuto: 7 }),
   )
+  await setup.db.tenant(a.id, (tx) =>
+    tx.insert(runStatsDaily).values({
+      organizationId: a.id,
+      day: '2026-10-01',
+      subjectType: 'agent',
+      subjectId: agent.id,
+      currency: 'USD',
+      runsTotal: 3,
+      runsSucceeded: 3,
+    }),
+  )
 
   // Access, audit and data control rows of A: a policy (and its audit entry), a full export
   // request, a background export, a sealed chain head and a purge record.
@@ -458,7 +512,25 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
     }),
   )
   await usage.rollup.aggregate('hourly')
-  const chat = await seedChat(setup, a.id, uma.id)
+  // A team budget of A with a crossed alert
+  const budget = expectData(
+    await request(app, 'POST', `${orgUrl}/budgets`, {
+      headers,
+      payload: { scope: 'team', teamId: team.id, amountMicros: 5_000_000 },
+    }),
+    201,
+    budgetDtoSchema,
+  )
+  await setup.db.tenant(a.id, (tx) =>
+    tx.insert(budgetAlerts).values({
+      organizationId: a.id,
+      budgetId: budget.id,
+      periodStart: '2026-10-01',
+      thresholdBp: 5000,
+      spentMicros: 2_500_000,
+    }),
+  )
+  const chat = await seedChat(setup, a.id, uma.id, team.id)
   const entryId = await setup.db.system('test', async (tx) => {
     await tx.insert(organizationPurges).values({
       organizationId: a.id,
@@ -569,10 +641,13 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       messageId: chat.messageId,
       folderId: chat.folderId,
       attachmentId: chat.attachmentId,
+      shareId: chat.shareId,
+      promptId: chat.promptId,
       index: '1',
       baseId: knowledgeBase.id,
       sourceId: knowledge.sourceId,
       documentId: knowledge.documentId,
+      budgetId: budget.id,
     },
     markers: [
       a.id,
@@ -615,6 +690,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       CONNECTION_SECRET,
       'api.secret-lab.test',
       VAULT_SECRET,
+      SEARCH_SECRET,
+      searchProvider.id,
+      'Secret Brave',
       server.id,
       'Secret Ollama',
       'ollama.secret-lab.test',
@@ -626,12 +704,17 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       CHAT_TITLE,
       CHAT_TEXT,
       'secret-plan.pdf',
+      chat.shareId,
+      chat.promptId,
+      PROMPT_TITLE,
+      PROMPT_BODY,
       knowledgeBase.id,
       'Secret Handbook',
       knowledge.sourceId,
       knowledge.documentId,
       KNOWLEDGE_FILE,
       KNOWLEDGE_PASSAGE,
+      budget.id,
       ...[olivia, adam, uma].flatMap((member) => [member.id, member.memberId, member.email]),
     ],
   }

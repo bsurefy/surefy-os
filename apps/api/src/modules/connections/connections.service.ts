@@ -50,6 +50,7 @@ import type {
   ConnectionPrincipal,
   ConnectionsContext,
   ConnectionDependents,
+  ConnectionsOutbox,
 } from './connections.types.js'
 import type { ConnectionHealth } from './connectionsHealth.js'
 import type { OutboundHttp } from './connectionsHttp.js'
@@ -74,6 +75,7 @@ export interface ConnectionsServiceDeps {
   lastUsed: ConnectionsLastUsed
   dependents: ConnectionDependents
   audit: AuditRecorder
+  outbox: ConnectionsOutbox
   http: OutboundHttp
   oauthApps: Readonly<Record<string, OauthApp | undefined>>
   now?: () => Date
@@ -364,6 +366,12 @@ export class ConnectionsService {
         target: { type: 'connection', id: row.id },
         metadata: { labels: { providerKey: row.providerKey, scope: row.scope } },
       })
+      // the connector sources that sync through it are removed
+      await this.deps.outbox.write(tx, {
+        orgId: ctx.orgId,
+        topic: 'connection.revoked',
+        payload: { version: 1, id: row.id },
+      })
       return { dto: await this.present(tx, ctx, revoked), previous: { row, secret } }
     })
     await this.revokeAtApp(previous.row, previous.secret)
@@ -450,6 +458,19 @@ export class ConnectionsService {
       externalAccountId: row.externalAccountId,
       secret: sessionOf(secret),
     }
+  }
+
+  /**
+   * A caller's request was refused by the app (401) with the token `open` gave it: the sign-in
+   * is expired, with the audit entry and `connection.expired`, as when a refresh is refused.
+   */
+  async markExpired(orgId: string, connectionId: string): Promise<void> {
+    const ctx = { orgId, userId: null, via: 'system' as const, requestId: 'connection-use' }
+    await this.deps.db.tenant(orgId, async (tx) => {
+      const row = await this.deps.repository.findById(tx, orgId, connectionId)
+      if (row?.status !== 'active') return
+      await this.deps.health.expire(tx, ctx, row, CONNECTIONS_ERROR_CODES.CONNECTION_TOKEN_EXPIRED)
+    })
   }
 
   // ── Internals ─────────────────────────────────────────────────────────────────────────────────

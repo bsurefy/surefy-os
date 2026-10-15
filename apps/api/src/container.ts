@@ -13,6 +13,11 @@ import { createQueues, type Queues } from './core/queue/index.js'
 import { createAiProviders, type AiProviders } from './integrations/ai/index.js'
 import { createMail, type MailProvider } from './integrations/mail/index.js'
 import { createMl, type MlService } from './integrations/ml/index.js'
+import {
+  createSearchProviders,
+  WebSearchService,
+  type SearchProviders,
+} from './integrations/search/index.js'
 import { createStorage, type StorageProvider } from './integrations/storage/index.js'
 import { createAccessModule, createEntitlementSource } from './modules/access/index.js'
 import {
@@ -41,7 +46,13 @@ import {
   createAuthUsers,
   createSignupPolicy,
 } from './modules/auth/index.js'
-import { createChatDocumentParser, createChatsModule } from './modules/chats/index.js'
+import {
+  createChatAgentRuns,
+  createChatWebSearch,
+  createChatDocumentParser,
+  createChatOrganizations,
+  createChatsModule,
+} from './modules/chats/index.js'
 import { createConnectionsModule, type OutboundHttp } from './modules/connections/index.js'
 import { createDataControlModule } from './modules/dataControl/index.js'
 import { createFilesModule } from './modules/files/index.js'
@@ -49,6 +60,7 @@ import {
   createGuardApprovalsPort,
   createGuardModule,
   createGuardSubjects,
+  createSearchPii,
   type GuardSubjects,
 } from './modules/guard/index.js'
 import { createInstallModule, createInstallSettings } from './modules/install/index.js'
@@ -67,7 +79,7 @@ import { createOutboxModule } from './modules/outbox/index.js'
 import { createSetupModule } from './modules/setup/index.js'
 import { createTeamsModule } from './modules/teams/index.js'
 import { createTemplatesModule } from './modules/templates/index.js'
-import { createUsageModule } from './modules/usage/index.js'
+import { createSearchUsage, createUsageAgents, createUsageModule } from './modules/usage/index.js'
 import {
   createModelGrants,
   createVaultMemberRemoval,
@@ -81,7 +93,7 @@ import type { Config } from './core/config/index.js'
 import type { TenantAccessResolver } from './plugins/access.plugin.js'
 import type { PublicModules } from './types/modules.js'
 
-/** External providers behind their interfaces. Search joins as it is built. */
+/** External providers behind their interfaces. */
 export interface Integrations {
   storage: StorageProvider
   mail: MailProvider
@@ -89,6 +101,8 @@ export interface Integrations {
   ml: MlService
   /** AI providers by `provider_key`; tests pass `createAiProviders({ fetch })` with a fake. */
   ai: AiProviders
+  /** Web search providers by `provider_key`; tests pass `createSearchProviders({ fetch })` with a fake. */
+  search: SearchProviders
 }
 
 export interface ContainerOverrides {
@@ -98,6 +112,8 @@ export interface ContainerOverrides {
   ai?: AiProviders
   /** Only the ML service, when the other integrations stay real (tests). */
   ml?: MlService
+  /** Only the web search providers, when the other integrations stay real (tests). */
+  search?: SearchProviders
   /** Knowledge's storage and web access, replaced by fakes in tests. */
   knowledge?: { files?: KnowledgeFiles; get?: NonNullable<KnowledgeModuleDeps['get']> }
   /** Infrastructure clients for tests that run without Redis or Postgres. */
@@ -135,6 +151,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     mail: createMail(config, logger),
     ml: overrides.ml ?? createMl(config),
     ai: overrides.ai ?? createAiProviders(),
+    search: overrides.search ?? createSearchProviders(),
   }
   const crypto = createCrypto(config) // envelope encryption; keys are read per call, never cached in Redis
   const hooks: ExtensionRegistry = createExtensionRegistry(logger) // Community defaults
@@ -183,12 +200,28 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     notifications: notifications.service,
     outbox: () => outbox.service,
     audit: audit.service,
+    // connector sources are the dependents so far; read when asked, because knowledge is built later
+    dependents: {
+      counts: (tx, orgId, ids) => knowledge.connectionDependents.counts(tx, orgId, ids),
+      impact: (tx, orgId, id) => knowledge.connectionDependents.impact(tx, orgId, id),
+    },
     ...(overrides.connections?.http === undefined ? {} : { http: overrides.connections.http }),
   })
   // tools for agent runs: the executor (agentRuns) is their only caller
   const agentTools = createAgentToolsModule({
     connections: connections.service,
     http: connections.http,
+    // read when a call runs: web search needs the vault, Guard and access, which are built later
+    webSearch: () => ({
+      allowed: async (orgId, userId) => {
+        const effective =
+          userId === null
+            ? await access.service.forOrganization(orgId)
+            : await access.service.forMember(orgId, userId)
+        return effective?.tools.webSearch === true
+      },
+      search: (request) => webSearch.search(request),
+    }),
   })
   // Guard creates approvals, so it is built after them; the settings it provides to them first
   const guardPort = createGuardApprovalsPort(overrides.guard?.subjects ?? createGuardSubjects())
@@ -250,10 +283,18 @@ export async function createContainer(config: Config, overrides: ContainerOverri
   const usage = createUsageModule({
     db,
     cache,
+    queues,
     logger,
     teams: teams.service,
     users,
     models: modelGrants.modelsRepository,
+    // the agents module is built below; Insights reads it per request
+    agents: () => usageAgents,
+    approvals: approvals.service,
+    organizations: organizations.service,
+    notifications: notifications.service,
+    audit: audit.service,
+    outbox: () => outbox.service,
   })
   const access = createAccessModule({
     db,
@@ -279,6 +320,10 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     db,
     crypto,
     ai: integrations.ai,
+    search: integrations.search,
+    installSearch: {
+      searxngUrl: async () => (await installSettings.service.read()).settings.webSearch.searxngUrl,
+    },
     models: modelGrants,
     access: access.service,
     organizations: organizations.service,
@@ -300,6 +345,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     access: access.service,
     hooks,
     usage: usage.meter,
+    budgets: usage.budgets,
   })
   const guard = createGuardModule({
     db,
@@ -313,6 +359,14 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     decider: modelGateway.service,
     ml: integrations.ml,
     outbox: () => outbox.service,
+  })
+  // web search: the provider comes from Vault, the query passes Guard's personal-data filter first
+  const webSearch = new WebSearchService({
+    providers: integrations.search,
+    resolver: vault.search,
+    pii: createSearchPii(guard.piiFilter),
+    usage: createSearchUsage(db, usage.meter),
+    logger,
   })
   // agents and their templates; channels, dependency edges and runs join as their modules land
   const agentModels = createAgentsModels({ grants: modelGrants, access: access.service })
@@ -343,6 +397,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     channels: channelStore.channels,
     runs: createAgentRunSummaries(),
   })
+  const usageAgents = createUsageAgents(agents.repository)
   const knowledge = createKnowledgeModule({
     db,
     logger,
@@ -350,6 +405,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     ml: integrations.ml,
     files: overrides.knowledge?.files ?? createKnowledgeFiles(integrations.storage),
     ...(overrides.knowledge?.get === undefined ? {} : { get: overrides.knowledge.get }),
+    connections: connections.service,
+    people: access.service,
+    http: connections.http,
+    // stub Drive and Notion servers (CONNECTIONS_PROVIDER_ORIGINS), in development and tests only
+    connectorEndpoints: {
+      googleDrive: config.connections.providerOrigins?.['google-drive'],
+      notion: config.connections.providerOrigins?.notion,
+    },
+    localHosts: config.connections.localHosts,
     gateway: modelGateway.service,
     models: createKnowledgeModels(modelGrants),
     teams: teams.service,
@@ -377,6 +441,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     approvals: approvals.service,
     audit: audit.service,
     outbox: () => outbox.service,
+    chatAnswers: () => chats.agentAnswers,
   })
   const agentPublishing = createAgentPublishingModule({
     db,
@@ -391,6 +456,15 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     audit: audit.service,
     connections: connections.service,
     http: connections.http,
+    // stub Slack and WhatsApp servers (CONNECTIONS_PROVIDER_ORIGINS), in development and tests only
+    origins: {
+      ...(config.connections.providerOrigins?.slack === undefined
+        ? {}
+        : { slack: config.connections.providerOrigins.slack }),
+      ...(config.connections.providerOrigins?.whatsapp === undefined
+        ? {}
+        : { whatsapp: config.connections.providerOrigins.whatsapp }),
+    },
     inbound: {
       verifyKey: config.crypto.encryptionKey,
       ...(config.connections.slackSigningSecret === undefined
@@ -409,10 +483,19 @@ export async function createContainer(config: Config, overrides: ContainerOverri
     pii: guard.piiFilter,
     models: modelGrants.modelsRepository,
     retrieval: knowledge.chatRetrieval,
+    webSearch: createChatWebSearch(webSearch),
     parser: createChatDocumentParser({
       ml: integrations.ml,
       storage: integrations.storage,
     }),
+    agents: createChatAgentRuns({
+      agents: createAgentRunsAgents(agents.repository),
+      runs: agentRuns,
+    }),
+    organizations: createChatOrganizations(organizations.service),
+    users,
+    notifications: notifications.service,
+    audit: audit.service,
   })
   const dataControl = createDataControlModule({
     db,
@@ -439,6 +522,7 @@ export async function createContainer(config: Config, overrides: ContainerOverri
       ...guard.outboxHandlers,
       ...agentRuns.outboxHandlers,
       ...agentPublishing.outboxHandlers,
+      ...usage.outboxHandlers,
     ],
     hooks,
   })

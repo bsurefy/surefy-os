@@ -118,10 +118,16 @@ export const LEAVE_DOCUMENT: ParsedDocument = {
 
 const PROVIDER_KEY = 'test-provider-key-0001'
 
-/** Adam (an Admin) adds an OpenAI key and makes its embedding model the organization's. */
-export async function seedEmbeddingModel(setup: TwoOrgSetup): Promise<string> {
-  const headers = setup.sessionOf(setup.a.members.adam)
-  const vault = `/api/v1/orgs/${setup.a.id}/vault`
+/**
+ * An Admin (Adam in A, Bea, B's Owner, in B) adds an OpenAI key and makes its embedding model the
+ * organization's.
+ */
+export async function seedEmbeddingModel(
+  setup: TwoOrgSetup,
+  org: 'a' | 'b' = 'a',
+): Promise<string> {
+  const headers = setup.sessionOf(org === 'a' ? setup.a.members.adam : setup.b.members.bea)
+  const vault = `/api/v1/orgs/${setup[org].id}/vault`
   expectData(
     await request(setup.app, 'POST', `${vault}/credentials`, {
       headers,

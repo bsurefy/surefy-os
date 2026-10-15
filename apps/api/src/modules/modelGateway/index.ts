@@ -16,6 +16,8 @@ export type {
   ModelGatewayService,
 } from './modelGateway.service.js'
 export type {
+  ModelCallBudgets,
+  ModelCallBudgetVerdict,
   ModelCallContext,
   ModelCallGuard,
   ModelCallMeter,

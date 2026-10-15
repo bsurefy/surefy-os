@@ -3,6 +3,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   ilike,
   inArray,
@@ -282,6 +283,35 @@ export class VaultRepository {
         ),
       )
       .orderBy(asc(vc.createdAt))
+  }
+
+  /** The organization's stored search providers, primary first (Settings › Vault › Search providers). */
+  listSearchProviders(tx: DbExecutor, orgId: string) {
+    return tx
+      .select()
+      .from(vc)
+      .where(
+        and(eq(vc.organizationId, orgId), eq(vc.kind, 'search_provider'), ne(vc.status, 'revoked')),
+      )
+      .orderBy(desc(vc.isPrimary), asc(vc.createdAt))
+  }
+
+  /** The search provider web search uses: primary and not revoked or past its expiry. */
+  async primarySearchProvider(tx: DbExecutor, orgId: string) {
+    const [row] = await tx
+      .select()
+      .from(vc)
+      .where(
+        and(
+          eq(vc.organizationId, orgId),
+          eq(vc.kind, 'search_provider'),
+          eq(vc.isPrimary, true),
+          ne(vc.status, 'revoked'),
+          ne(vc.status, 'expired'),
+        ),
+      )
+      .limit(1)
+    return row
   }
 
   /** The secret columns of one key: only for the call path that decrypts it. */

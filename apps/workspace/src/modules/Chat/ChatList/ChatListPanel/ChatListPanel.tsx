@@ -11,14 +11,21 @@ import { ErrorState } from '@surefy/ui/components/Feedback'
 import { Button } from '@surefy/ui/primitives/button'
 import { Input } from '@surefy/ui/primitives/input'
 
+import ShareDialog from '../../ShareDialog'
+import AgentsSection from '../AgentsSection'
 import ChatExportDialog from '../ChatExportDialog'
 import { useChatListController } from '../ChatList.controller'
 import { ChatListSkeleton, DatedChats, PinnedChats, SearchResults } from '../ChatSections'
+import DeleteChatDialog from '../DeleteChatDialog'
 import FolderSection from '../FolderSection'
 import NameDialog from '../NameDialog'
 import RecentlyDeleted from '../RecentlyDeleted'
+import SharedSection from '../SharedSection'
 
-/** The chat list's content (chat.md §1): New chat and search, Pinned, Folders, the chats by date and Recently deleted. */
+/**
+ * The chat list's content (chat.md §1): New chat and search, Agents shared with you, Pinned,
+ * Folders, Shared with me, the chats by date and Recently deleted.
+ */
 export default function ChatListPanel() {
   const c = useChatListController()
   const { t, ctx } = c
@@ -42,16 +49,21 @@ export default function ChatListPanel() {
     )
   } else if (c.isEmpty) {
     body = (
-      <EmptyState
-        icon={MessagesSquare}
-        title={t('empty.title')}
-        description={t('empty.description')}
-        headingLevel={3}
-      />
+      <>
+        <AgentsSection orgId={c.orgId} orgSlug={ctx.orgSlug} activeAgentId={c.activeAgentId} />
+        <SharedSection orgId={c.orgId} orgSlug={ctx.orgSlug} openChatId={ctx.openChatId} />
+        <EmptyState
+          icon={MessagesSquare}
+          title={t('empty.title')}
+          description={t('empty.description')}
+          headingLevel={3}
+        />
+      </>
     )
   } else {
     body = (
       <>
+        <AgentsSection orgId={c.orgId} orgSlug={ctx.orgSlug} activeAgentId={c.activeAgentId} />
         <PinnedChats pages={c.pinned} ctx={ctx} />
         <section aria-label={t('folders.title')} className="flex flex-col gap-0.5">
           <div className="flex h-7 items-center justify-between pr-1 pl-2">
@@ -87,6 +99,7 @@ export default function ChatListPanel() {
             ))}
           </ul>
         </section>
+        <SharedSection orgId={c.orgId} orgSlug={ctx.orgSlug} openChatId={ctx.openChatId} />
         <DatedChats pages={c.dated} ctx={ctx} />
       </>
     )
@@ -140,11 +153,22 @@ export default function ChatListPanel() {
           </Button>
         </div>
       )}
-      {c.dialog?.kind === 'export' ? (
+      {c.dialog?.kind === 'export' && (
         <ChatExportDialog orgId={c.orgId} chatId={c.dialog.chat.id} onClose={c.onCloseDialog} />
-      ) : (
-        c.dialog && <NameDialog orgId={c.orgId} target={c.dialog} onClose={c.onCloseDialog} />
       )}
+      {c.dialog?.kind === 'share' && (
+        <ShareDialog
+          orgId={c.orgId}
+          chatId={c.dialog.chat.id}
+          title={c.dialog.chat.title || t('untitled')}
+          isPrivate={c.dialog.chat.isPrivate}
+          onClose={c.onCloseDialog}
+        />
+      )}
+      {c.dialog && c.dialog.kind !== 'export' && c.dialog.kind !== 'share' && (
+        <NameDialog orgId={c.orgId} target={c.dialog} onClose={c.onCloseDialog} />
+      )}
+      <DeleteChatDialog actions={c.actions} />
     </div>
   )
 }

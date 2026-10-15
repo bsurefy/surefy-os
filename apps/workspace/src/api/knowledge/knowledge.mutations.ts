@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
   BulkKnowledgeSourcesInput,
   CreateKnowledgeBaseInput,
+  CreateKnowledgeConnectorSourceInput,
   CreateKnowledgeLinkInput,
   KnowledgeTestSearchInput,
   RequestKnowledgeFileUploadInput,
@@ -184,6 +185,20 @@ export function useCreateKnowledgeLinkMutation(
     meta: { silent },
     mutationFn: (input: CreateKnowledgeLinkInput) =>
       knowledgeSourcesApi.createLink(apiClient, orgId, baseId, input),
+    onSuccess: refresh,
+  })
+}
+
+export function useCreateKnowledgeConnectorMutation(
+  orgId: string,
+  baseId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const refresh = useRefreshKnowledge(orgId)
+  return useMutation({
+    meta: { silent },
+    mutationFn: (input: CreateKnowledgeConnectorSourceInput) =>
+      knowledgeSourcesApi.createConnector(apiClient, orgId, baseId, input),
     onSuccess: refresh,
   })
 }

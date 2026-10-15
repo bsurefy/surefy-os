@@ -399,6 +399,25 @@
       "dimensions": "{count} dimensions",
       "help": "Changing it doesn't re-embed existing knowledge bases.",
       "saved": "The embedding model was saved"
+    },
+    "webSearch": {
+      "title": "Web search by team",
+      "description": "Which teams can turn on web search in Chat and in agents. It also needs a search provider.",
+      "listLabel": "Web search by team",
+      "rowDescription": "Members can search the web in Chat and agents",
+      "rowError": "Couldn't load the web search setting for {team}",
+      "enabled": "Web search is on for {team}",
+      "disabled": "Web search is off for {team}",
+      "saveFailed": "Couldn't change web search for {team}",
+      "noProviderTitle": "No search provider is connected",
+      "noProviderDescription": "Teams can't search the web until you connect one.",
+      "noProviderLink": "Connect a search provider",
+      "organizationOffTitle": "Web search is off for the whole organization",
+      "organizationOffDescription": "Turn it on in the organization's access policy before choosing teams.",
+      "empty": {
+        "title": "No teams yet",
+        "description": "Create a team to choose who can search the web."
+      }
     }
   },
   "fallback": {
@@ -483,5 +502,84 @@
     },
     "testPassed": "{name} works",
     "testFailed": "{name} didn't pass the test"
+  },
+  "searchProviders": {
+    "title": "Search providers",
+    "description": "Where Chat and agents send web searches. The primary provider serves the whole organization.",
+    "add": "Add search provider",
+    "tableLabel": "Search providers",
+    "columns": {
+      "name": "Name",
+      "provider": "Provider",
+      "value": "Key or address",
+      "lastUsed": "Last used",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "primary": "Primary",
+    "never": "Never",
+    "status": {
+      "active": "Active",
+      "error": "Error",
+      "rate_limited": "Rate limited",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "expiresIn": "Expires in {days, plural, one {# day} other {# days}}",
+    "rowActions": "Actions for {name}",
+    "actions": {
+      "test": "Test connection",
+      "makePrimary": "Make primary",
+      "revoke": "Revoke"
+    },
+    "active": "Web search uses {name}.",
+    "installActive": "Web search uses the SearXNG address set for this install. Add a provider here to use another one.",
+    "noneActive": {
+      "title": "Web search isn't set up",
+      "description": "Chat and agents can't search the web until a search provider is primary."
+    },
+    "empty": {
+      "title": "No search providers yet",
+      "description": "Add Brave, Tavily or a SearXNG address to let teams search the web."
+    },
+    "loadError": "Couldn't load the search providers",
+    "testPassed": "{name} works",
+    "testFailed": "{name} didn't pass the test",
+    "switch": {
+      "title": "Use {name} for web search?",
+      "description": "From now on every web search goes to {provider}. Searches already running finish on the current provider, which stays connected until you revoke it.",
+      "confirm": "Make primary",
+      "switched": "Web search now uses {name}"
+    },
+    "revoke": {
+      "title": "Revoke {name}?",
+      "description": "The key stops working at once and is deleted. This can't be undone.",
+      "descriptionPrimary": "This is the primary provider. Web search stops working until you make another provider primary. The key is deleted and this can't be undone.",
+      "confirm": "Revoke provider",
+      "revoked": "{name} was revoked"
+    }
+  },
+  "addSearchProvider": {
+    "title": "Add search provider",
+    "description": "Web searches from Chat and agents go to this provider. Queries pass the personal-data filter first.",
+    "provider": "Provider",
+    "name": "Name",
+    "nameHelp": "A label only you see, for example \"Brave production\".",
+    "baseUrl": "SearXNG address",
+    "baseUrlHelp": "Where SurefyOS reaches your SearXNG instance, for example http://searxng:8080. Use an address the server can reach, not localhost.",
+    "addressRequired": "Enter the address of your SearXNG instance",
+    "secret": "API key",
+    "secretHelp": "From your Brave Search API or Tavily account.",
+    "keyRequired": "Enter the API key",
+    "show": "Show key",
+    "hide": "Hide key",
+    "testConnection": "Test connection",
+    "expiresAt": "Key expires",
+    "optional": "optional",
+    "expiresAtHelp": "We warn you before the key stops working.",
+    "privacyNote": "The key is encrypted and never shown again.",
+    "cancel": "Cancel",
+    "save": "Save provider",
+    "added": "{name} was added"
   }
 }

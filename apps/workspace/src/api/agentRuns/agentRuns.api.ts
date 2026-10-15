@@ -8,10 +8,16 @@ import type {
 } from '@surefy/contracts'
 import type { HttpClient } from '@surefy/web-core/http'
 
-import type { AgentRunListFilters } from './agentRuns.queries'
+import type { AgentRunListFilters, RunListFilters } from './agentRuns.queries'
 
-/** Agent runs: one agent's run list, a run with its step trace, and the cancel and retry actions. */
+/**
+ * Agent runs: the organization's run list (Insights › Runs), one agent's run list, a run with its
+ * step trace, and the cancel and retry actions.
+ */
 export const agentRunsApi = {
+  /** Every run the person may read; test runs are left out unless `isTest` asks for them. */
+  listAll: (http: HttpClient, orgId: string, query: RunListFilters, signal?: AbortSignal) =>
+    http.getPage<AgentRunDto>(`/orgs/${orgId}/runs`, { params: { ...query }, signal }),
   /** The runs of one agent; test runs are left out unless `isTest` asks for them. */
   list: (
     http: HttpClient,

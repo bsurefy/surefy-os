@@ -1,39 +1,56 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { debounce, useQueryStates } from 'nuqs'
 import { useState } from 'react'
 
+import { connectionQueries } from '@/api/connections'
 import {
   knowledgeQueries,
   useBulkKnowledgeSourcesMutation,
   useRetryKnowledgeSourceMutation,
   useSyncKnowledgeSourceMutation,
 } from '@/api/knowledge'
-import type { KnowledgeBaseDto, KnowledgeSourceDto } from '@surefy/contracts'
-import { PERMISSIONS } from '@surefy/contracts'
+import { ROUTES } from '@/constants/routes'
+import { KNOWLEDGE_CONNECTOR_PROVIDERS, PERMISSIONS } from '@surefy/contracts'
+import type {
+  ConnectionDto,
+  KnowledgeBaseDto,
+  KnowledgeConnectorProvider,
+  KnowledgeSourceDto,
+} from '@surefy/contracts'
 import { toast } from '@surefy/ui/components/Feedback'
 import { useCan, useCurrentOrgId } from '@surefy/web-core/access'
 import { getErrorMessage, isApiError } from '@surefy/web-core/errors'
 
 import { SEARCH_DEBOUNCE_MS } from '../Knowledge.constants'
+import { CONNECTION_LOOKUP_LIMIT, CONNECTOR_SOURCES_LIMIT } from './SourcesTab.constants'
+import { useCanReconnect } from './SourcesTab.hooks'
 import { sourcesSearchParams } from './SourcesTab.searchParams'
 import { useKnowledgeUploads } from './SourcesTab.uploads'
-import { toStatusParam } from './SourcesTab.utils'
+import { groupExpiredByConnection, toStatusParam } from './SourcesTab.utils'
 
 import type { SourceSort, SourceStatusFilter } from './SourcesTab.constants'
 
-/** The Sources tab: the table with its filters in the URL, selection and actions, adding files and links. */
+/**
+ * The Sources tab: the table with its filters in the URL, selection and actions, adding files,
+ * links and connectors, and Reconnect for connectors whose sign-in expired.
+ */
 export function useSourcesTabController(base: KnowledgeBaseDto) {
   const t = useTranslations('knowledge.detail.sources')
   const tErrors = useTranslations('errors')
   const orgId = useCurrentOrgId()
+  const { orgSlug } = useParams<{ orgSlug: string }>()
   const canManage = base.effectiveLevel === 'manage'
   const canOpenVault = useCan(PERMISSIONS.VAULT_MANAGE)
   const [params, setParams] = useQueryStates(sourcesSearchParams)
   const [selection, setSelection] = useState<Record<string, true>>({})
   const [isAddingLink, setIsAddingLink] = useState(false)
   const [removing, setRemoving] = useState<readonly KnowledgeSourceDto[] | null>(null)
+  const [editing, setEditing] = useState<KnowledgeSourceDto | null>(null)
+  const [reconnecting, setReconnecting] = useState<ConnectionDto | null>(null)
+  const canReconnect = useCanReconnect()
   const uploads = useKnowledgeUploads(orgId, base.id)
   const retry = useRetryKnowledgeSourceMutation(orgId, base.id)
   const sync = useSyncKnowledgeSourceMutation(orgId, base.id)
@@ -53,6 +70,33 @@ export function useSourcesTabController(base: KnowledgeBaseDto) {
     ...knowledgeQueries.source(orgId, base.id, params.source ?? ''),
     enabled: Boolean(params.source) && !isOnPage && !list.isPending,
   })
+  // Connectors in use and expired sign-ins, whatever the table's filters say
+  const connectorList = useInfiniteQuery({
+    ...knowledgeQueries.sources(orgId, base.id, {
+      type: 'connector',
+      limit: CONNECTOR_SOURCES_LIMIT,
+    }),
+    enabled: canManage,
+  })
+  const connectorSources = connectorList.data?.pages.flatMap((page) => page.items) ?? []
+  const expiredGroups = groupExpiredByConnection(connectorSources)
+  const connections = useInfiniteQuery({
+    ...connectionQueries.list(orgId, {
+      kind: 'knowledge_connector',
+      limit: CONNECTION_LOOKUP_LIMIT,
+    }),
+    enabled: canManage && expiredGroups.length > 0,
+  })
+  const connectionById = new Map(
+    (connections.data?.pages.flatMap((page) => page.items) ?? []).map((item) => [item.id, item]),
+  )
+  const sourceCounts = Object.fromEntries(
+    KNOWLEDGE_CONNECTOR_PROVIDERS.map((provider) => [
+      provider,
+      connectorSources.filter(({ connector }) => connector?.provider === provider).length,
+    ]),
+  ) as Record<KnowledgeConnectorProvider, number>
+  const canAdd = canManage && base.embeddingModel !== null
   const selectedIds = Object.keys(selection)
   const hasFilters = params.q !== '' || params.status !== 'all'
 
@@ -63,7 +107,7 @@ export function useSourcesTabController(base: KnowledgeBaseDto) {
     canManage,
     canOpenVault,
     // Adding needs an embedding model; a local-only base needs a local one (the API picks it)
-    canAdd: canManage && base.embeddingModel !== null,
+    canAdd,
     params,
     sources,
     isLoading: list.isPending,
@@ -99,6 +143,35 @@ export function useSourcesTabController(base: KnowledgeBaseDto) {
     onCloseAddLink: () => {
       setIsAddingLink(false)
     },
+    sourceCounts,
+    connecting: canAdd ? params.connect : null,
+    onConnect: (provider: KnowledgeConnectorProvider) => void setParams({ connect: provider }),
+    onCloseConnect: () => void setParams({ connect: null }),
+    editing,
+    onEditConnector: (source: KnowledgeSourceDto) => {
+      setEditing(source)
+    },
+    onCloseEdit: () => {
+      setEditing(null)
+    },
+    /** Connections whose sign-in expired, with the sources they pause; `connection` when it is listed. */
+    expiredSignIns: expiredGroups.map((group) => ({
+      ...group,
+      provider: group.sources[0]?.connector?.provider ?? 'google_drive',
+      connection: connectionById.get(group.connectionId) ?? null,
+    })),
+    canReconnect: (connection: ConnectionDto | null) =>
+      connection !== null && canReconnect(connection),
+    getConnection: (source: KnowledgeSourceDto) =>
+      source.connectionId ? (connectionById.get(source.connectionId) ?? null) : null,
+    reconnecting,
+    onReconnect: (connection: ConnectionDto) => {
+      setReconnecting(connection)
+    },
+    onCloseReconnect: () => {
+      setReconnecting(null)
+    },
+    reconnectReturnTo: ROUTES.workspace.knowledgeBase(orgSlug, base.id, 'sources'),
     removing,
     onRemove: (targets: readonly KnowledgeSourceDto[]) => {
       setRemoving(targets)

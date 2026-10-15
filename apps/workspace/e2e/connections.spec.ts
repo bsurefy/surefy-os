@@ -2,6 +2,7 @@
 import { expect, test } from '@playwright/test'
 
 import {
+  channelServerUrl,
   OAUTH_CLIENT_ID,
   OAUTH_CLIENT_SECRET,
   oauthServerUrl,
@@ -72,12 +73,12 @@ test.describe('Settings › Connections', () => {
 
     await page.getByRole('button', { name: 'Add connection' }).first().click()
     const dialog = page.getByRole('dialog', { name: 'Add connection' })
-    // Slack has an OAuth app on this install and Notion also takes a token; Google Drive signs in
-    // only with its OAuth app, which this install lacks
+    // Slack, Notion and Google Drive have OAuth apps on this install (Drive and Notion on the stub
+    // server); an app without one is the dialog's component test
     await expect(dialog.getByRole('button', { name: 'Slack' })).toBeEnabled()
     await expect(dialog.getByRole('button', { name: 'Notion' })).toBeEnabled()
-    await expect(dialog.getByRole('button', { name: 'Google Drive' })).toBeDisabled()
-    await expect(dialog.getByText(/Not set up on this install/)).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Google Drive' })).toBeEnabled()
+    await expect(dialog.getByText(/Not set up on this install/)).toHaveCount(0)
     await expect(dialog.getByRole('button', { name: 'Custom API' })).toBeEnabled()
   })
 
@@ -191,8 +192,8 @@ test.describe('Settings › Connections › returning from an app', () => {
 
   test('a declined sign-in at the app saves nothing', async ({ page }) => {
     await openConnections(page)
-    // the browser never reaches Slack: the spec answers for it, as Slack does when a person declines
-    await page.route('https://slack.com/**', async (route) => {
+    // Slack is the stub channel server: the spec answers for it, as Slack does when a person declines
+    await page.route(`${channelServerUrl}/oauth/v2/authorize**`, async (route) => {
       const state = new URL(route.request().url()).searchParams.get('state') ?? ''
       const back = new URL('/settings/connections/callback', webUrl)
       back.searchParams.set('error', 'access_denied')
