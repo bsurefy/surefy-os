@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/* eslint-disable sonarjs/no-clear-text-protocols -- a self-hosted SearXNG answers on plain http inside the install's network */
 import { describe, expect, it } from 'vitest'
 
 import {
