@@ -226,6 +226,11 @@ describe('ChatList', () => {
     expect(within(section).getByText('Deleted Oct 2 · 27 days left')).toBeVisible()
 
     await user.click(within(section).getByRole('button', { name: 'Restore Old brainstorm' }))
+    // deleted prompts wait here too
+    expect(await within(section).findByText('Old standup notes')).toBeVisible()
+    await user.click(
+      within(section).getByRole('button', { name: 'Restore prompt Old standup notes' }),
+    )
     expect(await screen.findByText('Nothing deleted in the last 30 days')).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Back to chats' }))
     expect(await screen.findByRole('link', { name: 'Old brainstorm' })).toBeVisible()

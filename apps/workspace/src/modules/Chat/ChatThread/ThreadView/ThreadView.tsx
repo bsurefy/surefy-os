@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@surefy/ui/components/Overlay'
 
 import ChatExportDialog from '../../ChatList/ChatExportDialog'
 import DeleteChatDialog from '../../ChatList/DeleteChatDialog'
+import PromptLibrary from '../../PromptLibrary'
 import ShareDialog from '../../ShareDialog'
 import AgentUnavailable from '../AgentUnavailable'
 import Composer from '../Composer'
@@ -105,6 +106,13 @@ export default function ThreadView(props: Readonly<ThreadViewProps>) {
           title={c.chat.title || t('header.untitled')}
           isPrivate={c.chat.isPrivate}
           onClose={c.shareDialog.onClose}
+        />
+      )}
+      {c.promptLibrary.isOpen && (
+        <PromptLibrary
+          orgId={c.orgId}
+          onClose={c.promptLibrary.onClose}
+          onUse={c.composer.onInsertPrompt}
         />
       )}
       <DeleteChatDialog actions={c.chatActions} />

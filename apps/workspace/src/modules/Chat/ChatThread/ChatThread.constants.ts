@@ -64,3 +64,9 @@ export const AGENT_UNAVAILABLE_ERRORS: readonly string[] = [
 
 /** Agents loaded for the picker and "Agents shared with you". */
 export const USABLE_AGENTS_LIMIT = 100
+
+/** Cost is metered in millionths of a currency unit. */
+export const MICROS_PER_UNIT = 1_000_000
+
+/** Remembers that the person read the voice input notice (the browser's own speech service). */
+export const VOICE_NOTICE_KEY = 'surefy.chat.voiceNoticeSeen'

@@ -7,22 +7,27 @@ import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 import { agentQueries } from '@/api/agents'
-import { useClearChatFeedbackMutation, useSetChatFeedbackMutation } from '@/api/chats'
+import {
+  useChooseChatVariantMutation,
+  useClearChatFeedbackMutation,
+  useSetChatFeedbackMutation,
+} from '@/api/chats'
 import { modelQueries } from '@/api/models'
 import { ROUTES } from '@/constants/routes'
 import { getProviderName } from '@/modules/Vault'
 import { toRoute } from '@/modules/Workspace'
 import type { ChatDto, ChatMessageDto } from '@surefy/contracts'
-import { PERMISSIONS } from '@surefy/contracts'
+import { ERROR_CODES, PERMISSIONS } from '@surefy/contracts'
 import { toast } from '@surefy/ui/components/Feedback'
 import { useCan } from '@surefy/web-core/access'
 
 import { useChatActions } from '../../ChatList/ChatList.hooks'
 import { AGENT_UNAVAILABLE_ERRORS, USABLE_AGENTS_LIMIT } from '../ChatThread.constants'
 import { useFollowOutput, useIsOnline } from '../ChatThread.hooks'
-import { buildRows, getMessageText } from '../ChatThread.utils'
+import { buildRows, getMessageText, groupComparisons } from '../ChatThread.utils'
 import { isLocalModel, useThreadSettings } from './ThreadView.settings'
 import { useThreadStream } from './ThreadView.stream'
+import { useComposerTools } from './ThreadView.tools'
 import { useAttachments } from '../Composer/Composer.attachments'
 
 import type { ThreadMessage } from '../ChatThread.types'
@@ -82,8 +87,10 @@ export function useThreadViewController(props: ThreadViewProps) {
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isShareOpen, setIsShareOpen] = useState(false)
+  const [isPromptsOpen, setIsPromptsOpen] = useState(false)
   const [preview, setPreview] = useState<SourcePreviewTarget | null>(null)
   const [feedbackFor, setFeedbackFor] = useState<string | null>(null)
+  const choose = useChooseChatVariantMutation(orgId, chatId)
   const setFeedback = useSetChatFeedbackMutation(orgId, chatId)
   const clearFeedback = useClearChatFeedbackMutation(orgId, chatId)
 
@@ -93,6 +100,12 @@ export function useThreadViewController(props: ThreadViewProps) {
     chatId,
     models,
     hasMessages: history.length > 0,
+  })
+  const tools = useComposerTools({
+    models,
+    modelKey: settings.settings.modelKey,
+    isPrivate: settings.settings.isPrivate,
+    isAgentChat,
   })
   const stream = useThreadStream({
     orgId,
@@ -111,6 +124,8 @@ export function useThreadViewController(props: ThreadViewProps) {
           knowledgeBaseIds: settings.settings.knowledgeBaseIds,
         },
     lastAnswerModelKey: isAgentChat ? null : lastModelOf(history),
+    webSearch: tools.isSearchingWeb,
+    compareModelKey: tools.compareModelKey,
   })
 
   // paused, archived or no longer shared: the history stays, read only
@@ -128,7 +143,13 @@ export function useThreadViewController(props: ThreadViewProps) {
       }
     : null
 
-  const baseRows = buildRows(stream.live, history, stream.activity !== 'idle', stream.stoppedId)
+  const baseRows = buildRows(
+    stream.live,
+    history,
+    stream.isLiveBusy,
+    stream.stoppedId,
+    stream.comparison,
+  )
   const rows = baseRows.map((row, position): ThreadMessage => {
     const isLiveAnswer =
       position === baseRows.length - 1 && !row.isPersisted && row.role === 'assistant'
@@ -158,6 +179,9 @@ export function useThreadViewController(props: ThreadViewProps) {
   // an agent answer whose run waits for an approval: the next message waits too
   const isWaitingForRun =
     isIdle && lastRow?.role === 'assistant' && lastRow.status === 'streaming' && lastRow.isPersisted
+  const items = groupComparisons(rows)
+  // both answers are there: the next message waits until one of them is chosen
+  const isCompareOpen = items.some((item) => item.kind === 'comparison')
   const canAnswer = agent ? agent.name !== null && !agent.isGone : hasModels === true
   const canSend =
     isOnline &&
@@ -166,7 +190,8 @@ export function useThreadViewController(props: ThreadViewProps) {
     canAnswer &&
     trimmed.length > 0 &&
     !attachments.hasUnfinished &&
-    !isVisionBlocked
+    !isVisionBlocked &&
+    !isCompareOpen
 
   const lastUserRow = rows.findLast((row) => row.role === 'user' && row.isPersisted)
 
@@ -178,6 +203,8 @@ export function useThreadViewController(props: ThreadViewProps) {
     isNew,
     chat,
     rows,
+    /** The messages as listed: answers of an open comparison come as a pair. */
+    items,
     isEmpty: rows.length === 0 && stream.activity === 'idle',
     activity: stream.activity,
     errorCode: stream.errorCode,
@@ -207,6 +234,24 @@ export function useThreadViewController(props: ThreadViewProps) {
     attachments,
     follow,
     isOnline,
+    webSearch: {
+      ...tools.webSearch,
+      /** The server refused: no provider is set up, or the team may not search. */
+      isRefused: stream.errorCode === ERROR_CODES.CHAT_WEB_SEARCH_NOT_ALLOWED,
+    },
+    compare: {
+      ...tools.compare,
+      /** Both answers are in; the next message waits for A or B to be chosen. */
+      isOpen: isCompareOpen,
+      isChoosing: choose.isPending,
+      onChoose: (messageId: string) => {
+        choose.mutate(messageId, {
+          onSuccess: () => {
+            void stream.syncHistory()
+          },
+        })
+      },
+    },
     composer: {
       text,
       onTextChange: setText,
@@ -220,6 +265,10 @@ export function useThreadViewController(props: ThreadViewProps) {
       },
       onSuggestion: (prompt: string) => {
         setText(prompt)
+      },
+      /** A prompt from the library goes below what is already written. */
+      onInsertPrompt: (prompt: string) => {
+        setText((value) => (value.trim() === '' ? prompt : `${value.trimEnd()}\n\n${prompt}`))
       },
       /** ↑ in an empty composer edits the last message of the person. */
       onEditLast: () => {
@@ -288,6 +337,15 @@ export function useThreadViewController(props: ThreadViewProps) {
     chatActions,
     onDeleteChat: () => {
       if (chat) chatActions.onDelete(chat)
+    },
+    promptLibrary: {
+      isOpen: isPromptsOpen,
+      onOpen: () => {
+        setIsPromptsOpen(true)
+      },
+      onClose: () => {
+        setIsPromptsOpen(false)
+      },
     },
     shareDialog: {
       isOpen: isShareOpen,

@@ -25,6 +25,7 @@ import {
 
 import { ARCHIVED_AGENT_ID, SUPPORT_AGENT_ID } from './agentIds'
 import { createChatMessageHandlers, resetChatMessagesMock } from './chat.messages'
+import { createChatPromptHandlers, resetChatPromptsMock } from './chat.prompts'
 import { createChatShareHandlers, findSharedChat, resetChatSharesMock } from './chat.shares'
 
 const CHAT_KIND = 70
@@ -149,6 +150,7 @@ export function resetChatMock(): void {
   folders = seedFolders()
   resetChatMessagesMock()
   resetChatSharesMock(SEEDED_CHAT_IDS.quarterly)
+  resetChatPromptsMock()
 }
 
 /** Chat ids of the seed, in the order they were created. */
@@ -252,6 +254,7 @@ export const chatDomain = defineMockDomain(
   [
     ...chatMessageHandlers,
     ...createChatShareHandlers((chatId) => findChat(chatId)?.chat),
+    ...createChatPromptHandlers(),
     defineMockHandler({
       method: 'get',
       path,

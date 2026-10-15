@@ -167,3 +167,17 @@ export function useChatAttachmentMutations(orgId: string, chatId: string) {
       chatAttachmentsApi.remove(apiClient, orgId, chatId, attachmentId),
   }
 }
+
+/** "Continue with A/B" on a comparison; the thread's messages and the chat's model refresh. */
+export function useChooseChatVariantMutation(
+  orgId: string,
+  chatId: string,
+  { silent = false }: MutationHookOptions = {},
+) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    meta: { silent },
+    mutationFn: (messageId: string) => chatMessagesApi.choose(apiClient, orgId, chatId, messageId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: chatKeys.all(orgId) }),
+  })
+}

@@ -4,6 +4,7 @@
 import { Check, Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
+import { CHAT_WEB_SEARCH_TOOL_NAME } from '@surefy/contracts'
 import { BrandMark, DataLocationBadge, Markdown } from '@surefy/ui/components/DataDisplay'
 import { Spinner } from '@surefy/ui/components/Feedback'
 import { Button } from '@surefy/ui/primitives/button'
@@ -45,6 +46,14 @@ function reasoningLabel(
   return t('reasoningFor', { seconds: Math.max(1, Math.round(part.durationMs / 1000)) })
 }
 
+type ToolPart = Extract<ThreadMessage['parts'][number], { kind: 'tool' }>
+
+/** A web search step reads "Searched the web for …"; any other step shows its tool name. */
+function toolLabel(tool: ToolPart, t: AnswerTranslator): string {
+  if (tool.toolName !== CHAT_WEB_SEARCH_TOOL_NAME) return tool.toolName
+  return tool.query ? t('webSearchStepQuery', { query: tool.query }) : t('webSearchStep')
+}
+
 function Notes({ notes }: Readonly<{ notes: readonly ThreadNote[] }>) {
   const t = useTranslations('chat.thread.notes')
   return (
@@ -62,6 +71,13 @@ function Notes({ notes }: Readonly<{ notes: readonly ThreadNote[] }>) {
           return (
             <p key={note.name} className="text-caption text-muted-foreground">
               {t(`skipped.${note.reason}`)}
+            </p>
+          )
+        }
+        if (note.name === 'web-search-skipped') {
+          return (
+            <p key={note.name} className="text-caption text-muted-foreground">
+              {t(`webSearchSkipped.${note.reason}`)}
             </p>
           )
         }
@@ -150,7 +166,7 @@ export default function AssistantMessage({
           <ul className="mt-1 flex flex-col gap-0.5">
             {tools.map((tool) => (
               <li key={tool.toolCallId}>
-                {tool.toolName} · {t(`toolState.${tool.state}`)}
+                {toolLabel(tool, t)} · {t(`toolState.${tool.state}`)}
               </li>
             ))}
           </ul>

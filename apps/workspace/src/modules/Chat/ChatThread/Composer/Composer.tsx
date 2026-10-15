@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 'use client'
 
-import { ArrowUp, FileText, Paperclip, Plus, X } from 'lucide-react'
+import { ArrowUp, BookText, FileText, Paperclip, Plus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRef, useState } from 'react'
 
@@ -20,6 +20,9 @@ import { Textarea } from '@surefy/ui/primitives/textarea'
 import ChatPicker from '../ChatPicker'
 import { ATTACHMENT_ACCEPT, ATTACHMENT_LIMIT_MB, COMPOSER_MAX_ROWS } from '../ChatThread.constants'
 import KnowledgeScope from '../KnowledgeScope'
+import CompareControl from './CompareControl'
+import VoiceInput from './VoiceInput'
+import WebSearchToggle from './WebSearchToggle'
 
 import type { ThreadViewController } from '../ThreadView/ThreadView.controller'
 
@@ -37,7 +40,7 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
   const t = useTranslations('chat.thread.composer')
   const fileInput = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
-  const { composer, attachments, settings, agent, picker } = c
+  const { composer, attachments, settings, agent, picker, webSearch, compare } = c
   const isBusy = c.activity !== 'idle'
   const isBlocked = c.hasModels === false || !c.isOnline
   const isAgentChat = agent !== null
@@ -54,6 +57,8 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
     <div className="flex flex-col gap-2">
       {!c.isOnline && <Banner tone="warning" title={t('offline')} isAnnounced />}
       {composer.isVisionBlocked && <Banner tone="warning" title={t('noVision')} isAnnounced />}
+      {webSearch.isRefused && <Banner tone="warning" title={t('webSearch.refused')} isAnnounced />}
+      {compare.isOpen && <Banner tone="info" title={t('compare.choose')} isAnnounced />}
       {c.isWaitingForRun && (
         <p role="status" className="text-caption text-muted-foreground px-1">
           {t('waitingForRun')}
@@ -156,7 +161,7 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
             }
           }}
         />
-        <div className="flex items-center gap-1.5 px-2 pt-1.5 pb-2">
+        <div className="flex flex-wrap items-center gap-1.5 px-2 pt-1.5 pb-2">
           <input
             ref={fileInput}
             type="file"
@@ -195,6 +200,17 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          <Button
+            variant="ghost"
+            size="icon-md"
+            aria-label={t('prompts')}
+            title={t('prompts')}
+            disabled={isBlocked}
+            className="size-8 rounded-full"
+            onClick={c.promptLibrary.onOpen}
+          >
+            <BookText aria-hidden />
+          </Button>
           {!isAgentChat && (
             <KnowledgeScope
               variant="chip"
@@ -204,7 +220,32 @@ export default function Composer({ c }: Readonly<{ c: ThreadViewController }>) {
               onChange={settings.onScopeChange}
             />
           )}
+          {webSearch.isAvailable && (
+            <WebSearchToggle
+              isOn={webSearch.isOn}
+              isDisabled={isBlocked || isBusy}
+              onToggle={webSearch.onToggle}
+            />
+          )}
+          {compare.isAvailable && (
+            <CompareControl
+              options={compare.options}
+              model={compare.model}
+              isOn={compare.isOn}
+              isDisabled={isBlocked || isBusy}
+              requiresVision={attachments.hasImages}
+              onModelChange={compare.onModelChange}
+              onStop={() => {
+                compare.onToggle(false)
+              }}
+            />
+          )}
           <div className="ml-auto flex min-w-0 items-center gap-1.5">
+            <VoiceInput
+              text={composer.text}
+              isDisabled={isBlocked || (isAgentChat && agent.isGone)}
+              onTextChange={composer.onTextChange}
+            />
             <ChatPicker
               models={c.models}
               isModelsPending={picker.isModelsPending}

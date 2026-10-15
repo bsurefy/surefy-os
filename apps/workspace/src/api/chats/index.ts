@@ -10,6 +10,7 @@ export {
 } from './chats.api'
 export {
   useChatAttachmentMutations,
+  useChooseChatVariantMutation,
   useClearChatFeedbackMutation,
   useCreateChatFolderMutation,
   useCreateChatSharesMutation,

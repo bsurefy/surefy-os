@@ -64,7 +64,11 @@
       "empty": {
         "title": "Nothing deleted in the last 30 days",
         "description": "Chats you delete wait here before they are removed."
-      }
+      },
+      "chats": "Chats",
+      "prompts": "Prompts",
+      "restorePrompt": "Restore prompt {title}",
+      "promptRestored": "Prompt restored"
     },
     "name": {
       "newFolder": {
@@ -258,7 +262,11 @@
       "regenerateShort": "Regenerate",
       "answeredFrom": "{count, plural, one {Answered from # source} other {Answered from # sources}}",
       "sourcesFromKnowledge": "Sources from your knowledge",
-      "failedShort": "This answer failed."
+      "failedShort": "This answer failed.",
+      "webSearchStep": "Searched the web",
+      "webSearchStepQuery": "Searched the web for “{query}”",
+      "sourcesFromWeb": "Sources from the web",
+      "sourcesMixed": "Sources"
     },
     "user": {
       "label": "Your message",
@@ -274,6 +282,10 @@
       "skipped": {
         "no_ready_sources": "No knowledge source was ready to search.",
         "no_access": "You don't have access to the knowledge in scope."
+      },
+      "webSearchSkipped": {
+        "provider_error": "Web search didn't work · answered without it",
+        "pii_blocked": "Web search was skipped because your message contains personal data · answered without it"
       }
     },
     "failure": {
@@ -350,7 +362,36 @@
         "CHAT_ATTACHMENT_UPLOAD_FAILED": "couldn't be uploaded."
       },
       "stopShort": "Stop",
-      "waitingForRun": "The agent is waiting for an approval. You can write again once it goes on."
+      "waitingForRun": "The agent is waiting for an approval. You can write again once it goes on.",
+      "prompts": "Prompt library",
+      "webSearch": {
+        "label": "Search the web",
+        "short": "Web",
+        "on": "Web search is on for the next answers",
+        "off": "Let the model search the web and cite what it finds",
+        "refused": "Web search isn't available right now. Your admin may not have set up a search provider. Your message was answered without it."
+      },
+      "compare": {
+        "label": "Compare models",
+        "short": "Compare",
+        "versus": "vs {model}",
+        "description": "Answer the next message with a second model as well, side by side.",
+        "stop": "Stop comparing",
+        "choose": "Choose answer A or B to continue the chat."
+      },
+      "voice": {
+        "start": "Start dictating",
+        "stop": "Stop dictating",
+        "notice": "Your browser may send audio to its own speech service to turn it into text.",
+        "cancel": "Cancel",
+        "continue": "Continue",
+        "close": "Close",
+        "errors": {
+          "denied": "The microphone is blocked. Allow it in your browser's site settings to dictate.",
+          "unavailable": "No microphone was found, or your browser can't recognize this language.",
+          "failed": "Dictation stopped unexpectedly. Try again."
+        }
+      }
     },
     "picker": {
       "label": "Model or agent",
@@ -396,6 +437,14 @@
       "banner": "Shared by {name} · view only",
       "bannerUnknown": "Shared with you · view only",
       "description": "You can read this chat and open its sources. Only its owner can continue it."
+    },
+    "compare": {
+      "label": "Comparison of two answers",
+      "answer": "Answer {label}",
+      "time": "{seconds} s",
+      "tokens": "{input} in / {output} out",
+      "continueWith": "Continue with {label}",
+      "hint": "Choose an answer to keep. The chat continues with its model and the other answer is removed."
     }
   },
   "commands": {
@@ -435,6 +484,90 @@
     "share": "Share",
     "toasts": {
       "shared": "Shared with {count, plural, one {# person or team} other {# people and teams}}"
+    }
+  },
+  "prompts": {
+    "title": "Prompt library",
+    "description": "Reusable prompts with '{'variables'}'. Pick one to put it in the message box.",
+    "search": {
+      "label": "Search prompts",
+      "placeholder": "Search by title or text"
+    },
+    "new": "New prompt",
+    "filter": {
+      "label": "Show",
+      "all": "All",
+      "personal": "Mine",
+      "shared": "Shared"
+    },
+    "list": "Prompts",
+    "use": "Use prompt {title}",
+    "actions": "Actions for {title}",
+    "edit": "Edit",
+    "delete": "Delete",
+    "personal": "Only you",
+    "sharedAll": "Everyone in the organization",
+    "sharedTeams": "Shared with {teams}",
+    "loadMore": "Load more",
+    "undo": "Undo",
+    "toasts": {
+      "deleted": "Prompt deleted · Undo"
+    },
+    "empty": {
+      "title": "No prompts yet",
+      "description": "Save the questions you ask often, with '{'variables'}' for the parts that change."
+    },
+    "noResults": {
+      "title": "No prompts found",
+      "description": "Try other words or another filter."
+    },
+    "deleteShared": {
+      "title": "Delete “{title}”?",
+      "description": "Everyone who can see it loses it. You can restore it for 30 days from Recently deleted.",
+      "impactAll": "It is shared with the whole organization.",
+      "impactTeams": "It is shared with {teams}.",
+      "confirm": "Delete prompt"
+    },
+    "form": {
+      "newTitle": "New prompt",
+      "editTitle": "Edit prompt",
+      "description": "Write a word in braces, like '{'customer'}', to ask for that part each time you use the prompt.",
+      "title": "Title",
+      "body": "Prompt",
+      "bodyPlaceholder": "Write a friendly reply to '{'customer'}' about '{'issue'}'.",
+      "bodyHelp": "Variables are words in braces, like '{'customer'}'.",
+      "variables": "Variables",
+      "visibility": {
+        "label": "Who can use it",
+        "personal": {
+          "name": "Only me",
+          "description": "A personal prompt only you can see."
+        },
+        "shared": {
+          "name": "Shared",
+          "description": "Everyone you choose can use it. Builders and above manage shared prompts."
+        }
+      },
+      "teams": {
+        "label": "Teams",
+        "placeholder": "Everyone in the organization",
+        "search": "Search teams",
+        "empty": "No teams match",
+        "remove": "Remove {label}",
+        "more": "+{count}",
+        "help": "Leave empty to share with the whole organization."
+      },
+      "cancel": "Cancel",
+      "create": "Create prompt",
+      "save": "Save changes",
+      "created": "Prompt created",
+      "saved": "Prompt saved"
+    },
+    "fill": {
+      "title": "Use “{title}”",
+      "description": "Fill in the variables. Empty ones stay as they are.",
+      "cancel": "Cancel",
+      "submit": "Use prompt"
     }
   }
 }

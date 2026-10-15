@@ -70,6 +70,9 @@ export const chatMessagesApi = {
     ),
   clearFeedback: (http: HttpClient, orgId: string, chatId: string, messageId: string) =>
     http.delete(`/orgs/${orgId}/chats/${chatId}/messages/${messageId}/feedback`),
+  /** "Continue with A/B": the other answer of the comparison becomes superseded. */
+  choose: (http: HttpClient, orgId: string, chatId: string, messageId: string) =>
+    http.post<ChatMessageDto>(`/orgs/${orgId}/chats/${chatId}/messages/${messageId}/choose`),
   /** Re-checks that the person may still read the source, so it can answer `removed` or `no_access`. */
   sourcePreview: (
     http: HttpClient,
