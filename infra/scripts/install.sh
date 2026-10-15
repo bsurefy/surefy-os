@@ -8,6 +8,7 @@
 #   infra/scripts/install.sh --domain surefy.example.com --http                # plain HTTP
 #   infra/scripts/install.sh --public-url https://surefy.example.com           # behind your own proxy
 #   infra/scripts/install.sh --domain surefy.example.com --build               # build the images here
+#   infra/scripts/install.sh --domain surefy.example.com --searxng             # with SearXNG web search
 set -euo pipefail
 
 usage() {
@@ -32,6 +33,8 @@ Options:
                       forwarding or with a private network name.
   --bind <address>    Host address the ports are published on (default 0.0.0.0, every interface;
                       127.0.0.1 with --public-url).
+  --searxng           Also run SearXNG, a web search service of your own (no outside account).
+                      Enter http://searxng:8080 in Settings › Install after the setup.
   --build             Build the images from this checkout instead of pulling them.
   --no-start          Write .env and stop; start later with docker compose.
 
@@ -60,6 +63,7 @@ http_port=""
 https_port=""
 bind=""
 build=false
+searxng=false
 start=true
 
 while [ $# -gt 0 ]; do
@@ -77,6 +81,10 @@ while [ $# -gt 0 ]; do
       ;;
     --http)
       plain=true
+      shift
+      ;;
+    --searxng)
+      searxng=true
       shift
       ;;
     --build)
@@ -108,6 +116,9 @@ compose() {
 
 if [ -f "$env_file" ]; then
   echo "Keeping the existing $env_file"
+  if [ "$searxng" = true ] && ! grep -Eq '^COMPOSE_PROFILES=.*searxng' "$env_file"; then
+    echo "Note: --searxng is for a new .env. To add SearXNG to this install, follow 'Web search' in SELF-HOSTING.md." >&2
+  fi
 else
   [ -z "$public_url" ] || [ "$plain" = false ] || die "--http is for --domain; --public-url already means plain HTTP behind your proxy"
   if [ -z "$domain" ] && [ -z "$public_url" ]; then
@@ -170,6 +181,8 @@ else
       ;;
   esac
 
+  [ "$searxng" = false ] || profile="$profile,searxng"
+
   hex() { openssl rand -hex "$1"; }
   postgres_password="$(hex 24)"
   owner_password="$(hex 24)"
@@ -192,7 +205,8 @@ SUREFY_TRUSTED_PROXIES=private_ranges"
 # Written by infra/scripts/install.sh. Keep it private and keep a copy: ENCRYPTION_KEY protects
 # the provider keys stored in Vault, and losing it makes them unreadable.
 
-# Address and ports. COMPOSE_PROFILES picks the proxy: tls (HTTPS) or http (plain HTTP).
+# Address and ports. COMPOSE_PROFILES picks the proxy: tls (HTTPS) or http (plain HTTP),
+# and lists searxng when the web search service runs.
 SUREFY_DOMAIN=$domain
 APP_ORIGIN=$app_origin
 API_PUBLIC_URL=$app_origin
@@ -215,6 +229,8 @@ AUTH_SECRET=$(hex 32)
 ENCRYPTION_KEY=$(openssl rand -base64 32)
 SETUP_TOKEN=$setup_token
 ML_SERVICE_TOKEN=$(hex 32)
+# Used only by the optional SearXNG service (COMPOSE_PROFILES ending in ,searxng).
+SEARXNG_SECRET=$(hex 32)
 
 # Database: two roles, one that owns the schema (migrations) and one the application uses.
 POSTGRES_PASSWORD=$postgres_password

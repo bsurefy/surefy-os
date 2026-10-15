@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# SearXNG for SurefyOS web search: the optional `searxng` service of compose.selfhost.yml.
+# Everything not named here keeps SearXNG's defaults. The secret comes from SEARXNG_SECRET.
+use_default_settings: true
+
+search:
+  # SurefyOS asks for `format=json`; SearXNG answers 403 unless the format is listed.
+  formats:
+    - html
+    - json
+
+server:
+  # Only SurefyOS reaches this service (no published port), so the bot limiter, which needs a
+  # Valkey/Redis of its own, stays off.
+  limiter: false
+  image_proxy: false

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # SurefyOS on one server: Caddy (TLS or plain HTTP), workspace, api, worker, ml, Postgres
-# (pgvector) and Redis.
+# (pgvector) and Redis; optionally SearXNG for web search (profile `searxng`).
 # Configuration comes from .env next to this file; infra/scripts/install.sh writes it.
 #
 #   infra/scripts/install.sh                                       # first install
@@ -214,6 +214,27 @@ services:
       timeout: 3s
       retries: 20
 
+  # Web search without an outside account. Off by default: add `searxng` to COMPOSE_PROFILES in
+  # .env (install.sh --searxng does) and SEARXNG_SECRET. No port is published; the api reaches it
+  # at http://searxng:8080, the address to enter in Settings › Install.
+  searxng:
+    image: searxng/searxng:2026.10.7-6671d89be
+    profiles: [searxng]
+    restart: unless-stopped
+    environment:
+      # Without a secret in .env the default is SearXNG's own placeholder, which it refuses to
+      # start with (the file is read even when the profile is off, so `:?` cannot be used).
+      SEARXNG_SECRET: ${SEARXNG_SECRET:-ultrasecretkey}
+    volumes:
+      - ./searxng/settings.yml:/etc/searxng/settings.yml:ro
+      - searxng-data:/var/cache/searxng
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 6
+
   redis:
     image: redis:8-alpine
     restart: unless-stopped
@@ -229,6 +250,7 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  searxng-data:
   files:
   caddy-data:
   caddy-config:
