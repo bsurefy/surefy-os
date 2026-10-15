@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type { OrganizationDto } from '@surefy/contracts'
 
-import type { ChatAgent, ChatAgentRuns, ChatOrganizations } from './chats.types.js'
+import type { ChatAgent, ChatAgentRuns, ChatOrganizations, ChatWebSearch } from './chats.types.js'
 import type { DbExecutor } from '@/core/database/index.js'
+import type { WebSearchService } from '@/integrations/search/index.js'
 import type { AgentRunsAgents, AgentRunsModule } from '@/modules/agentRuns/index.js'
 
 /** Agent chats over the agents and agentRuns modules: the usable agent, `chat` runs, their stream. */
@@ -65,5 +66,28 @@ export function createChatOrganizations(organizations: {
       const organization = await organizations.getInTx(tx, orgId)
       return organization?.settings.privacy.chatSharingEnabled ?? false
     },
+  }
+}
+
+/** Chat answers with web search over the search integration; the person's team is who it is metered for. */
+export function createChatWebSearch(
+  search: Pick<WebSearchService, 'isConfigured' | 'search'>,
+): ChatWebSearch {
+  return {
+    isConfigured: (orgId) => search.isConfigured(orgId),
+    search: ({ ctx, query, messageId, signal }) =>
+      search.search({
+        orgId: ctx.orgId,
+        query,
+        teamIds: ctx.teamIds,
+        requestId: ctx.requestId,
+        caller: {
+          userId: ctx.userId,
+          teamId: ctx.access.primaryTeamId,
+          apiKeyId: ctx.apiKey?.id ?? null,
+        },
+        meter: { key: `chat:${messageId}`, sourceRefId: messageId },
+        ...(signal === undefined ? {} : { signal }),
+      }),
   }
 }

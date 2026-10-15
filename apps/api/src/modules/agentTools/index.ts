@@ -9,9 +9,11 @@ export {
 export type {
   AgentToolsConnections,
   AgentToolsContext,
+  AgentToolsWebSearch,
   ResolvedTool,
   ToolFailure,
   ToolOutcome,
   ToolSuccess,
+  WebSearchToolData,
 } from './agentTools.types.js'
 export type { ToolProbe } from './agentToolsProbe.js'

@@ -51,3 +51,8 @@ export const NO_USAGE: VaultUsage = {
   spendThisMonth: () => Promise.resolve(new Map()),
   usersThisMonth: () => Promise.resolve(0),
 }
+
+/** The install's own SearXNG address (Settings › Install), used while no search provider is stored. */
+export interface VaultInstallSearch {
+  searxngUrl(): Promise<string | null>
+}

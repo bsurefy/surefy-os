@@ -12,6 +12,7 @@ import {
   providerKeySchema,
   secretSchema,
 } from './providers.js'
+import { searchConnectionTestInputSchema } from './searchConnection.js'
 import { userRefDtoSchema } from '../auth/schemas.js'
 import { multiValueQuery, searchQuery } from '../core/filters.js'
 import { pageQuery, sortQuery } from '../core/pagination.js'
@@ -155,10 +156,11 @@ const localServerConnectionSchema = z.object({
   secret: secretSchema.optional(),
 })
 
-/** `POST …/connection-tests`: tries a connection before anything is saved (V1 adds search providers). */
+/** `POST …/connection-tests`: tries a connection before anything is saved (V1: search providers). */
 export const connectionTestInputSchema = z.discriminatedUnion('kind', [
   aiProviderConnectionSchema,
   localServerConnectionSchema,
+  searchConnectionTestInputSchema,
 ])
 export type ConnectionTestInput = z.infer<typeof connectionTestInputSchema>
 

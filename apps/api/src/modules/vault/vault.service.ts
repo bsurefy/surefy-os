@@ -53,6 +53,7 @@ import type {
   VaultUsage,
   VaultUserRefs,
 } from './vault.types.js'
+import type { SearchTestOutcome, VaultSearchService } from './vaultSearch.service.js'
 import type { SecretCipher } from '@/core/crypto/index.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
@@ -63,6 +64,8 @@ export interface VaultServiceDeps {
   ai: AiProviders
   vaultRepository: VaultRepository
   modelSync: ModelSync
+  /** Web search providers: tested and switched like keys, but not through the AI registry. */
+  search: Pick<VaultSearchService, 'testInput' | 'testStored' | 'makePrimary'>
   models: Pick<ModelsService, 'fallbackFor'>
   access: VaultAccess
   teams: VaultTeams
@@ -223,6 +226,9 @@ export class VaultService {
     if (!canManage && (input.kind !== 'ai_provider' || input.baseUrl !== undefined)) {
       throw new VaultProviderNotAllowedError()
     }
+    if (input.kind === 'search_provider') {
+      return this.testSearchConnection(ctx, input)
+    }
     await this.assertProviderAllowed(
       ctx,
       input.kind,
@@ -249,11 +255,17 @@ export class VaultService {
     const { row, credentials } = await this.deps.db.tenant(ctx.orgId, async (tx) => {
       const found = await this.findVisible(tx, ctx, id)
       if (found.status === 'revoked') throw new VaultCredentialRevokedError()
-      return { row: found, credentials: await this.decrypt(tx, found) }
+      return {
+        row: found,
+        credentials: found.kind === 'search_provider' ? {} : await this.decrypt(tx, found),
+      }
     })
-    const outcome = await this.runTest(row.providerKey, credentials)
+    const outcome: TestOutcome =
+      row.kind === 'search_provider'
+        ? { ...(await this.deps.search.testStored(ctx, row)), models: [] }
+        : await this.runTest(row.providerKey, credentials)
     await this.deps.db.tenant(ctx.orgId, async (tx) => {
-      await this.recordHealth(tx, row.id, ctx.orgId, outcome)
+      if (row.kind !== 'search_provider') await this.recordHealth(tx, row.id, ctx.orgId, outcome)
       await this.deps.audit.record(tx, ctx, {
         action: VAULT_AUDIT_ACTIONS.VAULT_KEY_TESTED,
         target: { type: 'vault_credential', id: row.id },
@@ -265,6 +277,24 @@ export class VaultService {
       })
     })
     return this.toTestDto(row.providerKey, outcome, null)
+  }
+
+  private async testSearchConnection(
+    ctx: VaultContext,
+    input: Extract<ConnectionTestInput, { kind: 'search_provider' }>,
+  ): Promise<ConnectionTestDto> {
+    const outcome: SearchTestOutcome = await this.deps.search.testInput(input)
+    const duplicateOf =
+      input.secret === undefined
+        ? null
+        : await this.deps.db.tenant(ctx.orgId, (tx) =>
+            this.deps.vaultRepository.findByFingerprint(
+              tx,
+              ctx.orgId,
+              this.deps.secrets.fingerprint(ctx.orgId, input.secret ?? ''),
+            ),
+          )
+    return this.toTestDto(input.providerKey, { ...outcome, models: [] }, duplicateOf ?? null)
   }
 
   // ── Keys ──────────────────────────────────────────────────────────────────────────────────────
@@ -332,6 +362,11 @@ export class VaultService {
       const row = await this.findVisible(tx, ctx, id)
       if (row.status === 'revoked') throw new VaultCredentialRevokedError()
       if (row.isPrimary) return this.toDto(tx, ctx, row)
+      if (row.kind === 'search_provider') {
+        // one search provider serves the organization; the old one stays stored
+        await this.deps.search.makePrimary(tx, ctx, row)
+        return this.toDto(tx, ctx, await this.findOrThrow(tx, ctx.orgId, id))
+      }
       const current = (
         await this.deps.vaultRepository.resolvableKeys(tx, ctx.orgId, {
           providerKey: row.providerKey,

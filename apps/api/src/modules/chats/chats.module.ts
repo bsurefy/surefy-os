@@ -19,6 +19,7 @@ import { chatsRoutes } from './chats.routes.js'
 import { ChatsService } from './chats.service.js'
 import {
   noChatRetrieval,
+  noChatWebSearch,
   type ChatAgentRuns,
   type ChatAudit,
   type ChatDocumentParser,
@@ -27,6 +28,7 @@ import {
   type ChatOrganizations,
   type ChatPii,
   type ChatRetrieval,
+  type ChatWebSearch,
   type ChatUserRefs,
 } from './chats.types.js'
 import { deriveUploadKey } from './chats.utils.js'
@@ -56,6 +58,8 @@ export interface ChatsModuleDeps {
   parser: ChatDocumentParser
   /** Knowledge retrieval for answers with sources; chats answer without sources until it exists. */
   retrieval?: ChatRetrieval
+  /** Web search for answers that ask for it; without it the composer's toggle is refused. */
+  webSearch?: ChatWebSearch
   /** Agent chats: the agents a person may talk to and the `chat` runs that answer. */
   agents: ChatAgentRuns
   /** Whether the organization allows chat sharing. */
@@ -121,6 +125,7 @@ export function createChatsModule(deps: ChatsModuleDeps) {
     gateway: deps.gateway,
     pii: deps.pii,
     retrieval,
+    webSearch: deps.webSearch ?? noChatWebSearch,
     agents: deps.agents,
     storage: deps.storage,
     logger: deps.logger,

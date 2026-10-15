@@ -7,6 +7,7 @@ import {
   createCredentialInputSchema,
   createLocalServerInputSchema,
   createPersonalCredentialInputSchema,
+  createSearchProviderInputSchema,
   credentialDtoSchema,
   credentialImpactDtoSchema,
   credentialImpactQuerySchema,
@@ -27,6 +28,7 @@ import {
   orgParamsSchema,
   pageResponse,
   providerCardDtoSchema,
+  searchProviderSettingsDtoSchema,
   setModelAccessInputSchema,
   updateCredentialInputSchema,
   updateVaultModelInputSchema,
@@ -60,6 +62,21 @@ export const createCredentialRoute = {
   summary: 'Add an organization or team key; it is stored only when its connection test passes',
   params: orgParamsSchema,
   body: createCredentialInputSchema,
+  response: { 201: okResponse(credentialDtoSchema) },
+}
+
+export const getSearchProvidersRoute = {
+  tags: TAGS,
+  summary: 'The web search providers and the one web search uses now',
+  params: orgParamsSchema,
+  response: { 200: okResponse(searchProviderSettingsDtoSchema) },
+}
+
+export const createSearchProviderRoute = {
+  tags: TAGS,
+  summary: 'Add a web search provider; it is stored only when its connection test passes',
+  params: orgParamsSchema,
+  body: createSearchProviderInputSchema,
   response: { 201: okResponse(credentialDtoSchema) },
 }
 

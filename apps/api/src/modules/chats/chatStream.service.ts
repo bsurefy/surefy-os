@@ -7,7 +7,12 @@ import { AppError, ForbiddenError } from '@/core/errors/index.js'
 import { providerErrorFrom } from '@/integrations/ai/index.js'
 import { AgentRunAgentNotFoundError, AgentRunAgentPausedError } from '@/modules/agentRuns/index.js'
 import { ModelNotAllowedError } from '@/modules/modelGateway/index.js'
-import { AGENT_RUN_INPUT_MESSAGES_MAX, ERROR_CODES, PERMISSIONS } from '@surefy/contracts'
+import {
+  AGENT_RUN_INPUT_MESSAGES_MAX,
+  CHAT_WEB_SEARCH_TOOL_NAME,
+  ERROR_CODES,
+  PERMISSIONS,
+} from '@surefy/contracts'
 import type {
   AgentRunMessage,
   ChatMessageDto,
@@ -32,6 +37,8 @@ import {
   STREAM_STALE_MS,
   SYSTEM_PROMPT,
   TITLE_PROMPT,
+  WEB_SEARCH_RESULTS,
+  WEB_SOURCES_PROMPT,
 } from './chats.constants.js'
 import {
   ChatAttachmentNotFoundError,
@@ -43,6 +50,7 @@ import {
   ChatModelNoVisionError,
   ChatNotFoundError,
   ChatStreamInProgressError,
+  ChatWebSearchNotAllowedError,
 } from './chats.errors.js'
 import { toMessageDto } from './chats.mapper.js'
 import {
@@ -67,6 +75,7 @@ import type {
   ChatPii,
   ChatModels,
   ChatRetrieval,
+  ChatWebSearch,
   RetrievedPassage,
 } from './chats.types.js'
 import type { Database, DbExecutor } from '@/core/database/index.js'
@@ -85,6 +94,7 @@ export interface ChatStreamServiceDeps {
   gateway: ChatGateway
   pii: ChatPii
   retrieval: ChatRetrieval
+  webSearch: ChatWebSearch
   agents: ChatAgentRuns
   storage: StorageProvider
   logger: Logger
@@ -200,12 +210,20 @@ export class ChatStreamService {
     signal: AbortSignal,
   ): Promise<ChatSendResult> {
     const userId = requireUser(ctx)
+    const wantsWebSearch = 'webSearch' in input && input.webSearch === true
+    // refused before anything is stored: web search is off for the person, or nothing can answer it
+    if (wantsWebSearch && !(await this.webSearchAvailable(ctx))) {
+      throw new ChatWebSearchNotAllowedError()
+    }
     const opened = await this.prepare(ctx, userId, chatId, input)
     if ('agent' in opened) {
       return { kind: 'response', response: await this.startAgentRun(ctx, opened) }
     }
     const prepared = opened
-    const retrieval = await this.retrieve(ctx, prepared, signal)
+    const knowledge = await this.retrieve(ctx, prepared, signal)
+    const retrieval = wantsWebSearch
+      ? await this.searchWeb(ctx, prepared, knowledge, signal)
+      : knowledge
     const builder = new PartsBuilder([...prepared.initialParts, ...retrieval.parts], this.deps.now)
     let stream: GatewayStream
     let sent: Prepared
@@ -783,6 +801,74 @@ export class ChatStreamService {
       if (signal.aborted) throw error
       this.deps.logger.warn({ err: error }, RETRIEVAL_FAILED)
       return none
+    }
+  }
+
+  private async webSearchAvailable(ctx: TenantContext): Promise<boolean> {
+    return ctx.access.tools.webSearch && (await this.deps.webSearch.isConfigured(ctx.orgId))
+  }
+
+  /**
+   * Web search for this answer: the question goes through the personal-data filter to the
+   * organization's provider, and the results become numbered `web` sources after the knowledge
+   * ones, quoted in the system prompt as material to cite. A search that cannot run does not stop
+   * the answer: it is written without it and says so.
+   */
+  private async searchWeb(
+    ctx: TenantContext,
+    prepared: Prepared,
+    knowledge: { system: string; parts: ChatMessagePart[]; notes: ChatMessagePart[] },
+    signal: AbortSignal,
+  ): Promise<{ system: string; parts: ChatMessagePart[]; notes: ChatMessagePart[] }> {
+    if (prepared.continuing || prepared.question === '') return knowledge
+    const outcome = await this.deps.webSearch.search({
+      ctx,
+      query: prepared.question,
+      messageId: prepared.assistantMessageId,
+      signal,
+    })
+    const toolCallId = `web-search-${prepared.assistantMessageId}`
+    if (!outcome.ok) {
+      const reason = outcome.reason === 'pii_blocked' ? 'pii_blocked' : 'provider_error'
+      return {
+        ...knowledge,
+        notes: [...knowledge.notes, { type: 'data', name: 'web-search-skipped', data: { reason } }],
+      }
+    }
+    const first = knowledge.parts.reduce(
+      (max, part) => (part.type === 'source' ? Math.max(max, part.index) : max),
+      0,
+    )
+    const results = outcome.results.slice(0, WEB_SEARCH_RESULTS)
+    const sources = results.map((result, offset): SourcePart => ({
+      type: 'source',
+      index: first + offset + 1,
+      kind: 'web',
+      url: result.url,
+      title: result.title,
+      snippet: result.snippet.slice(0, SNIPPET_CHARS),
+    }))
+    const tool: ChatMessagePart = {
+      type: 'tool',
+      toolCallId,
+      toolName: CHAT_WEB_SEARCH_TOOL_NAME,
+      state: 'done',
+      input: { q: outcome.query },
+      output: { provider: outcome.provider, results: results.length },
+    }
+    return {
+      system:
+        sources.length === 0
+          ? knowledge.system
+          : `${knowledge.system}\n\n${WEB_SOURCES_PROMPT}\n\n${sourcesBlock(
+              sources.map((source, offset) => ({
+                index: source.index,
+                title: source.title,
+                snippet: `${results[offset]?.url ?? ''}\n${results[offset]?.snippet ?? ''}`,
+              })),
+            )}`,
+      parts: [...knowledge.parts, tool, ...sources],
+      notes: knowledge.notes,
     }
   }
 

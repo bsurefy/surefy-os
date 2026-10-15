@@ -165,3 +165,10 @@ export class PromptManageForbiddenError extends ForbiddenError {
     super(ERROR_CODES.ACCESS_FORBIDDEN, 'Only Builders and above manage shared prompts')
   }
 }
+
+/** Web search is off for the person, or no search provider is set up. */
+export class ChatWebSearchNotAllowedError extends ForbiddenError {
+  constructor() {
+    super(ERROR_CODES.CHAT_WEB_SEARCH_NOT_ALLOWED, 'Web search is not available here')
+  }
+}

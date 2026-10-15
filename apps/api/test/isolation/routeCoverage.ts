@@ -588,6 +588,15 @@ export const ROUTE_COVERAGE: Readonly<Record<RouteKey, RouteCoverage>> = {
       secret: testKey('intruder-key-1234'),
     }),
   },
+  'GET /api/v1/orgs/:orgId/vault/search-providers': { class: 'orgScoped' },
+  'POST /api/v1/orgs/:orgId/vault/search-providers': {
+    class: 'orgScoped',
+    payload: () => ({
+      providerKey: 'brave',
+      name: 'Intruder search',
+      secret: testKey('intruder-search-1234'),
+    }),
+  },
   'POST /api/v1/orgs/:orgId/vault/connection-tests': {
     class: 'orgScoped',
     payload: () => ({

@@ -16,9 +16,11 @@ import { NO_USAGE } from './vault.types.js'
 import { VaultKeysRepository } from './vaultKeys.repository.js'
 import { VaultKeysService } from './vaultKeys.service.js'
 import { VaultMaintenance } from './vaultMaintenance.js'
+import { VaultSearchService } from './vaultSearch.service.js'
 
 import type {
   VaultAccess,
+  VaultInstallSearch,
   VaultOrganizations,
   VaultTeams,
   VaultUsage,
@@ -29,6 +31,7 @@ import type { Crypto } from '@/core/crypto/index.js'
 import type { Database } from '@/core/database/index.js'
 import type { Logger } from '@/core/logger/index.js'
 import type { AiProviders } from '@/integrations/ai/index.js'
+import type { SearchProviders } from '@/integrations/search/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
 
 export interface ModelGrantsDeps {
@@ -54,6 +57,10 @@ export interface VaultModuleDeps {
   db: Database
   crypto: Crypto
   ai: AiProviders
+  /** Web search providers by `provider_key`. */
+  search: SearchProviders
+  /** The install's SearXNG address, used while no search provider is stored. */
+  installSearch: VaultInstallSearch
   models: ModelGrants
   access: VaultAccess
   organizations: VaultOrganizations
@@ -71,12 +78,24 @@ export interface VaultModuleDeps {
 export function createVaultModule(deps: VaultModuleDeps) {
   const vaultRepository = deps.repository ?? new VaultRepository()
   const modelSync = new ModelSync(deps.models.modelsRepository, deps.organizations)
+  const search = new VaultSearchService({
+    db: deps.db,
+    secrets: deps.crypto.secrets,
+    providers: deps.search,
+    vaultRepository,
+    users: deps.users,
+    usage: deps.usage ?? NO_USAGE,
+    install: deps.installSearch,
+    audit: deps.audit,
+    logger: deps.logger,
+  })
   const service = new VaultService({
     db: deps.db,
     secrets: deps.crypto.secrets,
     ai: deps.ai,
     vaultRepository,
     modelSync,
+    search,
     models: deps.models.service,
     access: deps.access,
     teams: deps.teams,
@@ -103,6 +122,8 @@ export function createVaultModule(deps: VaultModuleDeps) {
   })
   return {
     service,
+    /** Web search providers; also the resolver the search integration asks for the provider to use. */
+    search,
     maintenance,
     /** Data key rotation, re-encryption and the master key re-wrap (`cli keys …`, Cloud console). */
     keys,
@@ -116,7 +137,7 @@ export function createVaultModule(deps: VaultModuleDeps) {
     grants: deps.models,
     crypto: deps.crypto,
     repository: vaultRepository,
-    routes: vaultRoutes(new VaultController(service, deps.models.service)),
+    routes: vaultRoutes(new VaultController(service, deps.models.service, search)),
   }
 }
 export type VaultModule = ReturnType<typeof createVaultModule>

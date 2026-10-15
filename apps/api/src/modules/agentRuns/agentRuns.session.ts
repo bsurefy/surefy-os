@@ -107,7 +107,15 @@ export async function openSession(
       starterId: starter === null ? null : run.startedByUserId,
       starter,
       guardTeamIds,
-      tools: { orgId, principal: { userId: principalUserId, teamIds: guardTeamIds } },
+      tools: {
+        orgId,
+        principal: { userId: principalUserId, teamIds: guardTeamIds },
+        run: {
+          runId: run.id,
+          agentId: agent.id,
+          starterId: starter === null ? null : run.startedByUserId,
+        },
+      },
       signal,
       resolved: undefined,
       modelContext: (seq, piiMasked = false) => ({

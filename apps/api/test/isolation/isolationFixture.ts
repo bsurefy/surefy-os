@@ -181,6 +181,7 @@ export interface IsolationFixture {
 
 const INVITEE = 'secret.invitee@example.test'
 const VAULT_SECRET = 'sk-isolation-secret-of-acme-0042'
+const SEARCH_SECRET = 'search-isolation-secret-of-acme-0043'
 const CONNECTION_SECRET = 'sk-connection-secret-of-acme-0077'
 const APPROVAL_TITLE = 'Secret Refund Approval 0342'
 const AGENT_NAME = 'Secret Payroll Agent'
@@ -277,6 +278,14 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
         providerKey: 'ollama',
         baseUrl: 'http://ollama.secret-lab.test:11434',
       },
+    }),
+    201,
+    credentialDtoSchema,
+  )
+  const searchProvider = expectData(
+    await request(app, 'POST', `${vaultUrl}/search-providers`, {
+      headers,
+      payload: { providerKey: 'brave', name: 'Secret Brave', secret: SEARCH_SECRET },
     }),
     201,
     credentialDtoSchema,
@@ -681,6 +690,9 @@ export async function seedIsolationFixture(setup: TwoOrgSetup): Promise<Isolatio
       CONNECTION_SECRET,
       'api.secret-lab.test',
       VAULT_SECRET,
+      SEARCH_SECRET,
+      searchProvider.id,
+      'Secret Brave',
       server.id,
       'Secret Ollama',
       'ollama.secret-lab.test',

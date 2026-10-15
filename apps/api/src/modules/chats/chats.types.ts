@@ -10,6 +10,7 @@ import type {
 } from '@surefy/contracts'
 
 import type { DbExecutor } from '@/core/database/index.js'
+import type { WebSearchOutcome } from '@/integrations/search/index.js'
 import type { AuditRecorder } from '@/modules/audit/index.js'
 import type {
   PiiFilterInput,
@@ -102,6 +103,26 @@ export interface ChatRetrieval {
   retrieve(request: ChatRetrievalRequest): Promise<ChatRetrievalResult>
   /** Re-checks the viewer's access to a cited knowledge source and reads its passage. */
   checkSource(lookup: ChatSourceLookup): Promise<ChatSourceCheck>
+}
+
+/** Web search for an answer (V1): the search integration after the access policy and Vault. */
+export interface ChatWebSearch {
+  /** A search provider is set up for the organization. */
+  isConfigured(orgId: string): Promise<boolean>
+  search(request: {
+    ctx: TenantContext
+    query: string
+    /** The assistant message the search is for; keys its metering. */
+    messageId: string
+    signal?: AbortSignal
+  }): Promise<WebSearchOutcome>
+}
+
+/** No search provider: a chat that asks for web search is refused. */
+export const noChatWebSearch: ChatWebSearch = {
+  isConfigured: () => Promise.resolve(false),
+  search: () =>
+    Promise.resolve({ ok: false, reason: 'not_configured', provider: null, code: null }),
 }
 
 export const noChatRetrieval: ChatRetrieval = {

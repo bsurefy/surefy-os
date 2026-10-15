@@ -14,6 +14,7 @@ import { getTestDatabase } from './testDatabase.js'
 import { createFakeAi, type FakeAi } from '../fixtures/fakeAi.js'
 import { createFakeHttp, type FakeHttp } from '../fixtures/fakeHttp.js'
 import { createDefaultFakeMl } from '../fixtures/fakeMl.js'
+import { createFakeSearch, type FakeSearch } from '../fixtures/fakeSearch.js'
 
 import type { MlService } from '@/integrations/ml/index.js'
 import type { TenantAccessResolver } from '@/plugins/access.plugin.js'
@@ -27,6 +28,8 @@ export interface TestAppOptions {
   integrations?: Integrations
   /** The fake AI providers; one is created per app by default, so no test reaches a provider. */
   ai?: FakeAi
+  /** The fake web search providers; one is created per app by default. */
+  search?: FakeSearch
   /** The other apps the connections module calls; one is created per app by default. */
   http?: FakeHttp
   /** What Guard, agents and flows would provide to approvals (limits, names, access). */
@@ -57,6 +60,8 @@ export interface TestApp {
   owner: Database
   /** The fake AI providers behind this app: scripted answers and the calls made. */
   ai: FakeAi
+  /** The fake web search providers behind this app: scripted answers and the calls made. */
+  search: FakeSearch
   /** The fake other apps behind the connections module: scripted answers and the calls made. */
   http: FakeHttp
   close(): Promise<void>
@@ -73,9 +78,11 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const logger = testDatabase.logger
   const db = createDatabase(config, logger)
   const ai = options.ai ?? createFakeAi()
+  const search = options.search ?? createFakeSearch()
   const http = options.http ?? createFakeHttp()
   const base = await createContainer(config, {
     ai: ai.providers,
+    search: search.providers,
     connections: { http },
     ...(options.approvals === undefined ? {} : { approvals: options.approvals }),
     ...(options.guard === undefined ? {} : { guard: options.guard }),
@@ -106,5 +113,5 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     await container.close()
   }
   onFileTeardown(close)
-  return { app, container, config, db, owner: testDatabase.owner, ai, http, close }
+  return { app, container, config, db, owner: testDatabase.owner, ai, search, http, close }
 }
