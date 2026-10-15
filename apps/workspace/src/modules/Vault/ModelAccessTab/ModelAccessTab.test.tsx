@@ -7,13 +7,17 @@ import { accessAs, ORG_ID, seededShellClient } from '@/test/shell'
 import { renderWithProviders, setupTestServer } from '@surefy/web-core/testing'
 
 import ModelAccessTab from './ModelAccessTab'
+import { accessDomain, resetAccessMock } from '../../../../mock/handlers/access'
 import { membersDomain, resetMembersMock } from '../../../../mock/handlers/members'
 import { modelsDomain, resetModelsMock } from '../../../../mock/handlers/models'
 import { resetTeamsMock, teamsDomain } from '../../../../mock/handlers/teams'
+import { resetVaultMock, vaultDomain } from '../../../../mock/handlers/vault'
 
 vi.mock('next/navigation', () => ({ useParams: () => ({ orgSlug: 'acme' }) }))
 
 const server = setupTestServer(
+  ...accessDomain.handlers,
+  ...vaultDomain.handlers,
   ...modelsDomain.handlers,
   ...teamsDomain.handlers,
   ...membersDomain.handlers,
@@ -39,6 +43,8 @@ afterEach(() => {
 })
 
 beforeEach(() => {
+  resetAccessMock()
+  resetVaultMock()
   resetModelsMock()
   resetTeamsMock()
   resetMembersMock()
@@ -108,5 +114,67 @@ describe('ModelAccessTab', () => {
     expect(
       await screen.findByRole('button', { name: 'Sales can use Claude Sonnet 4' }),
     ).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  describe('web search by team', () => {
+    it('shows which teams may search the web', async () => {
+      renderAccess()
+      const list = await screen.findByRole('list', { name: 'Web search by team' })
+      expect(await within(list).findByRole('switch', { name: 'Sales' })).toBeChecked()
+      expect(within(list).getByRole('switch', { name: 'Support' })).not.toBeChecked()
+    })
+
+    it('turns web search on for a team at once', async () => {
+      const { user } = renderAccess()
+      const list = await screen.findByRole('list', { name: 'Web search by team' })
+      const support = await within(list).findByRole('switch', { name: 'Support' })
+      await vi.waitFor(() => {
+        expect(support).toBeEnabled()
+      })
+      await user.click(support)
+      expect(await screen.findByText('Web search is on for Support')).toBeVisible()
+      expect(support).toBeChecked()
+    })
+
+    it('turns web search off for a team', async () => {
+      const { user } = renderAccess()
+      const list = await screen.findByRole('list', { name: 'Web search by team' })
+      const sales = await within(list).findByRole('switch', { name: 'Sales' })
+      await vi.waitFor(() => {
+        expect(sales).toBeEnabled()
+      })
+      await user.click(sales)
+      expect(await screen.findByText('Web search is off for Sales')).toBeVisible()
+      expect(sales).not.toBeChecked()
+    })
+
+    it('says why a change failed', async () => {
+      useScenario('policy-forbidden')
+      const { user } = renderAccess()
+      const list = await screen.findByRole('list', { name: 'Web search by team' })
+      const sales = await within(list).findByRole('switch', { name: 'Sales' })
+      await vi.waitFor(() => {
+        expect(sales).toBeEnabled()
+      })
+      await user.click(sales)
+      expect(await screen.findByText("Couldn't change web search for Sales")).toBeVisible()
+    })
+
+    it('warns that teams cannot search until a search provider is connected', async () => {
+      useScenario('none')
+      renderAccess()
+      expect(await screen.findByText('No search provider is connected')).toBeVisible()
+      expect(screen.getByRole('link', { name: 'Connect a search provider' })).toHaveAttribute(
+        'href',
+        '/acme/settings/vault/providers#search-providers',
+      )
+    })
+
+    it('disables the switches when web search is off for the whole organization', async () => {
+      useScenario('web-search-off-for-organization')
+      renderAccess()
+      expect(await screen.findByText('Web search is off for the whole organization')).toBeVisible()
+      expect(await screen.findByRole('switch', { name: 'Sales' })).toBeDisabled()
+    })
   })
 })

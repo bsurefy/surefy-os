@@ -11,6 +11,9 @@ import { effectiveAccessApi } from './access.api'
 export const effectiveAccessKeys = {
   member: (orgId: string, userId: string) => [...accessKeys.all(orgId), 'members', userId] as const,
   team: (orgId: string, teamId: string) => [...accessKeys.all(orgId), 'teams', teamId] as const,
+  teamPolicy: (orgId: string, teamId: string) =>
+    [...accessKeys.all(orgId), 'team-policy', teamId] as const,
+  organizationPolicy: (orgId: string) => [...accessKeys.all(orgId), 'policy'] as const,
 }
 
 // `http` defaults to the browser client; server components pass getServerHttpClient()
@@ -24,5 +27,15 @@ export const effectiveAccessQueries = {
     queryOptions({
       queryKey: effectiveAccessKeys.team(orgId, teamId),
       queryFn: ({ signal }) => effectiveAccessApi.team(http, orgId, teamId, signal),
+    }),
+  teamPolicy: (orgId: string, teamId: string, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: effectiveAccessKeys.teamPolicy(orgId, teamId),
+      queryFn: ({ signal }) => effectiveAccessApi.teamPolicy(http, orgId, teamId, signal),
+    }),
+  organizationPolicy: (orgId: string, http: HttpClient = apiClient) =>
+    queryOptions({
+      queryKey: effectiveAccessKeys.organizationPolicy(orgId),
+      queryFn: ({ signal }) => effectiveAccessApi.organizationPolicy(http, orgId, signal),
     }),
 }

@@ -19,6 +19,7 @@ import KeysTable from './KeysTable'
 import ProviderCards from './ProviderCards'
 import { KEY_DIALOG, KEY_SCOPES_FILTER } from './ProvidersTab.constants'
 import { useProvidersTabController } from './ProvidersTab.controller'
+import SearchProviders from './SearchProviders'
 
 const ALL_SCOPES = 'all'
 
@@ -159,6 +160,7 @@ export default function ProvidersTab() {
           )}
         </div>
       </Section>
+      <SearchProviders />
       {c.dialog?.kind === KEY_DIALOG.ADD && (
         <AddKeyDialog orgId={c.orgId} mode="organization" onClose={c.closeDialog} />
       )}
